@@ -4704,8 +4704,9 @@
     align-items: center;
     flex: 0 0 auto;
     gap: 6px;
-    min-height: 32px;
+    min-height: 0;
     margin: 0;
+    padding: 0;
     cursor: pointer;
     white-space: nowrap;
 }
@@ -4755,9 +4756,9 @@
 #WorldInfo.slb-active .slb-entry-selection-checkbox,
 #WorldInfo.slb-active .slb-bulk-mode {
     accent-color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor));
-    width: 16px !important;
-    height: 16px !important;
-    min-height: 16px !important;
+    width: var(--mainFontSize, 14px) !important;
+    height: var(--mainFontSize, 14px) !important;
+    min-height: 0 !important;
     margin: 0 !important;
     cursor: pointer;
 }
@@ -4792,20 +4793,22 @@
     min-width: 0;
     max-width: 100%;
     height: auto;
-    min-height: 29px;
+    min-height: 0;
     max-height: none;
     margin: 4px 0 0;
-    padding: 5px 7px;
+    padding: 3px 5px;
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 5px;
     background: var(--black30a, var(--SmartThemeBlurTintColor));
     color: var(--SmartThemeBodyColor);
     font: inherit;
     font-size: inherit;
-    line-height: 1.4;
+    line-height: normal;
     text-align: left;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    overflow-y: auto;
+    resize: none;
     cursor: text;
 }
 /* A translated title occupies its own vertical stack. Native mobile headers
@@ -4849,7 +4852,7 @@
 }
 /* Specificity also overrides the existing critical mobile header rules. Keep
    native controls and their event handlers intact; hiding is presentation only. */
-#WorldInfo.slb-active .world_entry .slb-header-grid .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > textarea,
+#WorldInfo.slb-active .world_entry .slb-header-grid .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > textarea:not(.slb-field-translation),
 #WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) textarea[name="comment"],
 #WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) input[name="comment"],
 #WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) textarea[name="key"],
@@ -4859,4 +4862,44 @@
 #WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) .select2-container,
 #WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) .switch_input_type_icon {
     display: none !important;
+}
+
+/* v1.4.84: match the compact automatic-translation options. */
+#WorldInfo.slb-active #slb-entry-selection-toolbar { font-size: .9em; }
+#WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
+    gap: 4px;
+    font-size: inherit;
+    line-height: 1.22;
+}
+#slb-ai-tools .slb-translation-display-options { margin: 0 0 8px; }
+#slb-ai-tools .slb-translation-targets > .slb-mobile-display-options { width: 100%; }
+@media (max-width: 760px) {
+    #WorldInfo.slb-active #slb-entry-selection-toolbar,
+    #WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
+        font-size: clamp(10px, 2.6vw, 13px) !important;
+    }
+}
+/* Desktop: the native label/control rows stay aligned across all columns.
+   Translation gets a third row in the title column, never a spanning flex item. */
+@media (min-width: 761px) {
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-entry-header-shell > .slb-header-grid {
+        grid-template-rows: 22px 32px auto !important;
+    }
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-header-grid > .slb-title-field.slb-has-field-translation {
+        display: contents !important;
+    }
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-title-field > .slb-field-translation {
+        grid-column: 1 !important;
+        grid-row: 3 !important;
+        margin-top: 4px !important;
+    }
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > .slb-field-translation {
+        grid-row: 2 !important;
+        margin-top: 0 !important;
+    }
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-entry-header-shell > .slb-header-actions,
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-entry-header-shell > .slb-header-toggles {
+        align-self: start !important;
+        margin-top: 22px !important;
+    }
 }

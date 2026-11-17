@@ -147,7 +147,7 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
             toolbar = document.createElement('div');
             toolbar.id = 'slb-entry-selection-toolbar';
             toolbar.innerHTML = `
-                <label class="checkbox_label slb-bulk-mode-label"><input type="checkbox" class="slb-bulk-mode"><span>선택</span></label>
+                <label class="slb-bulk-mode-label"><input type="checkbox" class="slb-bulk-mode"><span>선택</span></label>
                 <div class="slb-bulk-selection-tools" hidden>
                     <strong class="slb-bulk-selection-count" aria-live="polite"></strong>
                     <button type="button" class="menu_button slb-bulk-select-all" title="현재 로어북의 모든 항목 선택 (다른 페이지와 필터로 숨긴 항목 포함)">전체 선택</button>

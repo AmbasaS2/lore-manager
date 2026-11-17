@@ -16,7 +16,7 @@ import { createLorebookBulkEditor } from './bulk-edit.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.83';
+const VERSION = '1.4.84';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3094,11 +3094,16 @@ function createAIBar() {
                 </div>
                 <fieldset class="slb-translation-targets">
                     <legend>번역할 항목</legend>
-                    <label><input type="checkbox" id="slb-translate-content"> 본문</label>
-                    <label><input type="checkbox" id="slb-translate-title"> 제목</label>
-                    <label><input type="checkbox" id="slb-translate-keywords"> 호출 키워드</label>
+                    <div class="slb-mobile-display-options">
+                        <label><input type="checkbox" id="slb-translate-content"> 본문</label>
+                        <label><input type="checkbox" id="slb-translate-title"> 제목</label>
+                        <label><input type="checkbox" id="slb-translate-keywords"> 호출 키워드</label>
+                    </div>
                     <small>기존 번역 버튼과 자동·일괄 번역에 적용됩니다. 제목·키워드 번역은 읽기용이며 실제 값은 바뀌지 않습니다.</small>
                 </fieldset>
+                <div class="slb-mobile-display-options slb-translation-display-options">
+                    <label><input type="checkbox" id="slb-hide-translated-source"> 번역본이 있을 때 원문 숨기기</label>
+                </div>
                 <label class="slb-field slb-prompt-field"><small>번역 추가 지시문 · AI 프로필 모드에서만 적용</small>
                     <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="번역 언어는 각 항목의 원문 EN/KO · 번역 KO/EN 배지를 따릅니다. 문체·존칭·용어 같은 추가 요구사항만 적어주세요. 예) 대사는 반말로, 지문은 건조한 문어체로. (구글 번역에는 적용되지 않습니다)"></textarea>
                     <span class="slb-prompt-meta">
@@ -3111,7 +3116,6 @@ function createAIBar() {
                     <option value="extension">확장 탭</option>
                 </select></label>
                 <div id="slb-quick-options-host"></div>
-                <label class="checkbox_label"><input type="checkbox" id="slb-hide-translated-source"><span>번역본이 있을 때 원문 숨기기</span></label>
                 <div class="slb-mobile-display-settings">
                     <small class="slb-mobile-display-title">모바일 로어북 표시</small>
                     <div class="slb-mobile-display-options">
@@ -3529,6 +3533,53 @@ function saveMetadataTranslations(book, uid, pair, sources, results) {
     scheduleAutomaticLorebookBackup(book);
 }
 
+function syncMetadataFieldAppearance(view, field, name) {
+    const textarea = field.querySelector(`textarea[name="${name}"]`);
+    const select = field.querySelector(`select[name="${name}"]`);
+    const target = select?.classList.contains('select2-hidden-accessible')
+        ? field.querySelector('.select2-selection--multiple') || textarea
+        : textarea || field.querySelector(`input[name="${name}"]`);
+    if (!target) return;
+    const style = getComputedStyle(target);
+    // Use the user's actual theme and native control size, including manually
+    // resized keyword fields. Never copy a value, name or native save handler.
+    for (const property of [
+        'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
+        'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+        'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+        'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+        'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius',
+        'background-color', 'color', 'box-shadow',
+    ]) {
+        const value = style.getPropertyValue(property);
+        if (value && view.style.getPropertyValue(property) !== value) view.style.setProperty(property, value, 'important');
+    }
+    let height = target.getBoundingClientRect().height;
+    if (!height && style.height.endsWith('px')) {
+        height = parseFloat(style.height);
+        if (style.boxSizing !== 'border-box') {
+            height += ['padding-top', 'padding-bottom', 'border-top-width', 'border-bottom-width']
+                .reduce((sum, property) => sum + (parseFloat(style.getPropertyValue(property)) || 0), 0);
+        }
+    }
+    if (!height) height = parseFloat(style.minHeight) || 0;
+    if (height > 0) for (const property of ['height', 'min-height', 'max-height']) {
+        const value = `${height}px`;
+        if (view.style.getPropertyValue(property) !== value) view.style.setProperty(property, value, 'important');
+    }
+    if (textarea) view.rows = textarea.rows;
+    if (typeof ResizeObserver === 'function' && view.slbAppearanceTarget !== target) {
+        view.slbAppearanceObserver?.disconnect();
+        view.slbAppearanceTarget = target;
+        view.slbAppearanceObserver = new ResizeObserver(() => {
+            if (!view.isConnected || !target.isConnected) view.slbAppearanceObserver.disconnect();
+            else syncMetadataFieldAppearance(view, field, name);
+        });
+        view.slbAppearanceObserver.observe(target);
+    }
+}
+
 function syncMetadataTranslations(entry) {
     if (!entry) return;
     const uid = getUid(entry);
@@ -3546,12 +3597,15 @@ function syncMetadataTranslations(entry) {
         let view = field.querySelector(`.slb-field-translation[data-field="${name}"]`);
         const text = record?.language === language ? currentMetadataTranslation(record, name, sources[name]) : '';
         if (text && !view) {
-            view = createElement('button', 'text_pole slb-field-translation');
-            view.type = 'button';
+            view = createElement('textarea', 'text_pole slb-field-translation');
+            view.readOnly = true;
+            view.rows = 1;
+            view.setAttribute('aria-label', name === 'comment' ? '제목 번역 (읽기 전용)' : '호출 키워드 번역 (읽기 전용)');
             view.dataset.field = name;
             view.title = '읽기용 번역 · 원문을 편집하려면 누르세요';
             view.addEventListener('click', event => {
                 event.stopPropagation();
+                if (!field.classList.contains('slb-field-original-hidden')) return;
                 field.classList.add('slb-field-editing');
                 const select = field.querySelector(`select[name="${name}"]`);
                 const textarea = field.querySelector(`textarea[name="${name}"]`);
@@ -3568,8 +3622,9 @@ function syncMetadataTranslations(entry) {
             });
         }
         if (view) {
-            if (view.textContent !== text) view.textContent = text;
+            if (view.value !== text) view.value = text;
             view.hidden = !text;
+            if (text) syncMetadataFieldAppearance(view, field, name);
         }
         field.classList.toggle('slb-field-original-hidden', Boolean(text && getSettings().hideOriginalWhenTranslated));
         field.classList.toggle('slb-has-field-translation', Boolean(text));
@@ -5037,7 +5092,10 @@ function syncResponsiveEntryLayouts() {
     // forEach(placeResponsiveHeaderFields)로 직접 넘기면 두 번째 인자
     // (인덱스)가 forceCompact로 들어가 첫 항목을 제외한 전부가 강제
     // 컴팩트가 된다 — 데스크톱에서 헤더 필드가 사라지던 원인.
-    renderedEntries().forEach(entry => placeResponsiveHeaderFields(entry));
+    renderedEntries().forEach(entry => {
+        placeResponsiveHeaderFields(entry);
+        syncMetadataTranslations(entry);
+    });
 }
 
 function scheduleResponsiveEntryLayouts() {

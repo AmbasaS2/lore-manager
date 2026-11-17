@@ -31,7 +31,7 @@ function fixture() {
         worldInfoFilter: { onDataChanged: () => events.push('redraw') }, renderTokenSummary() {},
         notify: (...args) => events.push(args), updateBulkTranslationStatus() {},
         translationKey: key, canTranslate: () => true, entryLanguageBadge: language => language,
-        jQuery: makeJQuery(dom.window), setTimeout,
+        jQuery: makeJQuery(dom.window), setTimeout, getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
         entryData: uid => data.entries[uid],
         updateNavigatorEntry() {}, scheduleSourceTranslation() {}, scheduleAutomaticLorebookBackup() {},
         hashText: text => text, normalizeEntryLanguage: value => value,
@@ -41,7 +41,7 @@ function fixture() {
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
 
     });
-    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'saveTranslationRecord', 'findTranslationRecord', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'saveTranslationRecord', 'findTranslationRecord', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
@@ -304,7 +304,7 @@ test('metadata UI is read-only, hides each original independently, safely render
         assert.equal(row.querySelectorAll('.slb-field-translation').length, 2);
         assert.equal(row.classList.contains('slb-has-title-translation'), true);
         assert.equal(source.parentElement.classList.contains('slb-has-field-translation'), true);
-        assert.equal(row.querySelectorAll('.slb-field-translation.text_pole').length, 2);
+        assert.equal(row.querySelectorAll('textarea.slb-field-translation.text_pole[readonly]').length, 2);
         assert.equal(row.querySelector('img'), null, 'translation is text, never HTML');
         assert.equal(source.value, 'The Estate');
         assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), true);
@@ -351,7 +351,7 @@ test('single entry translation obeys targets, saves metadata and keeps native fi
         await f.context.translateEntrySource(ui, true);
         assert.deepEqual(f.requests.map(r => r[0]), ['source 0', 'The Estate', 'estate', 'home']);
         assert.equal(ui.translation.value, 'translated source 0');
-        assert.equal(ui.entry.querySelector('.slb-field-translation').textContent, 'translated The Estate');
+        assert.equal(ui.entry.querySelector('.slb-field-translation').value, 'translated The Estate');
         assert.equal(ui.entry.querySelector('[name="comment"]').value, 'The Estate');
         assert.equal(JSON.stringify(f.data), before);
         assert.equal(ui.flags.translating, false);
@@ -390,4 +390,43 @@ test('single metadata response is discarded when the original title changes duri
         assert.equal(f.settings.translations['A:0'], undefined);
         assert.equal(ui.flags.translating, false);
     } finally { f.close(); }
+});
+
+test('read-only translation fields copy native theme metrics and follow source resize', () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment" style="height:29px;box-sizing:border-box;padding:3px 5px;border:1px solid rgb(180,160,175);border-radius:5px;font-size:13px;line-height:normal">Title</textarea></div><div class="slb-keyword-core-field"><textarea name="key" rows="1" style="height:22px;box-sizing:border-box;padding:2px 4px;border:1px solid rgb(180,160,175);border-radius:4px;font-size:12px">key</textarea></div>');
+        f.settings.hideOriginalWhenTranslated = false;
+        f.settings.translations['A:0'] = { language: 'ko', fields: { comment: { source: 'Title', text: '제목' }, key: { source: 'key', text: '키워드' } } };
+        f.context.syncMetadataTranslations(ui.entry);
+        for (const name of ['comment', 'key']) {
+            const source = ui.entry.querySelector(`[name="${name}"]`);
+            const view = ui.entry.querySelector(`[data-field="${name}"]`);
+            assert.equal(view.tagName, 'TEXTAREA'); assert.equal(view.readOnly, true); assert.equal(view.name, '');
+            const style = f.context.getComputedStyle(source);
+            for (const property of ['height', 'font-size', 'padding-top', 'padding-left', 'border-top-width', 'border-top-color']) {
+                assert.equal(view.style.getPropertyValue(property), style.getPropertyValue(property), `${name}: ${property}`);
+            }
+            view.click();
+            assert.equal(source.parentElement.classList.contains('slb-field-editing'), false, 'visible translations can be selected without jumping to the source');
+        }
+        const keyword = ui.entry.querySelector('[name="key"]');
+        keyword.style.height = '75px'; f.context.syncMetadataTranslations(ui.entry);
+        assert.equal(ui.entry.querySelector('[data-field="key"]').style.height, '75px');
+        assert.equal(keyword.value, 'key');
+    } finally { f.close(); }
+});
+
+test('source hiding is directly below translation targets and uses the mobile-display option styles', () => {
+    const markup = code.slice(code.indexOf('function createAIBar()')).match(/bar.innerHTML = `([\s\S]*?)`;/)[1];
+    const dom = new JSDOM(`<div id="slb-ai-tools">${markup}</div>`);
+    try {
+        const targets = dom.window.document.querySelector('.slb-translation-targets');
+        const hide = dom.window.document.getElementById('slb-hide-translated-source');
+        assert.equal(targets.nextElementSibling, hide.closest('.slb-translation-display-options'));
+        assert.equal(hide.parentElement.classList.contains('checkbox_label'), false);
+        assert.equal(hide.parentElement.parentElement.classList.contains('slb-mobile-display-options'), true);
+        assert.equal(targets.querySelectorAll('.slb-mobile-display-options > label > input').length, 3);
+    } finally { dom.window.close(); }
 });
