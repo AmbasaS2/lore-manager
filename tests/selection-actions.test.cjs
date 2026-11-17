@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const makeJQuery = require('jquery');
 const code = readFileSync(require('node:path').join(__dirname, '../index.js'), 'utf8');
 const fn = name => code.match(new RegExp(`^(?:async )?function ${name}\\([^]*?^}`, 'm'))[0];
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -29,19 +30,25 @@ function fixture() {
         renderedEntries: () => rows, getUid: row => row.dataset.uid,
         worldInfoFilter: { onDataChanged: () => events.push('redraw') }, renderTokenSummary() {},
         notify: (...args) => events.push(args), updateBulkTranslationStatus() {},
-        translationKey: key, canTranslate: () => true,
+        translationKey: key, canTranslate: () => true, entryLanguageBadge: language => language,
+        jQuery: makeJQuery(dom.window), setTimeout,
+        entryData: uid => data.entries[uid],
+        updateNavigatorEntry() {}, scheduleSourceTranslation() {}, scheduleAutomaticLorebookBackup() {},
+        hashText: text => text, normalizeEntryLanguage: value => value,
+        oppositeEntryLanguage: () => 'ko', ENTRY_LANGUAGE_ENGLISH: 'en',
+        createElement: (tag, className, text) => { const el = dom.window.document.createElement(tag); el.className = className; el.textContent = text || ''; return el; },
         getEntryLanguagePair: () => ({ sourceLanguage: 'en', translationLanguage: 'ko' }),
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
-        saveTranslationRecord: (book, uid, source, text) => { settings.translations[key(book, uid)] = { text, source }; },
-        markTranslationSynced: (ui, source, text) => { settings.translations[key(ui.book, ui.uid)] = { source, text }; },
+
     });
-    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'saveTranslationRecord', 'findTranslationRecord', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
         dom.window.document.getElementById('rows').append(row); rows.push(row);
         const edit = row.querySelector('.world_entry_edit');
-        const result = { book: 'A', uid: String(uid), root: edit, source: row.querySelector('textarea'), translation: row.querySelector('.translation'), flags: {}, status: {}, sourceLanguage: 'en', translationLanguage: 'ko' };
+        const result = { entry: row, book: 'A', uid: String(uid), root: edit, source: row.querySelector('textarea'), translation: row.querySelector('.translation'), flags: {}, status: {}, sourceLanguage: 'en', translationLanguage: 'ko' };
+        result.translationPane = result.translation.parentElement;
         result.source.value = data.entries[uid].content; edit.slbTranslationUI = result; return result;
     }
     return { context, data, settings, events, requests, ui, selection: { book: 'A', uids: ['0', '2', '3'] },
@@ -211,5 +218,171 @@ test('Google translation keeps one active request', async () => {
         finish[1]('second'); await flush(); assert.equal(f.requests.length, 3);
         finish[2]('third'); await pending;
         assert.equal(f.context.state.bulkTranslation, null);
+    } finally { f.close(); }
+});
+
+test('all eight target combinations request only selected fields and preserve native lorebook values', async () => {
+    for (let mask = 0; mask < 8; mask++) {
+        const f = fixture();
+        try {
+            Object.assign(f.settings, { translateContent: !!(mask & 1), translateTitle: !!(mask & 2), translateKeywords: !!(mask & 4) });
+            Object.assign(f.data.entries[0], { comment: 'The Estate', key: ['estate', 'Bennett'], keysecondary: ['home'] });
+            const before = JSON.stringify(f.data);
+            await f.context.translateCurrentLorebook('selected', { book: 'A', uids: ['0'] });
+            const wanted = [...(mask & 1 ? ['source 0'] : []), ...(mask & 2 ? ['The Estate'] : []), ...(mask & 4 ? ['estate, Bennett', 'home'] : [])];
+            assert.deepEqual(f.requests.map(r => r[0]), wanted, `mask ${mask}`);
+            assert.equal(JSON.stringify(f.data), before);
+            const saved = f.settings.translations['A:0'];
+            if (mask & 2) assert.equal(saved.fields.comment.text, 'translated The Estate');
+            if (mask & 4) assert.equal(saved.fields.keysecondary.text, 'translated home');
+            if (mask && !(mask & 1)) assert.equal(saved.text, '', 'metadata-only must not fabricate a body translation');
+        } finally { f.close(); }
+    }
+});
+
+test('metadata-only translation includes empty body entries and retains the prior body and sync baseline', async () => {
+    const f = fixture();
+    try {
+        f.settings.translateContent = false; f.settings.translateTitle = true;
+        f.data.entries[0].content = ''; f.data.entries[0].comment = 'A title';
+        const original = { language: 'ko', text: '기존 번역', sourceHash: 'old', syncedText: '기존 번역', syncedSourceText: 'old', syncedSourceHash: 'old' };
+        f.settings.translations['A:0'] = original;
+        await f.context.translateCurrentLorebook('selected', { book: 'A', uids: ['0'] });
+        assert.deepEqual(f.requests.map(r => r[0]), ['A title']);
+        for (const field of Object.keys(original)) assert.equal(f.settings.translations['A:0'][field], original[field]);
+        f.settings.translateContent = true; f.settings.translateTitle = false; f.data.entries[0].content = 'New content';
+        await f.context.translateCurrentLorebook('selected', { book: 'A', uids: ['0'] });
+        assert.equal(f.settings.translations['A:0'].text, 'translated New content');
+        assert.equal(f.settings.translations['A:0'].fields.comment.text, 'translated A title');
+    } finally { f.close(); }
+});
+
+test('missing mode fills missing metadata without overwriting an existing body translation', async () => {
+    const f = fixture();
+    try {
+        f.settings.translateTitle = true; f.settings.translateKeywords = true;
+        f.data.entries[0].comment = 'The Estate'; f.data.entries[0].key = ['estate'];
+        f.settings.translations['A:0'] = { uid: '0', language: 'ko', text: '내가 고친 본문', sourceHash: 'source 0', fields: { comment: { source: 'The Estate', text: '저택' } } };
+        await f.context.translateCurrentLorebook('missing', { book: 'A', uids: ['0'] });
+        assert.deepEqual(f.requests.map(r => r[0]), ['estate']);
+        assert.equal(f.settings.translations['A:0'].text, '내가 고친 본문');
+        assert.equal(f.settings.translations['A:0'].fields.comment.text, '저택');
+        await f.context.translateCurrentLorebook('missing', { book: 'A', uids: ['0'] });
+        assert.equal(f.requests.length, 1, 'no repeated requests after filling missing fields');
+    } finally { f.close(); }
+});
+
+test('metadata edited during a request is not replaced with stale translation', async () => {
+    for (const field of ['comment', 'key', 'keysecondary']) {
+        const f = fixture();
+        try {
+            f.settings.translateContent = false;
+            f.settings.translateTitle = field === 'comment'; f.settings.translateKeywords = field !== 'comment';
+            f.data.entries[0][field] = field === 'comment' ? 'before' : ['before'];
+            let finish; f.translate(() => new Promise(resolve => { finish = resolve; }));
+            const pending = f.context.translateCurrentLorebook('selected', { book: 'A', uids: ['0'] });
+            await flush(); f.data.entries[0][field] = field === 'comment' ? 'after' : ['after'];
+            finish('stale'); await pending;
+            assert.equal(f.settings.translations['A:0'], undefined);
+        } finally { f.close(); }
+    }
+});
+
+test('metadata UI is read-only, hides each original independently, safely renders text, and preserves edit handlers', () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0), row = ui.entry;
+        row.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">The Estate</textarea></div><div class="slb-keyword-core-field"><textarea name="key">estate, Bennett</textarea></div><div class="slb-keyword-core-field"><textarea name="keysecondary">home</textarea></div>');
+        f.settings.translations['A:0'] = { language: 'ko', text: '본문', fields: {
+            comment: { source: 'The Estate', text: '<img src=x onerror=alert(1)>저택' },
+            key: { source: 'estate, Bennett', text: '저택, 베넷' },
+        } };
+        const source = row.querySelector('[name="comment"]'); let changes = 0;
+        source.addEventListener('input', () => changes++);
+        const sync = () => f.context.syncMetadataTranslations(row);
+        sync(); sync();
+        assert.equal(row.querySelectorAll('.slb-field-translation').length, 2);
+        assert.equal(row.querySelector('img'), null, 'translation is text, never HTML');
+        assert.equal(source.value, 'The Estate');
+        assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), true);
+        assert.equal(row.querySelector('[name="keysecondary"]').parentElement.classList.contains('slb-field-original-hidden'), false);
+        row.querySelector('.slb-field-translation').click();
+        assert.equal(source.parentElement.classList.contains('slb-field-editing'), true);
+        assert.equal(source.ownerDocument.activeElement, source);
+        source.value = 'Changed title'; source.dispatchEvent(new source.ownerDocument.defaultView.Event('input', { bubbles: true }));
+        assert.equal(changes, 1);
+        assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), false, 'stale translation must not hide edited source');
+        assert.equal(source.parentElement.querySelector('.slb-field-translation').hidden, true);
+        f.settings.hideOriginalWhenTranslated = false; sync();
+        assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), false);
+        f.settings.hideOriginalWhenTranslated = true; ui.translationLanguage = 'en'; sync();
+        assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), false, 'language direction is respected');
+    } finally { f.close(); }
+});
+
+test('Select2 keywords use current selected values even when original controls are hidden', () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-keyword-core-field"><textarea name="key" style="display:none">outdated</textarea><select name="key" multiple class="select2-hidden-accessible"><option selected>current</option><option selected>name</option></select><span class="select2-container"></span></div>');
+        f.settings.translations['A:0'] = { language: 'ko', fields: { key: { source: 'current, name', text: '현재, 이름' } } };
+        f.context.syncMetadataTranslations(ui.entry);
+        assert.equal(f.context.getEntryTranslationSources(f.data.entries[0], ui).key, 'current, name');
+        const select = ui.entry.querySelector('select');
+        select.options[0].selected = false;
+        f.context.jQuery(select).trigger('change');
+        assert.equal(select.parentElement.classList.contains('slb-field-original-hidden'), false);
+    } finally { f.close(); }
+});
+
+test('single entry translation obeys targets, saves metadata and keeps native fields intact', async () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">The Estate</textarea></div>');
+        f.settings.translateTitle = true; f.settings.translateKeywords = true;
+        f.data.entries[0].key = ['estate']; f.data.entries[0].keysecondary = ['home'];
+        const before = JSON.stringify(f.data);
+        await f.context.translateEntrySource(ui, true);
+        assert.deepEqual(f.requests.map(r => r[0]), ['source 0', 'The Estate', 'estate', 'home']);
+        assert.equal(ui.translation.value, 'translated source 0');
+        assert.equal(ui.entry.querySelector('.slb-field-translation').textContent, 'translated The Estate');
+        assert.equal(ui.entry.querySelector('[name="comment"]').value, 'The Estate');
+        assert.equal(JSON.stringify(f.data), before);
+        assert.equal(ui.flags.translating, false);
+        f.settings.translateContent = false;
+        ui.translation.value = '수정한 본문'; f.requests.length = 0;
+        await f.context.translateEntrySource(ui, true);
+        assert.equal(ui.translation.value, '수정한 본문');
+        assert.deepEqual(f.requests.map(r => r[0]), ['The Estate', 'estate', 'home']);
+    } finally { f.close(); }
+});
+
+test('automatic missing translation fills a newly enabled title without retranslating a current body', async () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">The Estate</textarea></div>');
+        f.settings.translateTitle = true;
+        ui.translation.value = '기존 본문';
+        f.settings.translations['A:0'] = { language: 'ko', text: '기존 본문', sourceHash: 'source 0' };
+        await f.context.translateEntrySource(ui, true, true);
+        assert.deepEqual(f.requests.map(r => r[0]), ['The Estate']);
+        assert.equal(ui.translation.value, '기존 본문');
+        assert.equal(f.settings.translations['A:0'].text, '기존 본문');
+    } finally { f.close(); }
+});
+
+test('single metadata response is discarded when the original title changes during translation', async () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0); f.settings.translateContent = false; f.settings.translateTitle = true;
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">before</textarea></div>');
+        let finish; f.translate(() => new Promise(resolve => { finish = resolve; }));
+        const pending = f.context.translateEntrySource(ui, true);
+        await flush(); ui.entry.querySelector('[name="comment"]').value = 'after';
+        finish('stale'); await pending;
+        assert.equal(f.settings.translations['A:0'], undefined);
+        assert.equal(ui.flags.translating, false);
     } finally { f.close(); }
 });
