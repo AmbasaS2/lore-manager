@@ -302,6 +302,9 @@ test('metadata UI is read-only, hides each original independently, safely render
         const sync = () => f.context.syncMetadataTranslations(row);
         sync(); sync();
         assert.equal(row.querySelectorAll('.slb-field-translation').length, 2);
+        assert.equal(row.classList.contains('slb-has-title-translation'), true);
+        assert.equal(source.parentElement.classList.contains('slb-has-field-translation'), true);
+        assert.equal(row.querySelectorAll('.slb-field-translation.text_pole').length, 2);
         assert.equal(row.querySelector('img'), null, 'translation is text, never HTML');
         assert.equal(source.value, 'The Estate');
         assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), true);
@@ -311,6 +314,8 @@ test('metadata UI is read-only, hides each original independently, safely render
         assert.equal(source.ownerDocument.activeElement, source);
         source.value = 'Changed title'; source.dispatchEvent(new source.ownerDocument.defaultView.Event('input', { bubbles: true }));
         assert.equal(changes, 1);
+        assert.equal(row.classList.contains('slb-has-title-translation'), false);
+        assert.equal(source.parentElement.classList.contains('slb-has-field-translation'), false);
         assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), false, 'stale translation must not hide edited source');
         assert.equal(source.parentElement.querySelector('.slb-field-translation').hidden, true);
         f.settings.hideOriginalWhenTranslated = false; sync();

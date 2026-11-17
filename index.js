@@ -16,7 +16,7 @@ import { createLorebookBulkEditor } from './bulk-edit.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.82';
+const VERSION = '1.4.83';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3546,7 +3546,7 @@ function syncMetadataTranslations(entry) {
         let view = field.querySelector(`.slb-field-translation[data-field="${name}"]`);
         const text = record?.language === language ? currentMetadataTranslation(record, name, sources[name]) : '';
         if (text && !view) {
-            view = createElement('button', 'slb-field-translation');
+            view = createElement('button', 'text_pole slb-field-translation');
             view.type = 'button';
             view.dataset.field = name;
             view.title = '읽기용 번역 · 원문을 편집하려면 누르세요';
@@ -3572,8 +3572,12 @@ function syncMetadataTranslations(entry) {
             view.hidden = !text;
         }
         field.classList.toggle('slb-field-original-hidden', Boolean(text && getSettings().hideOriginalWhenTranslated));
+        field.classList.toggle('slb-has-field-translation', Boolean(text));
         if (!text) field.classList.remove('slb-field-editing');
     }
+    entry.classList.toggle('slb-has-title-translation', Boolean(
+        record?.language === language && currentMetadataTranslation(record, 'comment', sources.comment),
+    ));
     if (!entry.slbMetadataBound) {
         entry.slbMetadataBound = true;
         const changed = event => {

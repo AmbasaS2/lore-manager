@@ -4787,22 +4787,61 @@
 .slb-translation-targets small { flex-basis: 100%; opacity: .75; }
 #WorldInfo.slb-active .world_entry .slb-field-translation {
     display: block;
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     height: auto;
+    min-height: 29px;
+    max-height: none;
     margin: 4px 0 0;
-    padding: 4px 6px;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
+    padding: 5px 7px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background: var(--black30a, var(--SmartThemeBlurTintColor));
     color: var(--SmartThemeBodyColor);
     font: inherit;
-    font-size: .9em;
+    font-size: inherit;
     line-height: 1.4;
     text-align: left;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     cursor: text;
+}
+/* A translated title occupies its own vertical stack. Native mobile headers
+   reserve a single 29px grid row; desktop fields otherwise use display:contents.
+   Override both only for entries with a visible title translation. */
+#WorldInfo.slb-active .world_entry.slb-has-title-translation .slb-entry-header-shell > .slb-header-grid {
+    grid-template-rows: 22px minmax(32px, auto) !important;
+    height: auto !important;
+    max-height: none !important;
+}
+#WorldInfo.slb-active .world_entry.slb-has-title-translation .slb-header-grid > .slb-title-field.slb-has-field-translation {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    width: 100%;
+    min-width: 0;
+    height: auto !important;
+    max-height: none !important;
+}
+#WorldInfo.slb-active .world_entry.slb-has-title-translation.slb-compact-entry .slb-entry-header-shell > .slb-header-grid {
+    grid-template-rows: auto !important;
+}
+#WorldInfo.slb-active .world_entry.slb-has-title-translation.slb-compact-entry .slb-header-grid > .slb-title-field.slb-has-field-translation {
+    grid-row: 1 !important;
+}
+#WorldInfo.slb-active .world_entry .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > .slb-field-translation {
+    margin-top: 0;
+}
+@media (max-width: 760px) {
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation .slb-entry-header-shell > .slb-header-grid {
+        grid-template-rows: auto !important;
+    }
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation .slb-header-grid > .slb-title-field.slb-has-field-translation {
+        grid-row: 1 !important;
+    }
 }
 #WorldInfo.slb-active .world_entry .slb-field-translation[hidden] { display: none !important; }
 #WorldInfo.slb-active .world_entry .slb-field-translation:focus-visible {
