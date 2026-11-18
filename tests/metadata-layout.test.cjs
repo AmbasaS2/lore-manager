@@ -64,6 +64,9 @@ for (const width of [320, 390, 760, 1280]) test(`translated title uses dedicated
             assert.equal(winningProperty(sheets, title.firstElementChild, 'display', width), 'none');
             assert.notEqual(winningProperty(sheets, title.lastElementChild, 'display', width), 'none');
         }
+        title.classList.add('slb-field-original-hidden', 'slb-field-editing');
+        assert.equal(winningProperty(sheets, title.firstElementChild, 'display', width), 'none', 'focus/edit state cannot reveal the original');
+        assert.notEqual(winningProperty(sheets, title.lastElementChild, 'display', width), 'none');
         // Untranslated entries keep their previous compact layout.
         title.closest('.world_entry').classList.remove('slb-has-title-translation');
         title.classList.remove('slb-has-field-translation');

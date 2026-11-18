@@ -16,7 +16,7 @@ import { createLorebookBulkEditor } from './bulk-edit.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.84';
+const VERSION = '1.4.85';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3099,7 +3099,7 @@ function createAIBar() {
                         <label><input type="checkbox" id="slb-translate-title"> 제목</label>
                         <label><input type="checkbox" id="slb-translate-keywords"> 호출 키워드</label>
                     </div>
-                    <small>기존 번역 버튼과 자동·일괄 번역에 적용됩니다. 제목·키워드 번역은 읽기용이며 실제 값은 바뀌지 않습니다.</small>
+                    <small>기존 번역 버튼과 자동·일괄 번역에 적용됩니다. 제목·키워드 번역본은 직접 수정할 수 있으며, 실제 제목과 호출 키워드는 바뀌지 않습니다.</small>
                 </fieldset>
                 <div class="slb-mobile-display-options slb-translation-display-options">
                     <label><input type="checkbox" id="slb-hide-translated-source"> 번역본이 있을 때 원문 숨기기</label>
@@ -3533,13 +3533,20 @@ function saveMetadataTranslations(book, uid, pair, sources, results) {
     scheduleAutomaticLorebookBackup(book);
 }
 
-function syncMetadataFieldAppearance(view, field, name) {
+function syncMetadataFieldAppearance(view, field, name, force = false) {
     const textarea = field.querySelector(`textarea[name="${name}"]`);
     const select = field.querySelector(`select[name="${name}"]`);
     const target = select?.classList.contains('select2-hidden-accessible')
         ? field.querySelector('.select2-selection--multiple') || textarea
         : textarea || field.querySelector(`input[name="${name}"]`);
     if (!target) return;
+    // Ordinary metadata refreshes do not need another layout/style measurement.
+    // ResizeObserver and responsive changes explicitly invalidate this cache.
+    const signature = `${target.getAttribute('style')}|${target.className}|${field.closest('.world_entry')?.classList.contains('slb-compact-entry')}`;
+    if (!force && view.slbAppearanceTarget === target && view.slbAppearanceSignature === signature) return;
+    view.slbAppearanceSignature = signature;
+    const previousTarget = view.slbAppearanceTarget;
+    view.slbAppearanceTarget = target;
     const style = getComputedStyle(target);
     // Use the user's actual theme and native control size, including manually
     // resized keyword fields. Never copy a value, name or native save handler.
@@ -3569,24 +3576,25 @@ function syncMetadataFieldAppearance(view, field, name) {
         if (view.style.getPropertyValue(property) !== value) view.style.setProperty(property, value, 'important');
     }
     if (textarea) view.rows = textarea.rows;
-    if (typeof ResizeObserver === 'function' && view.slbAppearanceTarget !== target) {
+    if (typeof ResizeObserver === 'function' && previousTarget !== target) {
         view.slbAppearanceObserver?.disconnect();
         view.slbAppearanceTarget = target;
         view.slbAppearanceObserver = new ResizeObserver(() => {
             if (!view.isConnected || !target.isConnected) view.slbAppearanceObserver.disconnect();
-            else syncMetadataFieldAppearance(view, field, name);
+            else syncMetadataFieldAppearance(view, field, name, true);
         });
         view.slbAppearanceObserver.observe(target);
     }
 }
 
-function syncMetadataTranslations(entry) {
+function syncMetadataTranslations(entry, options = {}) {
     if (!entry) return;
     const uid = getUid(entry);
     const book = currentBookName();
     const ui = entry.querySelector('.world_entry_edit')?.slbTranslationUI;
     const language = ui?.translationLanguage ?? getEntryLanguagePair(book, uid).translationLanguage;
-    const record = getSettings().translations[translationKey(book, uid)];
+    const settings = getSettings();
+    const record = settings.translations[translationKey(book, uid)];
     const sources = getEntryTranslationSources(entryData(uid), ui, entry);
     for (const name of ['comment', 'key', 'keysecondary']) {
         const control = name === 'comment'
@@ -3598,40 +3606,49 @@ function syncMetadataTranslations(entry) {
         const text = record?.language === language ? currentMetadataTranslation(record, name, sources[name]) : '';
         if (text && !view) {
             view = createElement('textarea', 'text_pole slb-field-translation');
-            view.readOnly = true;
             view.rows = 1;
-            view.setAttribute('aria-label', name === 'comment' ? '제목 번역 (읽기 전용)' : '호출 키워드 번역 (읽기 전용)');
+            view.setAttribute('aria-label', name === 'comment' ? '제목 번역' : '호출 키워드 번역');
             view.dataset.field = name;
-            view.title = '읽기용 번역 · 원문을 편집하려면 누르세요';
-            view.addEventListener('click', event => {
+            view.title = '번역본 수정 · 실제 제목과 호출 키워드는 바뀌지 않습니다';
+            view.addEventListener('click', event => event.stopPropagation());
+            const saveEdit = event => {
                 event.stopPropagation();
-                if (!field.classList.contains('slb-field-original-hidden')) return;
-                field.classList.add('slb-field-editing');
-                const select = field.querySelector(`select[name="${name}"]`);
-                const textarea = field.querySelector(`textarea[name="${name}"]`);
-                const input = select?.classList.contains('select2-hidden-accessible')
-                    ? field.querySelector('.select2-search__field, .select2-selection')
-                    : textarea && textarea.style.display !== 'none' ? textarea : control;
-                input?.focus();
-            });
+                const snapshot = view.slbMetadataContext;
+                if (!snapshot || !entry.isConnected || currentBookName() !== snapshot.book) return;
+                const liveUI = entry.querySelector('.world_entry_edit')?.slbTranslationUI;
+                const pair = liveUI
+                    ? { sourceLanguage: liveUI.sourceLanguage, translationLanguage: liveUI.translationLanguage }
+                    : getEntryLanguagePair(snapshot.book, uid);
+                const latestSources = getEntryTranslationSources(entryData(uid), liveUI, entry);
+                const saved = getSettings().translations[translationKey(snapshot.book, uid)];
+                if (pair.translationLanguage !== snapshot.language || latestSources[name] !== snapshot.source
+                    || saved?.language !== snapshot.language || saved.fields?.[name]?.source !== snapshot.source) return;
+                if (saved.fields[name].text === view.value) return;
+                saveMetadataTranslations(snapshot.book, uid, pair, latestSources, { [name]: view.value });
+                // Save immediately on input (including IME), without replacing the
+                // focused value, revealing the original, or reflecting it via API.
+                if (name === 'comment') updateNavigatorEntry(uid, entry);
+            };
+            view.addEventListener('input', saveEdit);
+            view.addEventListener('change', saveEdit);
+            view.addEventListener('blur', () => syncMetadataTranslations(entry));
             field.append(view);
-            field.addEventListener('focusout', () => {
-                setTimeout(() => {
-                    if (!field.contains(document.activeElement)) field.classList.remove('slb-field-editing');
-                }, 0);
-            });
         }
         if (view) {
-            if (view.value !== text) view.value = text;
-            view.hidden = !text;
-            if (text) syncMetadataFieldAppearance(view, field, name);
+            const savedField = record?.language === language ? record.fields?.[name] : null;
+            const editing = document.activeElement === view && savedField?.source === sources[name];
+            if (!editing && view.value !== text) view.value = text;
+            view.hidden = !text && !editing;
+            view.slbMetadataContext = { book, language, source: sources[name] };
+            if (!view.hidden) syncMetadataFieldAppearance(view, field, name, options.refreshAppearance === true);
         }
-        field.classList.toggle('slb-field-original-hidden', Boolean(text && getSettings().hideOriginalWhenTranslated));
-        field.classList.toggle('slb-has-field-translation', Boolean(text));
-        if (!text) field.classList.remove('slb-field-editing');
+        const visible = Boolean(view && !view.hidden);
+        field.classList.toggle('slb-field-original-hidden', visible && settings.hideOriginalWhenTranslated);
+        field.classList.toggle('slb-has-field-translation', visible);
+        field.classList.remove('slb-field-editing');
     }
     entry.classList.toggle('slb-has-title-translation', Boolean(
-        record?.language === language && currentMetadataTranslation(record, 'comment', sources.comment),
+        entry.querySelector('.slb-title-field.slb-has-field-translation'),
     ));
     if (!entry.slbMetadataBound) {
         entry.slbMetadataBound = true;
@@ -3652,7 +3669,7 @@ function syncMetadataTranslations(entry) {
     const previousTitle = entry.slbMetadataTitle || '';
     if (previousTitle !== translatedTitle) {
         entry.slbMetadataTitle = translatedTitle;
-        updateNavigatorEntry(uid);
+        updateNavigatorEntry(uid, entry);
     }
 }
 
@@ -5094,7 +5111,7 @@ function syncResponsiveEntryLayouts() {
     // 컴팩트가 된다 — 데스크톱에서 헤더 필드가 사라지던 원인.
     renderedEntries().forEach(entry => {
         placeResponsiveHeaderFields(entry);
-        syncMetadataTranslations(entry);
+        syncMetadataTranslations(entry, { refreshAppearance: true });
     });
 }
 
@@ -5149,8 +5166,12 @@ function getNavigatorSignature(entries = renderedEntries()) {
     return entries.map(entry => getUid(entry)).join('|');
 }
 
-function updateNavigatorEntry(uid) {
-    const entry = renderedEntries().find(item => getUid(item) === String(uid));
+function updateNavigatorEntry(uid, knownEntry = null) {
+    // Most layouts have no navigator. Avoid scanning every rendered row for
+    // each translated title, which made initial loading quadratic in row count.
+    const mobile = document.getElementById('slb-mobile-select');
+    if (!mobile && !document.querySelector('.slb-nav-item')) return;
+    const entry = knownEntry || renderedEntries().find(item => getUid(item) === String(uid));
     if (!entry) return;
     const data = entryData(uid);
     const label = entryLabel(entry);
@@ -5165,7 +5186,6 @@ function updateNavigatorEntry(uid) {
         if (labelElement) labelElement.textContent = label;
         if (iconElement) iconElement.textContent = stateIcon;
     }
-    const mobile = document.getElementById('slb-mobile-select');
     const option = Array.from(mobile?.options ?? []).find(item => item.value === String(uid));
     if (option) option.textContent = `${stateIcon} ${label}`;
 }

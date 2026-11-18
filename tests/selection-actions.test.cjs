@@ -288,7 +288,7 @@ test('metadata edited during a request is not replaced with stale translation', 
     }
 });
 
-test('metadata UI is read-only, hides each original independently, safely renders text, and preserves edit handlers', () => {
+test('metadata UI keeps originals hidden on click, safely renders text, and preserves source handlers', () => {
     const f = fixture();
     try {
         const ui = f.ui(0), row = ui.entry;
@@ -304,14 +304,15 @@ test('metadata UI is read-only, hides each original independently, safely render
         assert.equal(row.querySelectorAll('.slb-field-translation').length, 2);
         assert.equal(row.classList.contains('slb-has-title-translation'), true);
         assert.equal(source.parentElement.classList.contains('slb-has-field-translation'), true);
-        assert.equal(row.querySelectorAll('textarea.slb-field-translation.text_pole[readonly]').length, 2);
+        assert.equal(row.querySelectorAll('textarea.slb-field-translation.text_pole:not([readonly])').length, 2);
         assert.equal(row.querySelector('img'), null, 'translation is text, never HTML');
         assert.equal(source.value, 'The Estate');
         assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), true);
         assert.equal(row.querySelector('[name="keysecondary"]').parentElement.classList.contains('slb-field-original-hidden'), false);
         row.querySelector('.slb-field-translation').click();
-        assert.equal(source.parentElement.classList.contains('slb-field-editing'), true);
-        assert.equal(source.ownerDocument.activeElement, source);
+        assert.equal(source.parentElement.classList.contains('slb-field-editing'), false);
+        assert.notEqual(source.ownerDocument.activeElement, source);
+        assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), true);
         source.value = 'Changed title'; source.dispatchEvent(new source.ownerDocument.defaultView.Event('input', { bubbles: true }));
         assert.equal(changes, 1);
         assert.equal(row.classList.contains('slb-has-title-translation'), false);
@@ -392,7 +393,7 @@ test('single metadata response is discarded when the original title changes duri
     } finally { f.close(); }
 });
 
-test('read-only translation fields copy native theme metrics and follow source resize', () => {
+test('editable translation fields copy native theme metrics and follow source resize', () => {
     const f = fixture();
     try {
         const ui = f.ui(0);
@@ -403,7 +404,7 @@ test('read-only translation fields copy native theme metrics and follow source r
         for (const name of ['comment', 'key']) {
             const source = ui.entry.querySelector(`[name="${name}"]`);
             const view = ui.entry.querySelector(`[data-field="${name}"]`);
-            assert.equal(view.tagName, 'TEXTAREA'); assert.equal(view.readOnly, true); assert.equal(view.name, '');
+            assert.equal(view.tagName, 'TEXTAREA'); assert.equal(view.readOnly, false); assert.equal(view.name, '');
             const style = f.context.getComputedStyle(source);
             for (const property of ['height', 'font-size', 'padding-top', 'padding-left', 'border-top-width', 'border-top-color']) {
                 assert.equal(view.style.getPropertyValue(property), style.getPropertyValue(property), `${name}: ${property}`);
@@ -429,4 +430,122 @@ test('source hiding is directly below translation targets and uses the mobile-di
         assert.equal(hide.parentElement.parentElement.classList.contains('slb-mobile-display-options'), true);
         assert.equal(targets.querySelectorAll('.slb-mobile-display-options > label > input').length, 3);
     } finally { dom.window.close(); }
+});
+
+
+test('title and both keyword translations save edits independently without changing native values or calling translation', () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0), row = ui.entry;
+        row.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">Title</textarea></div><div class="slb-keyword-core-field"><textarea name="key">key</textarea></div><div class="slb-keyword-core-field"><textarea name="keysecondary">secondary</textarea></div>');
+        f.settings.translations['A:0'] = { language: 'ko', text: '본문 보존', sourceHash: 'original-hash', fields: Object.fromEntries(['comment', 'key', 'keysecondary'].map(name => [name, { source: row.querySelector(`[name="${name}"]`).value, text: '번역' }])) };
+        f.context.syncMetadataTranslations(row);
+        for (const name of ['comment', 'key', 'keysecondary']) {
+            const source = row.querySelector(`[name="${name}"]`), view = row.querySelector(`[data-field="${name}"]`);
+            const original = source.value;
+            view.focus(); view.click();
+            view.value = `수정 ${name} `;
+            view.dispatchEvent(new source.ownerDocument.defaultView.Event('input', { bubbles: true }));
+            f.context.syncMetadataTranslations(row);
+            assert.equal(view.value, `수정 ${name} `, 'focused value and caret must not be reset by trimmed display text');
+            assert.equal(f.settings.translations['A:0'].fields[name].text, `수정 ${name} `);
+            assert.equal(source.value, original);
+            assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), true);
+            assert.equal(source.parentElement.classList.contains('slb-field-editing'), false);
+            view.blur(); view.remove();
+            f.context.syncMetadataTranslations(row);
+            assert.equal(row.querySelector(`[data-field="${name}"]`).value, `수정 ${name}`, 'saved edit survives recreated UI');
+        }
+        assert.equal(f.settings.translations['A:0'].text, '본문 보존');
+        assert.equal(f.settings.translations['A:0'].sourceHash, 'original-hash');
+        assert.equal(f.requests.length, 0);
+    } finally { f.close(); }
+});
+
+test('temporarily empty focused translation stays editable and never reveals its source', () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">Title</textarea></div>');
+        f.settings.translations['A:0'] = { language: 'ko', fields: { comment: { source: 'Title', text: '제목' } } };
+        f.context.syncMetadataTranslations(ui.entry);
+        const view = ui.entry.querySelector('[data-field="comment"]');
+        view.focus(); view.value = '';
+        view.dispatchEvent(new view.ownerDocument.defaultView.Event('input', { bubbles: true }));
+        f.context.syncMetadataTranslations(ui.entry);
+        assert.equal(view.hidden, false);
+        assert.equal(view.parentElement.classList.contains('slb-field-original-hidden'), true);
+        view.value = '새 제목';
+        view.dispatchEvent(new view.ownerDocument.defaultView.Event('input', { bubbles: true }));
+        f.switchBook(); view.value = '다른 책에서 온 이벤트';
+        view.dispatchEvent(new view.ownerDocument.defaultView.Event('input', { bubbles: true }));
+        assert.equal(f.settings.translations['A:0'].fields.comment.text, '새 제목');
+    } finally { f.close(); }
+});
+
+test('pending translation cannot overwrite a manual metadata edit', async () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">Title</textarea></div>');
+        Object.assign(f.settings, { translateContent: false, translateTitle: true });
+        f.settings.translations['A:0'] = { language: 'ko', fields: { comment: { source: 'Title', text: '제목' } } };
+        f.context.syncMetadataTranslations(ui.entry);
+        let finish; f.translate(() => new Promise(resolve => { finish = resolve; }));
+        const pending = f.context.translateEntrySource(ui, true);
+        await flush();
+        const view = ui.entry.querySelector('[data-field="comment"]');
+        view.value = '내가 수정한 제목';
+        view.dispatchEvent(new view.ownerDocument.defaultView.Event('input', { bubbles: true }));
+        finish('늦게 도착한 번역'); await pending;
+        assert.equal(f.settings.translations['A:0'].fields.comment.text, '내가 수정한 제목');
+    } finally { f.close(); }
+});
+
+test('unchanged metadata refresh reuses native metrics, explicit responsive refresh remeasures', () => {
+    const f = fixture();
+    try {
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment" style="height:29px">Title</textarea></div>');
+        f.settings.translations['A:0'] = { language: 'ko', fields: { comment: { source: 'Title', text: '제목' } } };
+        let reads = 0; const original = f.context.getComputedStyle;
+        f.context.getComputedStyle = element => { reads++; return original(element); };
+        f.context.syncMetadataTranslations(ui.entry);
+        assert.equal(reads, 1);
+        for (let i = 0; i < 100; i++) f.context.syncMetadataTranslations(ui.entry);
+        assert.equal(reads, 1, 'ordinary refreshes should not repeat layout/style reads');
+        f.context.syncMetadataTranslations(ui.entry, { refreshAppearance: true });
+        assert.equal(reads, 2);
+    } finally { f.close(); }
+});
+
+test('title update skips scanning all entries when navigation UI is absent', () => {
+    const dom = new JSDOM('<div></div>');
+    try {
+        let scans = 0;
+        const context = vm.createContext({ document: dom.window.document, renderedEntries: () => { scans++; return []; } });
+        vm.runInContext(fn('updateNavigatorEntry'), context);
+        for (let i = 0; i < 500; i++) context.updateNavigatorEntry(String(i));
+        assert.equal(scans, 0);
+    } finally { dom.window.close(); }
+});
+
+
+test('native resize observer refreshes cached translation dimensions', () => {
+    const f = fixture();
+    try {
+        let resized;
+        f.context.ResizeObserver = class { constructor(callback) { resized = callback; } observe() {} disconnect() {} };
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">Title</textarea></div>');
+        f.settings.translations['A:0'] = { language: 'ko', fields: { comment: { source: 'Title', text: '제목' } } };
+        const source = ui.entry.querySelector('[name="comment"]');
+        let height = 29;
+        source.getBoundingClientRect = () => ({ height });
+        f.context.syncMetadataTranslations(ui.entry);
+        const view = ui.entry.querySelector('[data-field="comment"]');
+        assert.equal(view.style.height, '29px');
+        height = 64; resized();
+        assert.equal(view.style.height, '64px');
+    } finally { f.close(); }
 });

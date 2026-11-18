@@ -4835,7 +4835,7 @@
 #WorldInfo.slb-active .world_entry.slb-has-title-translation.slb-compact-entry .slb-header-grid > .slb-title-field.slb-has-field-translation {
     grid-row: 1 !important;
 }
-#WorldInfo.slb-active .world_entry .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > .slb-field-translation {
+#WorldInfo.slb-active .world_entry .slb-title-field.slb-field-original-hidden > .slb-field-translation {
     margin-top: 0;
 }
 @media (max-width: 760px) {
@@ -4852,15 +4852,15 @@
 }
 /* Specificity also overrides the existing critical mobile header rules. Keep
    native controls and their event handlers intact; hiding is presentation only. */
-#WorldInfo.slb-active .world_entry .slb-header-grid .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > textarea:not(.slb-field-translation),
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) textarea[name="comment"],
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) input[name="comment"],
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) textarea[name="key"],
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) textarea[name="keysecondary"],
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) select[name="key"],
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) select[name="keysecondary"],
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) .select2-container,
-#WorldInfo.slb-active .world_entry .slb-field-original-hidden:not(.slb-field-editing) .switch_input_type_icon {
+#WorldInfo.slb-active .world_entry .slb-header-grid .slb-title-field.slb-field-original-hidden > textarea:not(.slb-field-translation),
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden textarea[name="comment"],
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden input[name="comment"],
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden textarea[name="key"],
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden textarea[name="keysecondary"],
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden select[name="key"],
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden select[name="keysecondary"],
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden .select2-container,
+#WorldInfo.slb-active .world_entry .slb-field-original-hidden .switch_input_type_icon {
     display: none !important;
 }
 
@@ -4893,7 +4893,7 @@
         grid-row: 3 !important;
         margin-top: 4px !important;
     }
-    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-title-field.slb-field-original-hidden:not(.slb-field-editing) > .slb-field-translation {
+    #WorldInfo.slb-active .world_entry.slb-has-title-translation:not(.slb-compact-entry) .slb-title-field.slb-field-original-hidden > .slb-field-translation {
         grid-row: 2 !important;
         margin-top: 0 !important;
     }
