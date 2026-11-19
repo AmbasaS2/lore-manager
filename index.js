@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.11';
+const VERSION = '1.4.85-ambasa.12';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -199,7 +199,11 @@ const state = {
 };
 
 function ensureCriticalLayoutStyles() {
-    const styleId = 'slb-critical-layout-1-4-67';
+    // The extension stylesheet now owns the responsive layout and typography.
+    // Do not inject a second copy of obsolete 13px / 0.76em / 42px rules
+    // after it: those late !important rules kept undoing every UI correction.
+    // Keep only the native mobile activation-control visibility safeguard.
+    const styleId = 'slb-critical-layout-1-4-85-ambasa-12';
     if (document.getElementById(styleId)) return;
     document.querySelectorAll('style[data-slb-critical-layout]').forEach(node => node.remove());
 
@@ -207,44 +211,12 @@ function ensureCriticalLayoutStyles() {
     style.id = styleId;
     style.dataset.slbCriticalLayout = VERSION;
     style.textContent = `
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]{--slb-slot-h:96px;display:grid!important;box-sizing:border-box!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-areas:"title-left title-right" "control-left control-right" "exclude exclude"!important;grid-template-rows:24px var(--slb-slot-h) 28px!important;column-gap:24px!important;row-gap:5px!important;position:relative!important;width:100%!important;min-width:0!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-title-slot-1{grid-area:title-left!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-title-slot-2{grid-area:title-right!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot-1{grid-area:control-left!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot-2{grid-area:control-right!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-title-slot{display:flex!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;height:24px!important;align-items:center!important;justify-content:center!important;padding:0 3px!important;overflow:visible!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] .slb-filter-title{display:block!important;position:static!important;width:100%!important;min-width:0!important;height:auto!important;margin:0!important;padding:0!important;font-size:.8em!important;line-height:1.05!important;text-align:center!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;height:var(--slb-slot-h)!important;margin:0!important;padding:0!important;overflow:hidden!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot>.slb-filter-control,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot select,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot .select2-container,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot .select2-selection--multiple{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:100%!important;max-height:100%!important;margin:0!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot{display:flex!important;grid-area:exclude!important;position:static!important;z-index:auto!important;top:auto!important;left:auto!important;width:100%!important;height:28px!important;padding:0!important;align-items:center!important;justify-content:center!important;background:transparent!important;transform:none!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot>.slb-filter-exclude{display:inline-flex!important;position:static!important;width:max-content!important;height:24px!important;margin:0!important;padding:0!important;align-items:center!important;gap:4px!important;background:transparent!important;font-size:.8em!important;white-space:nowrap!important;transform:none!important}
-#WorldInfo.slb-active .world_entry.slb-compact-entry .slb-panel[data-panel="activation"].is-active>.slb-activation-overview[data-slb-visible="true"]:not(:empty){display:grid!important;visibility:visible!important;opacity:1!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{text-align:center!important;text-align-last:center!important;font-size:19px!important;line-height:1!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:16px!important;text-align:center!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:14px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:14px!important;text-align:center!important;padding:0 2px!important;line-height:normal!important}
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:13px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:13px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{-webkit-appearance:textfield!important;appearance:textfield!important;-moz-appearance:textfield!important;text-align:center!important;padding:0!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input::-webkit-inner-spin-button{-webkit-appearance:none!important;appearance:none!important;margin:0!important}
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field select,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field input{box-sizing:border-box!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:0!important;margin:0!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:13px!important;text-align:center!important;text-align-last:center!important;line-height:normal!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:13px!important;padding:0 4px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:13px!important;line-height:42px!important;text-align:center!important}
-@media(min-width:761px){
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell,#WorldInfo.slb-active .world_entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) max-content!important;justify-content:start!important;column-gap:4px!important;padding-right:4px!important;overflow:visible!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-toggles,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-toggles,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-toggles{grid-column:1!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-grid,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-grid,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-grid{grid-column:2!important;grid-template-columns:minmax(140px,1fr) 54px 118px 38px 50px 68px!important;column-gap:4px!important;justify-content:start!important;width:100%!important;min-width:0!important;max-width:100%!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-actions,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-actions{grid-column:3!important;grid-row:1!important;display:flex!important;flex:0 0 max-content!important;width:max-content!important;min-width:max-content!important;max-width:none!important;justify-self:end!important;align-self:center!important;gap:3px!important;padding:0!important;overflow:visible!important}
-#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-header-field>.slb-header-label{width:100%!important;text-align:center!important}
-#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-strategy-field>select,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-position-field>select{text-align:center!important;text-align-last:center!important;padding-inline:4px!important}
-#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-depth-field>input,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-order-field>input,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-trigger-field>input{-webkit-appearance:textfield!important;-moz-appearance:textfield!important;appearance:textfield!important;text-align:center!important;text-align-last:center!important;text-indent:0!important;padding:0!important}
-#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-depth-field>input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-depth-field>input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-order-field>input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-order-field>input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-trigger-field>input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-trigger-field>input::-webkit-inner-spin-button{-webkit-appearance:none!important;appearance:none!important;margin:0!important}
-}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}
-@media(max-width:760px){
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid{display:grid!important;box-sizing:border-box!important;grid-column:2!important;grid-row:1!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto!important;gap:0!important;align-items:stretch!important;width:100%!important;min-width:0!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid>.slb-title-field{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid>.slb-title-field>.slb-header-label{display:none!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid>.slb-title-field>textarea{display:block!important;box-sizing:border-box!important;width:100%!important;height:29px!important;min-height:29px!important;max-height:29px!important;margin:0!important;overflow:hidden!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]{grid-template-areas:"title-left title-right" "control-left control-right" "exclude exclude"!important;grid-template-rows:24px var(--slb-slot-h) 28px!important;column-gap:12px!important;padding:0!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-title-slot{height:24px!important;padding:0 2px!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] .slb-filter-title{font-size:clamp(10px,2.45vw,.76em)!important;line-height:1.12!important;white-space:normal!important;overflow-wrap:break-word!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot{grid-area:exclude!important;position:static!important;width:100%!important;height:28px!important;padding:0!important;background:transparent!important;transform:none!important}
-#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot>.slb-filter-exclude{height:28px!important;margin-inline:auto!important;font-size:.76em!important}
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field select,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field input{height:32px!important;min-height:32px!important;max-height:32px!important}
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{line-height:32px!important}
+#WorldInfo.slb-active .world_entry.slb-compact-entry
+.slb-panel[data-panel="activation"].is-active
+> .slb-activation-overview[data-slb-visible="true"]:not(:empty) {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }`;
     document.head.append(style);
 }
@@ -578,8 +550,8 @@ function applyMobileDisplaySettings(syncEntries = true) {
     if (!worldInfo) return;
     const settings = getSettings();
 
-    // These classes are deliberately consumed only inside the mobile media
-    // query. Their values therefore never alter the desktop lorebook layout.
+    // Keep the legacy saved keys / class names so every existing ON/OFF
+    // preference survives updates. All three switches now affect PC and mobile.
     worldInfo.classList.toggle('slb-mobile-entry-state-enabled', settings.showMobileEntryState);
     worldInfo.classList.toggle('slb-mobile-token-summary-hidden', !settings.showMobileTokenSummary);
     worldInfo.classList.toggle('slb-mobile-entry-filters-hidden', !settings.showMobileEntryFilters);
@@ -3218,13 +3190,13 @@ function createAIBar() {
                             <small>캐릭터 미선택 시 전체 목록. 로어북 연결은 변경되지 않습니다.</small>
                         </div>
                         <div class="slb-mobile-display-settings">
-                    <small class="slb-mobile-display-title">모바일 로어북 표시</small>
+                    <strong class="slb-mobile-display-title">로어북 표시</strong>
                     <div class="slb-mobile-display-options">
                         <label><input type="checkbox" id="slb-show-mobile-entry-state"> 제목 옆 발동 방식 아이콘</label>
                         <label><input type="checkbox" id="slb-show-mobile-token-summary"> 토큰 통계 표시</label>
                         <label><input type="checkbox" id="slb-show-mobile-entry-filters"> 항목 필터 표시</label>
                     </div>
-                    <small class="slb-mobile-display-note">이 세 설정은 모바일 화면에만 적용됩니다.</small>
+                    <small class="slb-mobile-display-note">PC와 모바일에 동일하게 적용됩니다.</small>
                 </div>
                 <fieldset class="slb-manager-mode-settings">
                     <legend>화면 표시 방식</legend>
@@ -3369,7 +3341,9 @@ function createAIBar() {
         input.checked = settings[key];
         input.addEventListener('change', () => {
             settings[key] = input.checked;
-            applyMobileDisplaySettings();
+            // Only the state-icon choice needs an entry pass. Collapsing
+            // statistics or filters is a pure CSS visibility update.
+            applyMobileDisplaySettings(key === 'showMobileEntryState');
             // 디바운스(1초 예약) 저장은 직후 새로고침에 끊겨 체크가 풀린다.
             // 표시 토글은 즉시 저장한다.
             saveSettings();
@@ -4171,9 +4145,9 @@ function createTokenStrip() {
     tokens.id = 'slb-token-strip';
     tokens.innerHTML = `
         <span>전체 항목 <strong id="slb-total-tokens">—</strong></span>
-        <span>상시 주입 🔵 <strong id="slb-constant-tokens">—</strong></span>
-        <span>선택 주입 🟢 <strong id="slb-selective-tokens">—</strong></span>
-        <span>벡터화 🔗 <strong id="slb-vectorized-tokens">—</strong></span>
+        <span>상시 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i> <strong id="slb-constant-tokens">—</strong></span>
+        <span>선택 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i> <strong id="slb-selective-tokens">—</strong></span>
+        <span>벡터화 <i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i> <strong id="slb-vectorized-tokens">—</strong></span>
         <span>항목 수 <strong id="slb-entry-count">—</strong></span>`;
     return tokens;
 }
@@ -4183,9 +4157,9 @@ function createEntryFilters() {
     filters.id = 'slb-entry-filters';
     filters.innerHTML = `
         <button type="button" class="menu_button slb-filter-button" data-filter="all">전체</button>
-        <button type="button" class="menu_button slb-filter-button" data-filter="constant">상시 주입 🔵</button>
-        <button type="button" class="menu_button slb-filter-button" data-filter="normal">선택 주입 🟢</button>
-        <button type="button" class="menu_button slb-filter-button" data-filter="vectorized">벡터화 🔗</button>`;
+        <button type="button" class="menu_button slb-filter-button" data-filter="constant">상시 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i></button>
+        <button type="button" class="menu_button slb-filter-button" data-filter="normal">선택 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i></button>
+        <button type="button" class="menu_button slb-filter-button" data-filter="vectorized">벡터화 <i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i></button>`;
     return filters;
 }
 
