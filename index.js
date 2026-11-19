@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.18';
+const VERSION = '1.4.85-ambasa.19';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -560,9 +560,9 @@ function applyMobileDisplaySettings(syncEntries = true) {
     entries.forEach(entry => syncMobileEntryStateBadge(entry, false));
 }
 
-function notify(message, type = 'info') {
+function notify(message, type = 'info', skipInlineStatus = false) {
     const status = document.getElementById('slb-ai-status');
-    if (status) status.textContent = message;
+    if (status && !skipInlineStatus) status.textContent = message;
 
     if (type === 'error') toastr.error(message, '로어북 매니저');
     if (type === 'success') toastr.success(message, '로어북 매니저', { timeOut: 2200 });
@@ -3474,7 +3474,7 @@ function createQuickTranslationOptions() {
     options.querySelector('#slb-translate-book').addEventListener('click', () => {
         if (state.bulkTranslation) {
             state.bulkTranslation.cancelled = true;
-            updateBulkTranslationStatus('진행 중인 항목이 끝나면 중단합니다.');
+            updateBulkTranslationStatus('현재 번역 중단 요청됨 · 처리 중인 항목 완료 후 멈춥니다.');
             return;
         }
         void showLorebookTranslationPicker();
@@ -3488,9 +3488,17 @@ function updateBulkTranslationStatus(message = '') {
     const button = document.getElementById('slb-translate-book');
     const status = document.getElementById('slb-bulk-status');
     if (button) {
-        button.title = state.bulkTranslation
-            ? '번역 중 · 누르면 중단 요청'
-            : '로어북을 골라 번역되지 않은 항목을 번역하거나 전체를 다시 번역';
+        const job = state.bulkTranslation;
+        const caption = button.querySelector('span');
+        const buttonLabel = job ? (job.cancelled ? '중단 요청됨' : '번역 중단') : '로어북 일괄 번역';
+        if (caption && caption.textContent !== buttonLabel) caption.textContent = buttonLabel;
+        // The action must be explicit: another tap while busy cancels the
+        // current job, it does NOT start translating another book.
+        button.disabled = Boolean(job?.cancelled);
+        button.title = job
+            ? (job.cancelled ? '처리 중인 항목이 끝나면 번역을 중단합니다.'
+                : '현재 진행 중인 번역 중단 요청')
+            : '번역할 로어북을 선택해 미번역 항목 또는 전체를 번역합니다.';
         button.setAttribute('aria-label', button.title);
     }
     if (status && message) status.textContent = message;
@@ -3846,7 +3854,7 @@ async function deleteSelectedEntries(selection) {
 async function translateCurrentLorebook(mode = 'all', selection = null, selectedBook = null) {
     if (state.bulkTranslation) {
         state.bulkTranslation.cancelled = true;
-        updateBulkTranslationStatus('진행 중인 항목이 끝나면 중단합니다.');
+        updateBulkTranslationStatus('현재 번역 중단 요청됨 · 처리 중인 항목 완료 후 멈춥니다.');
         return;
     }
     const book = selectedBook || currentBookName();
@@ -3983,10 +3991,10 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         await saveSettings();
         const summary = `${book} ${jobLabel} ${job.cancelled ? '중단' : '완료'} · 성공 ${succeeded}개, 실패 ${failed}개, 건너뜀 ${skipped}개`;
         updateBulkTranslationStatus(summary);
-        notify(summary, failed ? 'warning' : 'success');
+        notify(summary, failed ? 'warning' : 'success', true);
     } catch (error) {
         updateBulkTranslationStatus(error.message || '로어북 전체 번역에 실패했습니다.');
-        notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error');
+        notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error', true);
     } finally {
         if (state.bulkTranslation === job) state.bulkTranslation = null;
         updateBulkTranslationStatus();
@@ -4027,40 +4035,62 @@ function createTokenStrip() {
 }
 
 function createEntryFilters() {
-    // A single native select keeps existing filter values and saved settings.
-    const filter = createElement('select', 'text_pole slb-entry-filter-select');
+    // Native <details> provides an accessible toggle without a second select
+    // occupying another row. Only the single FA filter glyph is visible until
+    // the user opens the four existing (unchanged) ST filter values.
+    const filter = createElement('details', 'slb-filter-details');
     filter.id = 'slb-entry-filters';
-    filter.setAttribute('aria-label', '표시할 로어북 항목');
-    filter.title = '목록에 표시할 항목의 종류를 선택합니다. 로어북 원본은 변경되지 않습니다.';
     filter.innerHTML = `
-        <option value="all">전체 보기</option>
-        <option value="constant">상시 주입만 보기</option>
-        <option value="normal">키워드 발동만 보기</option>
-        <option value="vectorized">벡터 검색만 보기</option>`;
+        <summary class="menu_button slb-filter-trigger" title="표시할 로어 항목 선택"
+                 aria-label="표시할 로어 항목 선택" aria-expanded="false">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+        </summary>
+        <div class="slb-filter-options" role="group" aria-label="로어 항목 표시">
+            <button type="button" class="slb-filter-option" data-filter="all">전체 보기</button>
+            <button type="button" class="slb-filter-option" data-filter="constant">상시 주입만 보기</button>
+            <button type="button" class="slb-filter-option" data-filter="normal">키워드 발동만 보기</button>
+            <button type="button" class="slb-filter-option" data-filter="vectorized">벡터 검색만 보기</button>
+        </div>`;
     return filter;
 }
 
 function handleEntryFilterChange(event) {
     const filter = event.currentTarget;
-    if (!(filter instanceof HTMLSelectElement)) return;
-    const value = filter.value;
+    const target = event.target instanceof Element ? event.target.closest('button[data-filter]') : null;
+    if (!target || !filter.contains(target)) return;
+    const value = target.dataset.filter;
     if (!['all', 'constant', 'normal', 'vectorized'].includes(value)) return;
     getSettings().entryFilter = value;
     saveSettingsDebounced();
     worldInfoFilter.setFilterData(ENTRY_STATE_FILTER, value);
+    filter.open = false;
+    syncFilterButtons();
 }
 
 function bindEntryFilterControls(filter) {
     if (filter.dataset.slbFilterBound === 'true') return;
     filter.dataset.slbFilterBound = 'true';
-    filter.addEventListener('change', handleEntryFilterChange);
+    filter.addEventListener('click', handleEntryFilterChange);
+    // Attach the one outside-click listener only while the menu is open.
+    // No MutationObserver, timer or permanent document-wide polling.
+    const dismiss = event => {
+        if (!filter.isConnected || !filter.contains(event.target)) {
+            filter.open = false;
+            document.removeEventListener('pointerdown', dismiss, true);
+        }
+    };
+    filter.addEventListener('toggle', () => {
+        filter.querySelector('.slb-filter-trigger')?.setAttribute('aria-expanded', String(filter.open));
+        document.removeEventListener('pointerdown', dismiss, true);
+        if (filter.open) document.addEventListener('pointerdown', dismiss, true);
+    });
 }
 
 function ensureWorkspaceSummarySection({ id, bodyId, title, createBody }) {
     let section = document.getElementById(id);
     let body = document.getElementById(bodyId);
     const nativeFilterControl = id === 'slb-entry-filters-section';
-    const usableBody = body && (!nativeFilterControl || body.tagName === 'SELECT');
+    const usableBody = body && (!nativeFilterControl || body.tagName === 'DETAILS');
     const valid = section
         && usableBody
         && section.contains(body)
@@ -4387,7 +4417,7 @@ function createWorkspace() {
     const { section: tokenSection } = ensureWorkspaceSummarySection({
         id: 'slb-token-summary-section',
         bodyId: 'slb-token-strip',
-        title: '토큰 통계',
+        title: '토큰',
         createBody: createTokenStrip,
     });
     const { section: filterSection, body: filters } = ensureWorkspaceSummarySection({
@@ -4399,10 +4429,16 @@ function createWorkspace() {
 
     bindEntryFilterControls(filters);
     const selectionToolbar = entryBulkEditor.ensureToolbar(popup, entries);
-    // Keep both extension sections together immediately before the current
-    // live entries list. Reinsert only when needed to avoid observer loops.
-    if (filterSection.nextElementSibling !== selectionToolbar) popup.insertBefore(filterSection, selectionToolbar);
-    if (tokenSection.nextElementSibling !== filterSection) popup.insertBefore(tokenSection, filterSection);
+    // One physical row, two independent visibility settings. Nesting the
+    // filter under the token section would hide it when only tokens are OFF.
+    let summaryBar = document.getElementById('slb-summary-toolbar');
+    if (!summaryBar) {
+        summaryBar = createElement('div', 'slb-summary-toolbar');
+        summaryBar.id = 'slb-summary-toolbar';
+    }
+    if (tokenSection.parentElement !== summaryBar) summaryBar.append(tokenSection);
+    if (filterSection.parentElement !== summaryBar) summaryBar.append(filterSection);
+    if (summaryBar.nextElementSibling !== selectionToolbar) popup.insertBefore(summaryBar, selectionToolbar);
     bindWorkspaceEntries(entries);
     bindWorkspacePopupObserver(popup);
     syncFilterButtons();
@@ -4427,8 +4463,20 @@ function syncFilterButtons() {
     const filter = document.getElementById('slb-entry-filters');
     if (!filter) return;
     const stored = getSettings().entryFilter || 'all';
-    const next = ['all', 'constant', 'normal', 'vectorized'].includes(stored) ? stored : 'all';
-    if (filter.value !== next) filter.value = next;
+    const value = ['all', 'constant', 'normal', 'vectorized'].includes(stored) ? stored : 'all';
+    const choices = filter.querySelectorAll('button[data-filter]');
+    for (const choice of choices) {
+        const active = choice.dataset.filter === value;
+        choice.classList.toggle('is-active', active);
+        choice.setAttribute('aria-pressed', String(active));
+    }
+    const selected = Array.from(choices).find(choice => choice.dataset.filter === value);
+    const trigger = filter.querySelector('.slb-filter-trigger');
+    if (trigger) {
+        const title = '항목 표시: ' + (selected?.textContent.trim() || '전체 보기');
+        trigger.title = title;
+        trigger.setAttribute('aria-label', title);
+    }
 }
 
 function renderedEntries() {

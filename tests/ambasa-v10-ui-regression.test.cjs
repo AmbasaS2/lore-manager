@@ -37,6 +37,6 @@ test('source field names preserved and title labels are native, hints require ho
     assert.doesNotMatch(source,/function addLoreEntryHelp\(/);
     assert.match(css,/\.slb-lore-tooltip\s*\{/);
     assert.match(css,/\.slb-lore-info-icon/);
-    assert.match(css,/grid-template-columns:\s*auto minmax\(0, 1fr\) 18px max-content/);
+    assert.match(css,/grid-template-columns:\s*max-content minmax\(0, 1fr\) 18px max-content/);
     assert.match(css,/\.slb-mobile-entry-state-badge\s*\{[^}]*width:\s*18px/s);
 });

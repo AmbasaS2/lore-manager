@@ -10,48 +10,49 @@ const extract=n=>{
     const m=src.match(new RegExp('^function '+n+'\\([^]*?^}', 'm'));
     assert.ok(m,'missing '+n);return m[0];
 };
-test('token totals remain inline; one compact filter select needs no separate caption',()=>{
+test('token text and filter icon are distinct settings but share one visual row',()=>{
     const dom=new JSDOM('<div id="WorldInfo" class="slb-active"><div id="world_popup"></div></div>',{runScripts:'outside-only'});
     const w=dom.window;
     const stub='const createElement=(tag,cls,txt)=>{const e=document.createElement(tag);e.className=cls||"";if(txt)e.textContent=txt;return e;};';
     w.eval(stub+'\n'+extract('createSummarySection')+'\n'+extract('createTokenStrip')+
-        '\n'+extract('createEntryFilters')+'\n'+extract('ensureWorkspaceSummarySection')+
-        '\nwindow.f={createSummarySection,createTokenStrip,createEntryFilters,ensureWorkspaceSummarySection};');
+       '\n'+extract('createEntryFilters')+'\n'+extract('ensureWorkspaceSummarySection')+
+       '\nwindow.f={createSummarySection,createTokenStrip,createEntryFilters,ensureWorkspaceSummarySection};');
     try{
       const popup=w.document.getElementById('world_popup');
-      const stats=w.f.createSummarySection('slb-token-summary-section','토큰 통계',w.f.createTokenStrip());
-      const filters=w.f.createSummarySection('slb-entry-filters-section','',w.f.createEntryFilters());
-      popup.append(stats,filters);
-      assert.equal(stats.querySelector('.slb-summary-label').textContent,'토큰 통계');
-      assert.equal(filters.querySelector('.slb-summary-label'),null,'no redundant filter caption');
-      assert.equal(filters.children.length,1);
-      assert.equal(filters.querySelectorAll('button').length,0);
-      const current=filters.querySelector('#slb-entry-filters');
-      assert.equal(current.tagName,'SELECT');
-      const again=w.f.ensureWorkspaceSummarySection({
-        id:'slb-entry-filters-section',bodyId:'slb-entry-filters',title:'',createBody:w.f.createEntryFilters
-      });
-      assert.equal(again.section,filters);
-      assert.equal(again.body,current);
-      assert.match(css,/\.slb-summary-filter-select\s*\{[^}]*min-height:\s*27px/s);
-      assert.match(css,/\.slb-entry-filter-select\s*\{[^}]*width:\s*min\(195px,\s*100%\)/s);
-      assert.match(css,/\.slb-summary-section \.slb-token-strip\s*\{[^}]*flex-flow:\s*row nowrap/s);
+      const strip=w.f.createSummarySection('slb-token-summary-section','토큰',w.f.createTokenStrip());
+      const filter=w.f.createSummarySection('slb-entry-filters-section','',w.f.createEntryFilters());
+      const toolbar=w.document.createElement('div');toolbar.id='slb-summary-toolbar';toolbar.append(strip,filter);popup.append(toolbar);
+      assert.equal(strip.querySelector('.slb-summary-label').textContent,'토큰');
+      assert.equal(filter.querySelector('.slb-summary-label'),null);
+      assert.equal(filter.querySelector('.slb-filter-details').tagName,'DETAILS');
+      assert.equal(toolbar.children.length,2);
+      const previous=filter.querySelector('#slb-entry-filters');
+      const again=w.f.ensureWorkspaceSummarySection({id:'slb-entry-filters-section',
+          bodyId:'slb-entry-filters',title:'',createBody:w.f.createEntryFilters});
+      assert.equal(again.section,filter);
+      assert.equal(again.body,previous);
+      assert.match(css,/#WorldInfo\.slb-active #slb-summary-toolbar\s*\{[^}]*flex-flow:\s*row nowrap/s);
+      assert.match(css,/#WorldInfo\.slb-active \.slb-summary-label\s*\{[^}]*font-weight:\s*400/s);
+      assert.match(css,/#WorldInfo\.slb-active \.slb-token-strip strong\s*\{[^}]*font-weight:\s*400/s);
       assert.match(css,/\.slb-mobile-token-summary-hidden #slb-token-summary-section/);
       assert.match(css,/\.slb-mobile-entry-filters-hidden #slb-entry-filters-section/);
     }finally{dom.window.close();}
 });
 
-test('filter is a native select with the four original stored values',()=>{
+test('filter icon menu uses original stored values with full labels on demand',()=>{
     const dom=new JSDOM('',{runScripts:'outside-only'}),w=dom.window;
     w.eval('const createElement=(tag,cls,txt)=>{const e=document.createElement(tag);e.className=cls||"";if(txt)e.textContent=txt;return e;};\n'
-        +extract('createEntryFilters')+'\nwindow.make=createEntryFilters');
+         +extract('createEntryFilters')+'\nwindow.make=createEntryFilters');
     try{
       const filter=w.make();
-      assert.equal(filter.tagName,'SELECT');
-      assert.deepEqual([...filter.options].map(o=>o.value),['all','constant','normal','vectorized']);
-      assert.deepEqual([...filter.options].map(o=>o.textContent),
+      assert.equal(filter.tagName,'DETAILS');
+      assert.equal(filter.querySelector('summary i').classList.contains('fa-filter'),true);
+      assert.equal(filter.querySelector('summary').getAttribute('aria-expanded'),'false');
+      assert.deepEqual([...filter.querySelectorAll('button')].map(b=>b.dataset.filter),
+        ['all','constant','normal','vectorized']);
+      assert.deepEqual([...filter.querySelectorAll('button')].map(b=>b.textContent),
         ['전체 보기','상시 주입만 보기','키워드 발동만 보기','벡터 검색만 보기']);
-      assert.equal(filter.getAttribute('aria-label'),'표시할 로어북 항목');
+      assert.equal(filter.querySelector('summary').getAttribute('aria-label'),'표시할 로어 항목 선택');
     }finally{dom.window.close();}
 });
 
@@ -110,8 +111,8 @@ test('native ST option text and data-i18n remain untouched',()=>{
     }finally{dom.window.close();}
 });
 
-test('filter choice change keeps saved values, native filtering and debounce',()=>{
-    const dom=new JSDOM('<div id="WorldInfo"></div>',{runScripts:'outside-only'});
+test('clicking one of four dropdown choices saves original filters and closes the menu',()=>{
+    const dom=new JSDOM('<div id="WorldInfo"></div>',{runScripts:'outside-only',pretendToBeVisual:true});
     const w=dom.window;
     const stubs=[
       'const settings={entryFilter:"all"};let saves=0;const calls=[];',
@@ -125,22 +126,25 @@ test('filter choice change keeps saved values, native filtering and debounce',()
        '\n'+extract('handleEntryFilterChange')+'\n'+extract('bindEntryFilterControls')+
        '\nwindow.api={createEntryFilters,syncFilterButtons,bindEntryFilterControls,settings,getResult:()=>({saves,calls})};');
     try{
-      const select=w.api.createEntryFilters();
-      w.document.getElementById('WorldInfo').append(select);
-      w.api.bindEntryFilterControls(select);
-      w.api.bindEntryFilterControls(select);
+      const filter=w.api.createEntryFilters();
+      w.document.getElementById('WorldInfo').append(filter);
+      w.api.bindEntryFilterControls(filter);
+      w.api.bindEntryFilterControls(filter);
       w.api.syncFilterButtons();
-      assert.equal(select.value,'all');
+      assert.equal(filter.querySelector('button[data-filter="all"]').getAttribute('aria-pressed'),'true');
       for(const option of ['constant','normal','vectorized','all']){
-        select.value=option;
-        select.dispatchEvent(new w.Event('change',{bubbles:true}));
+        filter.open=true;
+        filter.querySelector('button[data-filter="'+option+'"]').click();
+        assert.equal(filter.open,false);
         assert.equal(w.api.settings.entryFilter,option);
+        assert.equal(filter.querySelectorAll('button[aria-pressed="true"]').length,1);
+        assert.equal(filter.querySelector('button[aria-pressed="true"]').dataset.filter,option);
       }
       w.api.settings.entryFilter='constant';
       w.api.syncFilterButtons();
-      assert.equal(select.value,'constant','restored selection reflected without re-saving');
+      assert.match(filter.querySelector('summary').title,/상시 주입만 보기/);
       const result=w.api.getResult();
-      assert.equal(result.saves,4,'handler not bound twice');
+      assert.equal(result.saves,4,'delegated handler is bound only once');
       assert.deepEqual(Array.from(result.calls,call=>call.value),['constant','normal','vectorized','all']);
     }finally{dom.window.close();}
 });

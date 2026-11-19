@@ -65,10 +65,10 @@ test('stats and filter native identifiers survive while Font Awesome colors unif
         const stats=w.buildStats(),filters=w.buildFilters();
         assert.equal(stats.querySelectorAll('strong[id]').length,5);
         assert.equal(stats.querySelectorAll('.slb-stat-icon').length,5);
-        assert.equal(filters.tagName,'SELECT');
-        assert.deepEqual(Array.from(filters.options, option=>option.value),
+        assert.equal(filters.tagName,'DETAILS');
+        assert.deepEqual(Array.from(filters.querySelectorAll('button'), b=>b.dataset.filter),
             ['all','constant','normal','vectorized']);
-        assert.equal(filters.querySelectorAll('.slb-filter-button').length,0);
+        assert.equal(filters.querySelector('summary i').classList.contains('fa-filter'),true);
         assert.match(css,/\.slb-stat-constant\s*\{\s*color: #428bfa/);
         assert.match(css,/\.slb-stat-normal\s*\{\s*color: #29b765/);
     } finally { w.close(); }

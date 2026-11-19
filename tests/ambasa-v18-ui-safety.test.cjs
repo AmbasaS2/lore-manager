@@ -11,7 +11,7 @@ function production(name){
  return m[0];
 }
 
-test('legacy four-filter toolbar is replaced with one compact accessible select even after hot refresh',()=>{
+test('old select or four buttons are replaced with one FA funnel menu on refresh',()=>{
  const dom=new JSDOM('<section id="slb-entry-filters-section" class="slb-summary-row">'+
  '<strong class="slb-summary-label">항목 필터</strong>'+
  '<div id="slb-entry-filters" class="slb-entry-filters slb-summary-body"><button class="slb-filter-button">전체</button></div>'+
@@ -24,12 +24,12 @@ test('legacy four-filter toolbar is replaced with one compact accessible select 
   const old=w.document.getElementById('slb-entry-filters');
   const item=w.create({id:'slb-entry-filters-section',bodyId:'slb-entry-filters',title:'',createBody:w.make});
   assert.equal(old.isConnected,false,'old buttons removed, not reused');
-  assert.equal(item.body.tagName,'SELECT');
+  assert.equal(item.body.tagName,'DETAILS');
   assert.equal(item.section.querySelectorAll('.slb-summary-label').length,0);
-  assert.deepEqual([...item.body.options].map(x=>x.value),['all','constant','normal','vectorized']);
-  assert.equal(item.body.title.includes('원본은 변경되지'),true);
+  assert.deepEqual([...item.body.querySelectorAll('button')].map(x=>x.dataset.filter),['all','constant','normal','vectorized']);
+  assert.equal(item.body.querySelector('summary i').classList.contains('fa-filter'),true);
   assert.match(css,/\.slb-summary-row\s*\{[^}]*min-height:\s*29px/s);
-  assert.match(css,/\.slb-summary-filter-select\s*\{[^}]*min-height:\s*27px/s);
+  assert.match(css,/\.slb-summary-filter-select\s*\{[^}]*min-height:\s*29px/s);
  }finally{dom.window.close();}
 });
 
