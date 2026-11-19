@@ -77,7 +77,13 @@ test('original ST labels remain intact and help icons explain on hover or focus'
         '<select name="triggers"><option value="normal" selected>Normal</option></select></section></div>';
     const dom=new JSDOM(html,{runScripts:'outside-only'});
     const w=dom.window;
-    w.eval(elementStub+'\n'+extract('addLoreInfoIcon')+'\n'+extract('attachLoreEntryHelp')+'\nwindow.run=attachLoreEntryHelp;');
+    w.eval(elementStub+'\nlet activeLoreHelpIcon=null,activeLoreHelpTooltip=null;\n'
+        +extract('closeLoreInfoTooltip')+'\n'
+        +extract('dismissLoreHelpOnOutside')+'\n'
+        +extract('showLoreInfoTooltip')+'\n'
+        +extract('bindLoreInfoEvents')+'\n'
+        +extract('addLoreInfoIcon')+'\n'
+        +extract('attachLoreEntryHelp')+'\nwindow.run=attachLoreEntryHelp;window.bindHelp=bindLoreInfoEvents;');
     const panels={activation:w.document.getElementById('act'),group:w.document.getElementById('group'),filter:w.document.getElementById('filter')};
     const groupInput=panels.group.querySelector('[name="group"]');
     let events=0;groupInput.addEventListener('input',()=>events++);
@@ -96,8 +102,12 @@ test('original ST labels remain intact and help icons explain on hover or focus'
         const excluded=panels.filter.querySelector('[name="character_exclusion"]');
         const helpIcon=excluded.closest('label').querySelector('.slb-lore-info-icon');
         assert.ok(helpIcon,'the exclusion checkbox has a help icon');
+        w.bindHelp();
         helpIcon.click();
         assert.equal(excluded.checked,false,'clicking help must not toggle the actual checkbox');
+        assert.equal(w.document.querySelectorAll('.slb-lore-tooltip').length,1,'one shared help view for all icons');
+        w.document.body.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));
+        assert.equal(w.document.querySelectorAll('.slb-lore-tooltip').length,0,'outside tap closes help');
         w.run(panels);
         assert.equal(panels.group.querySelectorAll('[for="group"] .slb-lore-info-icon').length,1);
         groupInput.dispatchEvent(new w.Event('input',{bubbles:true}));

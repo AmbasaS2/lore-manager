@@ -50,7 +50,7 @@ test('status badge uses one Font Awesome icon, preserves picker callbacks and ke
         const badge = entry.querySelector('.slb-mobile-entry-state-badge');
         assert.ok(badge);
         assert.equal(badge.tagName,'BUTTON');
-        assert.ok(badge.classList.contains('menu_button'));
+        assert.ok(!badge.classList.contains('menu_button'), 'the visible state glyph must not inherit menu button backgrounds');
         assert.equal(badge.querySelectorAll('.slb-state-symbol').length, 1);
         assert.ok(badge.querySelector('.slb-state-symbol').classList.contains('fa-circle'));
         assert.equal(badge.getAttribute('tabindex'), '0');

@@ -275,8 +275,7 @@
 #WorldInfo.slb-active .slb-token-strip,
 #WorldInfo.slb-active .slb-entry-editor-head,
 #WorldInfo.slb-active .slb-sync-row,
-#WorldInfo.slb-active .slb-entry-meta,
-#WorldInfo.slb-active .slb-tabbar {
+#WorldInfo.slb-active .slb-entry-meta {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -961,23 +960,34 @@
     border-color: var(--slb-border);
 }
 
+/* One equal-width row for all four existing native editor actions. */
 #WorldInfo.slb-active .slb-tabbar {
-    box-sizing: border-box;
-    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
     width: 100%;
-    margin: 4px 0 10px;
-    padding-bottom: 4px;
+    min-width: 0;
+    margin: 3px 0 7px;
+    padding: 0;
     border-bottom: 1px solid var(--slb-border);
 }
 
 #WorldInfo.slb-active .slb-tab {
-    padding: 6px 8px;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 34px;
+    padding: 5px 2px;
     border: 0;
     border-bottom: 2px solid transparent;
     background: transparent;
     color: var(--slb-text);
+    font: inherit;
+    font-size: clamp(12px, 0.95em, 15px);
+    line-height: 1.2;
+    text-align: center;
     cursor: pointer;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: keep-all;
 }
 
 #WorldInfo.slb-active .slb-tab.is-active {
@@ -1026,6 +1036,49 @@
     margin: 0 0 5px !important;
 }
 
+#WorldInfo.slb-active .slb-keyword-grid > .slb-keyword-core-field > small {
+    font-size: 0.95em;
+    line-height: 1.2;
+}
+
+/* Native override inputs retain their own save handlers; layout only. */
+#WorldInfo.slb-active .slb-overrides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(136px, 100%), 1fr));
+    align-items: end;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+#WorldInfo.slb-active .slb-overrides-grid > .slb-override-field {
+    display: grid;
+    grid-template-rows: minmax(24px, auto) minmax(32px, auto);
+    align-items: end;
+    min-width: 0;
+    gap: 3px;
+}
+#WorldInfo.slb-active .slb-overrides-grid > .slb-override-field > small {
+    min-width: 0;
+    min-height: 24px;
+    margin: 0;
+    overflow: visible;
+    font-size: 0.95em;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+#WorldInfo.slb-active .slb-overrides-grid > .slb-override-field input,
+#WorldInfo.slb-active .slb-overrides-grid > .slb-override-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    margin: 0;
+    padding: 3px 5px;
+    font-size: 0.95em;
+}
+
 #WorldInfo.slb-active .slb-group-grid {
     display: grid !important;
     grid-template-columns: minmax(190px, 2fr) repeat(4, minmax(72px, 1fr));
@@ -1042,9 +1095,11 @@
 
 #WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child {
     box-sizing: border-box;
-    min-height: 32px;
-    margin: 0 0 5px !important;
+    min-height: 24px;
+    margin: 0 0 3px !important;
     align-items: flex-end !important;
+    font-size: 0.95em;
+    line-height: 1.25;
 }
 
 #WorldInfo.slb-active .slb-group-grid > .slb-group-field:not(.slb-group-field-1) > :first-child {
@@ -1412,11 +1467,6 @@
 @media (max-width: 620px) {
     #WorldInfo.slb-active [name="contentAndCharFilterBlock"].slb-content-grid {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    #WorldInfo.slb-active .slb-tabbar {
-        flex-wrap: nowrap;
-        overflow-x: auto;
     }
 
     #WorldInfo.slb-active .slb-source-pane textarea[name="content"],
@@ -2112,100 +2162,6 @@
         min-height: 29px !important;
     }
 
-    #WorldInfo.slb-active .slb-tabbar {
-        gap: 2px;
-        margin: 2px 0 6px;
-        padding-bottom: 2px;
-    }
-
-    #WorldInfo.slb-active .slb-tab {
-        padding: 3px 4px;
-        font-size: 0.8em;
-        line-height: 1.1;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview {
-        display: flex !important;
-        flex-flow: row nowrap !important;
-        justify-content: space-between !important;
-        align-items: flex-start !important;
-        gap: 4px !important;
-        width: 100% !important;
-        min-height: 37px;
-        margin: 0 !important;
-        padding: 0 !important;
-        border-bottom: 0 !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview .slb-header-field {
-        grid-template-rows: 14px 23px;
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-label {
-        box-sizing: border-box;
-        height: 14px;
-        min-height: 14px;
-        overflow: hidden;
-        font-size: 0.56em;
-        line-height: 1;
-        text-overflow: clip;
-        white-space: nowrap;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview select,
-    #WorldInfo.slb-active .world_entry .slb-activation-overview input {
-        width: 100% !important;
-        height: 23px !important;
-        min-height: 23px !important;
-        max-height: 23px !important;
-        padding: 0 3px !important;
-        font-size: 0.67em;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview .slb-strategy-field {
-        flex: 0 0 42px !important;
-        width: 42px !important;
-        min-width: 42px !important;
-        max-width: 42px !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview .slb-position-field {
-        flex: 0 0 112px !important;
-        width: 112px !important;
-        min-width: 112px !important;
-        max-width: 112px !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview .slb-depth-field {
-        flex: 0 0 50px !important;
-        width: 50px !important;
-        min-width: 50px !important;
-        max-width: 50px !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview .slb-order-field {
-        flex: 0 0 50px !important;
-        width: 50px !important;
-        min-width: 50px !important;
-        max-width: 50px !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field,
-    #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview .slb-trigger-field {
-        flex: 0 0 50px !important;
-        width: 50px !important;
-        min-width: 50px !important;
-        max-width: 50px !important;
-    }
-
     #WorldInfo.slb-active .slb-keyword-status {
         margin-top: 3px;
         font-size: 0.76em;
@@ -2222,7 +2178,7 @@
 
     #WorldInfo.slb-active .slb-keyword-grid {
         display: grid !important;
-        grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(82px, 0.55fr) minmax(0, 1fr);
         gap: 4px !important;
         align-items: start !important;
         width: 100% !important;
@@ -2240,8 +2196,6 @@
     #WorldInfo.slb-active .slb-keyword-grid > .slb-keyword-core-field > small {
         min-height: 19px;
         margin: 0 !important;
-        font-size: 0.85em;
-        line-height: 1.2;
         text-align: center;
         overflow-wrap: anywhere;
     }
@@ -2253,7 +2207,7 @@
         max-height: 27px !important;
         margin: 0 !important;
         padding-block: 1px !important;
-        font-size: 0.8em;
+        font-size: 0.95em;
     }
 
     #WorldInfo.slb-active .slb-keyword-grid textarea[name="key"],
@@ -2265,8 +2219,8 @@
         max-height: 58px !important;
         margin: 0 !important;
         padding: 4px !important;
-        font-size: 0.82em;
-        line-height: 1.25;
+        font-size: 0.95em;
+        line-height: 1.3;
     }
 
     #WorldInfo.slb-active .slb-keyword-grid .select2-container,
@@ -2276,99 +2230,6 @@
         min-width: 0 !important;
         min-height: 42px !important;
         margin: 0 !important;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid {
-        display: grid !important;
-        grid-template-columns: 50px repeat(3, minmax(0, 1fr)) 66px;
-        grid-auto-rows: minmax(48px, auto);
-        gap: 4px !important;
-        align-items: end !important;
-        width: 100% !important;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field {
-        display: grid;
-        box-sizing: border-box;
-        grid-template-rows: minmax(19px, auto) 27px;
-        min-width: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        align-self: end;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field > small {
-        box-sizing: border-box;
-        min-width: 0;
-        min-height: 19px;
-        margin: 0 !important;
-        overflow: visible;
-        font-size: 0.8em;
-        line-height: 1.2;
-        text-align: center;
-        white-space: normal;
-        overflow-wrap: anywhere;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field input,
-    #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field select {
-        box-sizing: border-box;
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 27px !important;
-        min-height: 27px !important;
-        max-height: 27px !important;
-        margin: 0 !important;
-        padding: 1px 5px !important;
-        overflow: hidden;
-        font-size: 0.84em;
-        text-overflow: ellipsis;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="scanDepth"] {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="caseSensitive"] {
-        grid-column: 2;
-        grid-row: 1;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="matchWholeWords"] {
-        grid-column: 3;
-        grid-row: 1;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="useGroupScoring"] {
-        grid-column: 4;
-        grid-row: 1;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="automationId"] {
-        grid-column: 5;
-        grid-row: 1;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="delayUntilRecursionLevel"] {
-        grid-column: 1 / span 2;
-        grid-row: 2;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="outletName"] {
-        grid-column: 3 / span 2;
-        grid-row: 2;
-        max-width: 170px;
-        justify-self: start;
-    }
-
-    #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="delayUntilRecursionLevel"] > small {
-        overflow: visible;
-        font-size: 0.83em;
-        line-height: 1.25;
-        text-overflow: clip;
-        white-space: normal;
-        overflow-wrap: break-word;
     }
 
     #WorldInfo.slb-active .slb-group-grid {
@@ -2382,7 +2243,7 @@
     #WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child {
         min-height: 22px;
         margin-bottom: 2px;
-        font-size: 0.86em;
+        font-size: 0.95em;
         line-height: 1.25;
         white-space: normal;
         overflow-wrap: break-word;
@@ -2397,7 +2258,7 @@
         min-height: 29px !important;
         max-height: 29px !important;
         padding-block: 1px !important;
-        font-size: 0.82em;
+        font-size: 0.95em;
     }
 
     #WorldInfo.slb-active .slb-filter-grid {
@@ -2522,98 +2383,6 @@
    v1.3.20 — 통합 정렬 (모든 화면 폭 공통, 파일 마지막 = 최우선)
    ============================================================ */
 
-/* ── 호출 조건: Strategy·위치·깊이·순서·발동확률 한 줄 꽉 채움 ── */
-#WorldInfo.slb-active .world_entry .slb-activation-overview,
-#WorldInfo.slb-active .world_entry.slb-compact-entry .slb-activation-overview {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.1fr) !important;
-    grid-template-rows: none !important;
-    gap: 0 10px !important;
-    width: 100% !important;
-    align-items: end !important;
-    margin: 0 0 10px !important;
-    padding: 0 !important;
-    border: 0 !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview[hidden],
-#WorldInfo.slb-active .world_entry .slb-activation-overview:empty {
-    display: none !important;
-    margin: 0 !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field {
-    grid-area: auto !important;
-    display: block !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    margin: 0 !important;
-    justify-self: stretch !important;
-    align-self: end !important;
-}
-
-/* 칸 제목 크기 통일 */
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-label,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field small {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 0 3px !important;
-    padding: 0 !important;
-    font-size: 0.8em !important;
-    line-height: 1.25 !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-/* 칸 컨트롤이 칸 폭을 가득 채우고 높이 통일 → 발동확률% 오른쪽 끝이
-   아래 줄(선택적 필터/자동화 ID)의 오른쪽 끝과 일치 */
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field select,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field textarea {
-    box-sizing: border-box;
-    display: block;
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    max-height: 32px !important;
-    margin: 0 !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .range-block-range {
-    display: block !important;
-    width: 100% !important;
-    margin: 0 !important;
-}
-
-/* ── Recursion Level · Outlet Name: 오른쪽 끝까지 ── */
-#WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="delayUntilRecursionLevel"] {
-    grid-column: 1 / 3 !important;
-    width: 100% !important;
-    max-width: none !important;
-    justify-self: stretch !important;
-}
-
-#WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="outletName"] {
-    grid-column: 3 / -1 !important;
-    width: 100% !important;
-    max-width: none !important;
-    justify-self: stretch !important;
-}
-
-#WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="delayUntilRecursionLevel"] input,
-#WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="outletName"] input {
-    box-sizing: border-box;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-}
-
 /* ── 연결 필터: 두 창 동일 크기·박스 이탈 금지 ── */
 #WorldInfo.slb-active .slb-filter-grid {
     display: grid !important;
@@ -2705,14 +2474,14 @@
         minmax(0, 0.75fr)
         minmax(0, 0.82fr)
         minmax(0, 1.08fr) !important;
-    grid-template-rows: 53px !important;
+    grid-template-rows: auto !important;
     column-gap: clamp(4px, 1vw, 9px) !important;
     row-gap: 0 !important;
     width: 100% !important;
     min-width: 0 !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 8px 0 14px !important;
+    padding: 5px 0 9px !important;
     align-items: stretch !important;
     justify-items: stretch !important;
     border: 0 !important;
@@ -2731,16 +2500,16 @@
     display: grid !important;
     box-sizing: border-box !important;
     grid-area: auto !important;
-    grid-template-rows: 18px 32px !important;
+    grid-template-rows: minmax(26px, auto) 32px !important;
     grid-template-columns: minmax(0, 1fr) !important;
     row-gap: 3px !important;
     flex: 0 1 auto !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    height: 53px !important;
-    min-height: 53px !important;
-    max-height: 53px !important;
+    height: auto !important;
+    min-height: 58px !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     align-self: stretch !important;
@@ -2758,18 +2527,17 @@
     grid-row: 1 !important;
     width: 100% !important;
     min-width: 0 !important;
-    height: 18px !important;
-    min-height: 18px !important;
-    max-height: 18px !important;
+    height: auto !important;
+    min-height: 26px !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: clamp(8px, 2.25vw, 11px) !important;
-    line-height: 1 !important;
-    letter-spacing: -0.01em;
+    font-size: clamp(12px, 0.9em, 14px) !important;
+    line-height: 1.2 !important;
     text-align: center !important;
-    white-space: nowrap !important;
+    white-space: normal !important;
     word-break: keep-all !important;
     overflow: visible !important;
     text-overflow: clip !important;
@@ -2804,6 +2572,19 @@
     min-height: 32px !important;
     max-height: 32px !important;
     margin: 0 !important;
+}
+
+/* Narrow numeric controls do not reserve room for platform spinners. */
+#WorldInfo.slb-active .slb-activation-overview .slb-depth-field input,
+#WorldInfo.slb-active .slb-activation-overview .slb-order-field input,
+#WorldInfo.slb-active .slb-activation-overview .slb-trigger-field input {
+    appearance: textfield;
+    text-align: center;
+}
+#WorldInfo.slb-active .slb-activation-overview input[type="number"]::-webkit-inner-spin-button,
+#WorldInfo.slb-active .slb-activation-overview input[type="number"]::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
 }
 
 /* overview의 실제 아래 padding으로 키워드 카드와 마진 상쇄 없이 분리한다. */
@@ -2961,7 +2742,6 @@
         justify-content: center !important;
         gap: 3px !important;
         background: var(--SmartThemeBlurTintColor, var(--slb-surface)) !important;
-        font-size: 0.68em !important;
         line-height: 1 !important;
         white-space: nowrap !important;
         transform: translateX(-50%) !important;
@@ -3093,7 +2873,7 @@
     max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    font-size: 0.8em !important;
+    font-size: 1em !important;
     line-height: 1.05 !important;
     letter-spacing: -0.01em !important;
     text-align: center !important;
@@ -3226,7 +3006,7 @@
         min-height: 28px !important;
         max-height: 28px !important;
         margin-inline: auto !important;
-        font-size: 0.76em !important;
+        font-size: 0.95em !important;
     }
 }
 
@@ -3428,7 +3208,6 @@
         justify-content: center !important;
         gap: 4px !important;
         background: transparent !important;
-        font-size: 0.72em !important;
         line-height: 1 !important;
         white-space: nowrap !important;
         transform: translateX(-50%) !important;
@@ -3447,135 +3226,6 @@
     grid-row: 1 !important;
 }
 
-
-/* v1.4.15 — 배지 탭 주입 방식 피커 */
-
-
-/* v1.4.16 — Strategy 배지를 라운드 사각형 칩으로 */
-
-
-/* v1.4.17 — 배지 칩(제목과 동일 높이·흰 배경) + 호출 조건 상단 타이포 */
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select {
-    text-align: center !important;
-    text-align-last: center !important;
-    font-size: 19px !important;
-    line-height: 1 !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select {
-    font-size: 15px !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input {
-    font-size: 16px !important;
-    text-align: center !important;
-}
-
-
-/* v1.4.18 — 배지 배경은 JS가 제목 입력창 색을 복사(테마 자동 추종), 호출 조건 값 축소·정중앙 */
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select {
-    font-size: 15px !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select {
-    font-size: 14px !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input {
-    font-size: 14px !important;
-    text-align: center !important;
-    padding: 0 2px !important;
-    line-height: normal !important;
-}
-
-
-/* v1.4.19 — 주입 아이콘 13px, 위치·깊이·순서·발동확률 값 13px 통일,
-   숫자칸 스피너 제거로 가로세로 진짜 정중앙 */
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select {
-    font-size: 13px !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input {
-    font-size: 13px !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input {
-    -webkit-appearance: textfield !important;
-    -moz-appearance: textfield !important;
-    appearance: textfield !important;
-    text-align: center !important;
-    padding: 0 !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input::-webkit-outer-spin-button,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input::-webkit-inner-spin-button,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input::-webkit-outer-spin-button,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input::-webkit-inner-spin-button,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input::-webkit-outer-spin-button,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input::-webkit-inner-spin-button {
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    margin: 0 !important;
-}
-
-
-/* v1.4.20 — 호출 조건 다섯 컨트롤: 고정 42px + 패딩 0으로 잘림·치우침 기하학적 제거 */
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field select,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field input {
-    box-sizing: border-box !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    max-height: 42px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select {
-    font-size: 13px !important;
-    text-align: center !important;
-    text-align-last: center !important;
-    line-height: normal !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select {
-    font-size: 13px !important;
-    padding: 0 4px !important;
-}
-
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,
-#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input {
-    font-size: 13px !important;
-    line-height: 42px !important;
-    text-align: center !important;
-}
-
-/* 모바일 전용 — 호출 조건 다섯 입력칸의 높이만 축소 */
-@media (max-width: 760px) {
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field select,
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field input {
-        height: 32px !important;
-        min-height: 32px !important;
-        max-height: 32px !important;
-    }
-
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,
-    #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input {
-        line-height: 32px !important;
-    }
-}
 
 /* 데스크톱 전용 — 헤더 열 폭 축소 및 값 정중앙 정렬 */
 @media (min-width: 761px) {
@@ -4587,22 +4237,28 @@
 #WorldInfo.slb-active .slb-mobile-entry-state-badge {
     display: none;
     position: relative;
+    appearance: none;
     overflow: visible;
-    cursor: pointer;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     color: var(--SmartThemeBodyColor, inherit);
+    cursor: pointer;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 32px auto !important;
+    grid-template-columns: auto minmax(0, 1fr) 28px auto !important;
     align-items: center;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    display: inline-flex !important;
+    display: inline-flex;
     grid-column: 3;
     grid-row: 1;
-    width: 32px;
-    min-width: 32px;
-    max-width: 32px;
-    height: 34px;
+    width: 28px;
+    min-width: 28px;
+    max-width: 28px;
+    height: 32px;
     align-items: center;
     justify-content: center;
     justify-self: center;
@@ -4611,7 +4267,7 @@
     border: 0;
     background: transparent;
     box-shadow: none;
-    border-radius: 5px;
+    border-radius: 0;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-header-actions {
     grid-column: 4;
@@ -4634,10 +4290,6 @@
 #WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="vectorized"] .slb-state-symbol,
 #slb-strategy-picker .slb-strategy-picker-option[data-strategy="vectorized"] .slb-picker-glyph {
     color: var(--SmartThemeBodyColor, inherit);
-}
-#WorldInfo.slb-active .slb-mobile-entry-state-badge:hover,
-#WorldInfo.slb-active .slb-mobile-entry-state-badge:focus-visible {
-    color: var(--SmartThemeQuoteColor, currentColor);
 }
 #WorldInfo.slb-active .slb-mobile-entry-state-badge:focus-visible {
     outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
@@ -4853,9 +4505,6 @@
   color: var(--SmartThemeQuoteColor, currentColor);
 }
 #WorldInfo.slb-active .slb-lore-info-icon:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
-/* Tighten the four editor tabs without forcing a custom outer card shape. */
-#WorldInfo.slb-active .slb-tabbar { margin: 2px 0 5px; padding: 0; gap: 4px; }
-#WorldInfo.slb-active .slb-tab { padding: 4px 7px; line-height: 1.25; }
 #WorldInfo.slb-active .slb-panel { line-height: 1.4; }
 #WorldInfo.slb-active .slb-entry-editor-head { height: auto; min-height: 27px; max-height: none; margin: 0 0 3px; }
 #WorldInfo.slb-active .slb-source-pane textarea[name="content"],
@@ -4938,33 +4587,24 @@
     white-space: nowrap;
 }
 
-/* Hover and keyboard focus expose descriptions; touch users may tap the
-   same information glyph to focus it. No accordion or extra render observers. */
-#WorldInfo.slb-active .slb-lore-info-icon {
-    position: relative;
-}
-#WorldInfo.slb-active .slb-lore-info-icon:is(:hover, :focus)::after {
-    content: attr(data-slb-help);
-    position: absolute;
-    z-index: 200;
-    top: calc(100% + 5px);
-    left: 0;
+/* A single on-demand tooltip is positioned outside clipped editor rows.
+   It is created only for the active hint, never on every row or at render. */
+.slb-lore-tooltip {
+    position: fixed;
+    z-index: 30000;
     box-sizing: border-box;
-    display: block;
-    width: max-content;
-    max-width: min(280px, 78vw);
-    padding: 7px 9px;
-    border: 1px solid var(--SmartThemeBorderColor, currentColor);
-    border-radius: 6px;
-    background: var(--SmartThemeBlurTintColor, var(--SmartThemeBackgroundColor, #fff));
-    color: var(--SmartThemeBodyColor, inherit);
-    box-shadow: 0 3px 12px rgba(0,0,0,0.14);
-    font: 12px/1.45 sans-serif;
-    font-weight: 400;
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 8px 10px;
+    border: 1px solid var(--SmartThemeBorderColor, #888);
+    border-radius: 7px;
+    background: var(--SmartThemeBackgroundColor, #fff);
+    color: var(--SmartThemeBodyColor, #222);
+    font-size: clamp(12px, 0.92rem, 14px);
+    line-height: 1.45;
     white-space: normal;
     overflow-wrap: anywhere;
     pointer-events: none;
-    text-align: left;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.13);
 }
 
 /* The native card already has .wi-card-entry styling. Avoid layering

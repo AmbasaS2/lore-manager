@@ -116,7 +116,7 @@ test('existing explicit backup setting survives; picker and hints are single-sou
     assert.doesNotMatch(extract('showLorebookTranslationPicker'),/slb-translation-picker-title/);
     assert.match(css,/\.popup:has\(\.slb-translation-picker\) \.popup-controls\s*\{[^}]*flex-direction:\s*column/s);
     assert.match(extract('addLoreInfoIcon'),/icon\.removeAttribute\('title'\)/);
-    assert.match(css,/\.slb-lore-info-icon:is\(:hover, :focus\)::after/);
+    assert.match(css,/\.slb-lore-tooltip\s*\{/);
 });
 
 test('native advanced settings labels gain one accessible hint without changing ST values', () => {
@@ -156,6 +156,6 @@ test('mobile override labels do not clip focus/hover help and avoid tiny forced 
     assert.match(label[1], /overflow:\s*visible/);
     assert.match(label[1], /white-space:\s*normal/);
     assert.doesNotMatch(label[1], /font-size:\s*0\.61em/);
-    assert.match(css,/grid-auto-rows:\s*minmax\(48px, auto\)/);
-    assert.match(css, /\.slb-lore-info-icon:is\(:hover, :focus\)::after/);
+    assert.match(css,/grid-template-columns:\s*repeat\(auto-fit, minmax\(min\(136px, 100%\), 1fr\)\)/);
+    assert.match(css, /\.slb-lore-tooltip\s*\{/);
 });

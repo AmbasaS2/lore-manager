@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.10';
+const VERSION = '1.4.85-ambasa.11';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -337,13 +337,15 @@ function syncMobileEntryStateBadge(entry, _syncTheme = true) {
     if (!shell) return;
     const existingBadges = Array.from(entry.querySelectorAll('.slb-mobile-entry-state-badge'));
     let badge = existingBadges.shift();
-    if (!badge) badge = createElement('button', 'menu_button slb-mobile-entry-state-badge');
+    if (!badge) badge = createElement('button', 'slb-mobile-entry-state-badge');
     if (badge.tagName !== 'BUTTON') {
-        const replacement = createElement('button', 'menu_button slb-mobile-entry-state-badge');
+        const replacement = createElement('button', 'slb-mobile-entry-state-badge');
         badge.replaceWith(replacement);
         badge = replacement;
     }
     badge.type = 'button';
+    // Former versions added native .menu_button padding/background to this glyph.
+    badge.classList.remove('menu_button');
     existingBadges.forEach(duplicate => duplicate.remove());
     if (badge.parentElement !== shell) {
         const actions = shell.querySelector(':scope > .slb-header-actions');
@@ -6338,8 +6340,107 @@ function useNativeConnectionFilterLists(root) {
     });
 }
 
-// The original SillyTavern labels are kept. A small info glyph next to a
-// native label explains the actual behavior only when hovered or focused.
+// One accessible help tooltip is created only when needed, outside native
+// editor/scroll containers. A single delegated event set replaces hundreds of
+// per-entry listeners and no observer is required for help visibility.
+let activeLoreHelpIcon = null;
+let activeLoreHelpTooltip = null;
+
+function closeLoreInfoTooltip() {
+    if (activeLoreHelpIcon) activeLoreHelpIcon.removeAttribute('aria-describedby');
+    activeLoreHelpIcon = null;
+    activeLoreHelpTooltip?.remove();
+    activeLoreHelpTooltip = null;
+    document.removeEventListener('pointerdown', dismissLoreHelpOnOutside, true);
+    window.removeEventListener('scroll', closeLoreInfoTooltip, true);
+    window.removeEventListener('resize', closeLoreInfoTooltip);
+}
+
+function dismissLoreHelpOnOutside(event) {
+    if (activeLoreHelpIcon?.contains(event.target)) return;
+    closeLoreInfoTooltip();
+}
+
+function showLoreInfoTooltip(icon) {
+    const help = icon?.dataset.slbHelp;
+    if (!help || !icon.isConnected) return;
+    if (activeLoreHelpIcon !== icon) closeLoreInfoTooltip();
+    if (!activeLoreHelpTooltip) {
+        activeLoreHelpTooltip = createElement('div', 'slb-lore-tooltip');
+        activeLoreHelpTooltip.id = 'slb-lore-tooltip';
+        activeLoreHelpTooltip.setAttribute('role', 'tooltip');
+        document.body.append(activeLoreHelpTooltip);
+        document.addEventListener('pointerdown', dismissLoreHelpOnOutside, true);
+        window.addEventListener('scroll', closeLoreInfoTooltip, { capture: true, passive: true });
+        window.addEventListener('resize', closeLoreInfoTooltip, { passive: true });
+    }
+    activeLoreHelpIcon = icon;
+    icon.setAttribute('aria-describedby', 'slb-lore-tooltip');
+    if (activeLoreHelpTooltip.textContent !== help) activeLoreHelpTooltip.textContent = help;
+    // Measure once per user interaction, never in the render/update loop.
+    const trigger = icon.getBoundingClientRect();
+    const bubble = activeLoreHelpTooltip.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const x = Math.max(8, Math.min(
+        trigger.left + trigger.width / 2 - bubble.width / 2,
+        viewportWidth - bubble.width - 8,
+    ));
+    const above = trigger.top - bubble.height - 8;
+    const below = trigger.bottom + 8;
+    const y = above >= 8 ? above
+        : below + bubble.height <= viewportHeight - 8 ? below
+            : Math.max(8, Math.min(below, viewportHeight - bubble.height - 8));
+    activeLoreHelpTooltip.style.left = Math.round(x) + 'px';
+    activeLoreHelpTooltip.style.top = Math.round(y) + 'px';
+}
+
+function bindLoreInfoEvents() {
+    const root = document.getElementById('WorldInfo');
+    if (!root || root.dataset.slbLoreHelpBound === 'true') return;
+    root.dataset.slbLoreHelpBound = 'true';
+    const findIcon = target => target instanceof Element
+        ? target.closest('.slb-lore-info-icon') : null;
+    root.addEventListener('pointerover', event => {
+        const icon = findIcon(event.target);
+        if (icon && event.pointerType !== 'touch' && !icon.contains(event.relatedTarget)) {
+            showLoreInfoTooltip(icon);
+        }
+    });
+    root.addEventListener('pointerout', event => {
+        const icon = findIcon(event.target);
+        if (icon === activeLoreHelpIcon && !icon.contains(event.relatedTarget)
+            && document.activeElement !== icon) closeLoreInfoTooltip();
+    });
+    root.addEventListener('focusin', event => {
+        const icon = findIcon(event.target);
+        if (icon) showLoreInfoTooltip(icon);
+    });
+    root.addEventListener('focusout', event => {
+        if (findIcon(event.target) === activeLoreHelpIcon) closeLoreInfoTooltip();
+    });
+    root.addEventListener('click', event => {
+        const icon = findIcon(event.target);
+        if (!icon) return;
+        event.preventDefault();
+        event.stopPropagation();
+        icon.focus({ preventScroll: true });
+        showLoreInfoTooltip(icon);
+    }, true);
+    root.addEventListener('keydown', event => {
+        const icon = findIcon(event.target);
+        if (!icon) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeLoreInfoTooltip();
+        } else if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            showLoreInfoTooltip(icon);
+        }
+    }, true);
+}
+
 function addLoreInfoIcon(label, help) {
     if (!label || !help) return;
     let icon = label.querySelector(':scope > .slb-lore-info-icon');
@@ -6350,31 +6451,16 @@ function addLoreInfoIcon(label, help) {
             label.append(icon);
         }
         icon.classList.add('fa-solid', 'fa-circle-info', 'slb-lore-info-icon');
-        icon.setAttribute('role', 'button');
-        icon.tabIndex = 0;
-        icon.setAttribute('aria-label', help);
-        icon.addEventListener('pointerdown', event => event.stopPropagation());
-        icon.addEventListener('click', event => {
-            // The hint may sit inside a native label: never toggle its actual
-            // checkbox just because the user tapped the explanation icon.
-            event.preventDefault();
-            event.stopPropagation();
-            icon.focus();
-        });
-        icon.addEventListener('keydown', event => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            event.preventDefault();
-            event.stopPropagation();
-            icon.focus();
-        });
     }
-    // Do not combine browser title and CSS help on the same label/icon.
-    // The matching hint still has an accessible name for assistive technology.
+    // Retain ST's original captions and real input handlers. Never combine
+    // native browser title tooltips with custom UI, nor duplicate the icon.
     label.removeAttribute('title');
     icon.removeAttribute('title');
+    icon.removeAttribute('data-i18n');
+    icon.setAttribute('role', 'button');
+    icon.tabIndex = 0;
     icon.setAttribute('aria-label', help);
     icon.dataset.slbHelp = help;
-    icon.removeAttribute('data-i18n');
 }
 
 function attachLoreEntryHelp(panels) {
@@ -8234,6 +8320,7 @@ function bindCombinedEntryToggle() {
 function bindEvents() {
     bindCombinedEntryToggle();
     bindNativeSortingHelp();
+    bindLoreInfoEvents();
     const worldSelect = document.getElementById('world_editor_select');
     bindConnectedWorldFilter();
     const worldInfoDrawerToggle = document.querySelector('#WI-SP-button > .drawer-toggle');
