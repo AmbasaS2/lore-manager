@@ -54,9 +54,9 @@ test('actual lorebook JSON exports are distinct from backup export in the extens
     }finally{dom.window.close();}
 });
 
-test('bulk toolbar renders no visible count or instructions and uses native-size menu buttons',()=>{
+test('bulk toolbar names selection mode clearly and uses native-size menu buttons',()=>{
     assert.ok(!bulk.includes('설정 변경·삭제·번역: 선택한 항목에서 실행하면 선택 목록에 함께 적용'));
-    assert.match(bulk,/slb-bulk-selection-count slb-screen-reader-only/);
+    assert.match(bulk,/slb-bulk-selection-count.+aria-live=\"polite\"/);
     assert.match(bulk,/slb-bulk-selection-status slb-screen-reader-only/);
     assert.match(stylesheet,/\.slb-screen-reader-only/);
     assert.doesNotMatch(stylesheet, /#WorldInfo\.slb-active #slb-entry-selection-toolbar[^{}]*\{[^}]*font-size:\s*clamp/);

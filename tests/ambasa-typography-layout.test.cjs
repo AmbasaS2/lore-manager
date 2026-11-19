@@ -55,7 +55,7 @@ test('compact editor uses native controls, labels have readable scale without mo
  const nativeCheckboxRule=css.match(/#WorldInfo\.slb-active \.slb-entry-meta,[^}]+\}/s);
  assert.ok(nativeCheckboxRule);
  assert.doesNotMatch(nativeCheckboxRule[0],/font-size:\s*0\.8em/);
- assert.match(css,/#WorldInfo\.slb-active \.slb-panel\s*\{[^}]*font-size:\s*max\(13px, 0\.95em\)/s);
+ assert.match(css,/#WorldInfo\.slb-active \.slb-panel\s*\{[^}]*font-size:\s*max\(14px, 0\.95em\)/s);
  assert.match(css,/#WorldInfo\.slb-active \.slb-overrides-grid > \.slb-override-field\s*\{[^}]*grid-template-rows:\s*minmax\(20px, auto\) minmax\(32px, auto\)/s);
  assert.match(css,/#WorldInfo\.slb-active \.slb-group-grid > \.slb-group-field\s*\{[^}]*grid-template-rows:\s*minmax\(20px, auto\) auto/s);
 });

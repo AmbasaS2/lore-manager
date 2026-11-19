@@ -63,7 +63,7 @@ test('combined button uses native ST toggleDrawer directly and preserves both or
     }finally{w.close();}
 });
 
-test('original ST labels remain intact and help icons explain on hover or focus', () => {
+test('readable Korean captions preserve ST native controls and focusable help', () => {
     const html = '<div id="WorldInfo"><section id="act">' +
         '<label><input type="checkbox" name="excludeRecursion"><span>Non-recursable</span></label>' +
         '</section><section id="group">' +
@@ -90,12 +90,12 @@ test('original ST labels remain intact and help icons explain on hover or focus'
     try{
         w.run(panels);
         assert.equal(groupInput.value,'weather');
-        assert.equal(panels.group.querySelector('[for="group"]').textContent.includes('Inclusion Group'),true);
-        assert.equal(panels.group.querySelector('[for="groupWeight"]').textContent.includes('Group Weight'),true);
-        assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('Filter to Characters or Tags'),true);
+        assert.equal(panels.group.querySelector('[for="group"]').textContent.includes('그룹 이름'),true);
+        assert.equal(panels.group.querySelector('[for="groupWeight"]').textContent.includes('선택 가중치'),true);
+        assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('캐릭터·태그'),true);
         const info=panels.group.querySelector('[for="group"] .slb-lore-info-icon');
         assert.ok(info);
-        assert.match(info.dataset.slbHelp,/같은 그룹/);
+        assert.match(info.dataset.slbHelp,/같은 이름/);
         assert.equal(info.hasAttribute('title'),false,'only one tooltip source may exist');
         assert.equal(info.tabIndex,0);
         assert.equal(w.document.querySelectorAll('.slb-entry-help').length,0);

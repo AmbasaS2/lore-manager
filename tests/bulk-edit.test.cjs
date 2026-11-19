@@ -138,9 +138,9 @@ for (const mobile of [false, true]) {
             assert.equal(JSON.stringify(f.books.A.entries[2]), untouched);
             await f.edit(2, 'order', '300', 'change');
             assert.equal(f.books.A.entries[0].order, 200, 'unselected source never propagates');
-            f.query('.slb-bulk-clear').click();
+            f.query('.slb-bulk-select-all').click();
             assert.equal(f.query('.slb-bulk-mode').checked, true);
-            assert.equal(f.query('.slb-bulk-selection-count').textContent, '0개 선택 중');
+            assert.equal(f.query('.slb-bulk-selection-count').textContent, '0개 선택');
             f.mode();
             assert.equal(f.query('.slb-entry-selection-checkbox'), null);
             assert.equal(f.query('.slb-bulk-selected'), null);
@@ -153,13 +153,13 @@ test('all pages, rerender, deletion, and book changes preserve selection boundar
     const f = setup();
     try {
         f.mode(); f.query('.slb-bulk-select-all').click(); await flush();
-        assert.equal(f.query('.slb-bulk-selection-count').textContent, '4개 선택 중');
+        assert.equal(f.query('.slb-bulk-selection-count').textContent, '4개 선택');
         await f.edit(0, 'order', '777', 'change');
         assert.equal(f.books.A.entries[3].order, 777, 'selected off-page row updates');
         f.render([2, 3]);
         assert.equal(f.document.querySelectorAll('.slb-entry-selection-checkbox:checked').length, 2);
         delete f.books.A.entries[3]; f.editor.prune(f.books.A);
-        assert.equal(f.query('.slb-bulk-selection-count').textContent, '3개 선택 중');
+        assert.equal(f.query('.slb-bulk-selection-count').textContent, '3개 선택');
         f.replaceList();
         assert.equal(f.document.querySelectorAll('#slb-entry-selection-toolbar').length, 1);
         assert.equal(f.document.querySelectorAll('.slb-entry-selection-checkbox:checked').length, 3);

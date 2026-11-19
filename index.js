@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.14';
+const VERSION = '1.4.85-ambasa.15';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -375,10 +375,10 @@ function syncMobileEntryStateBadge(entry, _syncTheme = true) {
         child.remove();
     }
     const tooltip = (value === 'constant'
-        ? '상시 주입 (파랑)'
+        ? '항상 포함 (파랑)'
         : value === 'vectorized'
-            ? '비슷한 내용 찾기로 사용 (링크)'
-            : '키워드가 맞을 때 사용 (초록)') + ' · 눌러서 변경';
+            ? '비슷한 내용 찾기 (링크)'
+            : '키워드로 등장 (초록)') + ' · 눌러서 변경';
     if (badge.title !== tooltip) badge.title = tooltip;
     if (badge.getAttribute('aria-label') !== tooltip) badge.setAttribute('aria-label', tooltip);
     if (badge.getAttribute('role') !== 'button') badge.setAttribute('role', 'button');
@@ -3539,8 +3539,8 @@ function createQuickTranslationOptions() {
         options.id = 'slb-quick-options';
         options.innerHTML = `
             <div class="slb-bulk-action">
-                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-language" aria-hidden="true"></i><span>로어북 번역</span></button>
-                <small class="slb-translate-book-help">번역할 로어북과 번역 범위를 선택합니다.</small>
+                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>로어북 일괄 번역…</span></button>
+                <small class="slb-translate-book-help">로어북 선택 → 미번역 항목만 번역하거나 전체 재번역을 선택할 수 있어.</small>
             </div>
             <section class="slb-auto-options" aria-label="자동 번역 및 원문 반영 설정">
                 <strong class="slb-auto-options-title">자동 번역 · 원문 반영 설정</strong>
@@ -3594,7 +3594,7 @@ function updateBulkTranslationStatus(message = '') {
     if (button) {
         button.title = state.bulkTranslation
             ? '번역 중 · 누르면 중단 요청'
-            : '번역할 로어북과 번역 범위를 선택';
+            : '로어북을 골라 번역되지 않은 항목을 번역하거나 전체를 다시 번역';
         button.setAttribute('aria-label', button.title);
     }
     if (status && message) status.textContent = message;
@@ -4122,32 +4122,14 @@ function syncQuickTranslationOptionsPlacement() {
     popup.insertBefore(options, document.getElementById('slb-token-summary-section') || entries);
 }
 
-function setSummarySectionCollapsed(section, collapsed) {
-    const body = section.querySelector('.slb-summary-body');
-    const toggle = section.querySelector('.slb-summary-toggle');
-    section.classList.toggle('is-collapsed', collapsed);
-    if (body) body.hidden = collapsed;
-    if (toggle) toggle.setAttribute('aria-expanded', String(!collapsed));
-}
-
-function createSummarySection(id, title, iconClass, body, settingKey) {
-    const section = createElement('section', 'slb-summary-section');
+function createSummarySection(id, title, body) {
+    const section = createElement('section', 'slb-summary-section slb-summary-row');
     section.id = id;
-    const toggle = createElement('button', 'slb-summary-toggle');
-    toggle.type = 'button';
-    toggle.innerHTML = `
-        <span><i class="${iconClass}" aria-hidden="true"></i> ${title}</span>
-        <i class="fa-solid fa-chevron-up slb-summary-chevron" aria-hidden="true"></i>`;
+    // Visibility is already controlled from extension settings. Both the
+    // heading and its value/action live in one row; no redundant drawer.
+    const caption = createElement('strong', 'slb-summary-label', title);
     body.classList.add('slb-summary-body');
-    section.append(toggle, body);
-
-    const settings = getSettings();
-    setSummarySectionCollapsed(section, Boolean(settings[settingKey]));
-    toggle.addEventListener('click', () => {
-        settings[settingKey] = !section.classList.contains('is-collapsed');
-        setSummarySectionCollapsed(section, settings[settingKey]);
-        saveSettingsDebounced();
-    });
+    section.append(caption, body);
     return section;
 }
 
@@ -4177,10 +4159,10 @@ function createEntryFilters() {
     const filters = createElement('div', 'slb-entry-filters');
     filters.id = 'slb-entry-filters';
     filters.innerHTML = `
-        <button type="button" class="menu_button slb-filter-button" data-filter="all">전체</button>
-        <button type="button" class="menu_button slb-filter-button" data-filter="constant">상시 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i></button>
-        <button type="button" class="menu_button slb-filter-button" data-filter="normal">선택 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i></button>
-        <button type="button" class="menu_button slb-filter-button" data-filter="vectorized">벡터화 <i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i></button>`;
+        <button type="button" class="menu_button slb-filter-button" data-filter="all" title="모든 발동 방식 보기" aria-label="모든 항목 보기">전체</button>
+        <button type="button" class="menu_button slb-filter-button" data-filter="constant" title="상시 주입 항목만 보기" aria-label="상시 주입 항목만 보기"><i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i></button>
+        <button type="button" class="menu_button slb-filter-button" data-filter="normal" title="키워드가 맞을 때 등장하는 항목만 보기" aria-label="키워드로 등장하는 항목만 보기"><i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i></button>
+        <button type="button" class="menu_button slb-filter-button" data-filter="vectorized" title="비슷한 내용 찾기(벡터) 항목만 보기" aria-label="비슷한 내용 찾기 항목만 보기"><i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i></button>`;
     return filters;
 }
 
@@ -4202,23 +4184,19 @@ function bindEntryFilterControls(filters) {
     filters.addEventListener('click', handleEntryFilterClick);
 }
 
-function ensureWorkspaceSummarySection({ id, bodyId, title, iconClass, settingKey, createBody }) {
+function ensureWorkspaceSummarySection({ id, bodyId, title, createBody }) {
     let section = document.getElementById(id);
     let body = document.getElementById(bodyId);
     const valid = section
         && body
         && section.contains(body)
-        && section.querySelector('.slb-summary-toggle')
+        && section.querySelector('.slb-summary-label')
         && section.querySelector('.slb-summary-body');
-
     if (!valid) {
         body = body || createBody();
         section?.remove();
-        section = createSummarySection(id, title, iconClass, body, settingKey);
-    } else {
-        setSummarySectionCollapsed(section, Boolean(getSettings()[settingKey]));
+        section = createSummarySection(id, title, body);
     }
-
     return { section, body };
 }
 
@@ -4536,16 +4514,12 @@ function createWorkspace() {
         id: 'slb-token-summary-section',
         bodyId: 'slb-token-strip',
         title: '토큰 통계',
-        iconClass: 'fa-solid fa-calculator',
-        settingKey: 'tokenSummaryCollapsed',
         createBody: createTokenStrip,
     });
     const { section: filterSection, body: filters } = ensureWorkspaceSummarySection({
         id: 'slb-entry-filters-section',
         bodyId: 'slb-entry-filters',
         title: '항목 필터',
-        iconClass: 'fa-solid fa-filter',
-        settingKey: 'entryFiltersCollapsed',
         createBody: createEntryFilters,
     });
 
@@ -4579,7 +4553,9 @@ function installEntryStateFilter() {
 function syncFilterButtons() {
     const current = getSettings().entryFilter || 'all';
     document.querySelectorAll('.slb-filter-button').forEach(button => {
-        button.classList.toggle('is-active', button.dataset.filter === current);
+        const active = button.dataset.filter === current;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
     });
 }
 
@@ -4831,10 +4807,10 @@ function enhanceEntryHeader(entry, options = {}) {
     state.entryStateValues.set(entry, stateSelect.value);
 
     titleField.classList.add('slb-header-field', 'slb-title-field');
-    titleField.prepend(createElement('small', 'slb-header-label', 'Title/Memo'));
+    titleField.prepend(createElement('small', 'slb-header-label', '제목'));
 
     const strategyField = createElement('div', 'slb-header-field slb-strategy-field');
-    strategyField.append(createElement('small', 'slb-header-label', 'Strategy'));
+    strategyField.append(createElement('small', 'slb-header-label', '등장 방식'));
     stateSelect.before(strategyField);
     strategyField.append(stateSelect);
 
@@ -4844,7 +4820,7 @@ function enhanceEntryHeader(entry, options = {}) {
         blocks: ['[name="PositionBlock"]', '.WIEntryPositionBlock', '.world_entry_position_block'],
         labels: ['Position', '위치'],
         control: 'select',
-    }, 'slb-position-field', '위치');
+    }, 'slb-position-field', '삽입 위치');
     const depthField = ensureNativeHeaderField(entry, {
         names: ['depth', 'entryDepth'],
         classes: ['input.world_entry_depth', 'input.WIEntryDepth', 'input.entry-depth'],
@@ -4858,14 +4834,14 @@ function enhanceEntryHeader(entry, options = {}) {
         blocks: ['[name="OrderBlock"]', '.WIEntryOrderBlock', '.world_entry_order_block'],
         labels: ['Order', '순서'],
         control: 'input',
-    }, 'slb-order-field', '순서');
+    }, 'slb-order-field', '우선순위');
     const triggerField = ensureNativeHeaderField(entry, {
         names: ['probability', 'triggerPercent', 'activationPercent'],
         classes: ['input.world_entry_probability', 'input.WIEntryProbability', 'input.entry-probability'],
         blocks: ['[name="ProbabilityBlock"]', '.WIEntryProbabilityBlock', '.world_entry_probability_block'],
         labels: ['Trigger %', 'Probability', 'Activation Percent', '발동 확률'],
         control: 'input',
-    }, 'slb-trigger-field', '발동 확률 %');
+    }, 'slb-trigger-field', '등장 확률 %');
 
     const shell = createElement('div', 'slb-entry-header-shell');
     const toggles = createElement('div', 'slb-header-toggles');
@@ -5182,7 +5158,7 @@ function recoverResponsiveHeaderFields(entry) {
         if (document.activeElement === stateSelect) return false;
         if (!strategyField) {
             strategyField = createElement('div', 'slb-header-field slb-strategy-field');
-            strategyField.append(createElement('small', 'slb-header-label', 'Strategy'));
+            strategyField.append(createElement('small', 'slb-header-label', '등장 방식'));
             stateSelect.before(strategyField);
         }
         strategyField.append(stateSelect);
@@ -5194,7 +5170,7 @@ function recoverResponsiveHeaderFields(entry) {
         blocks: ['[name="PositionBlock"]', '.WIEntryPositionBlock', '.world_entry_position_block'],
         labels: ['Position', '위치'],
         control: 'select',
-    }, 'slb-position-field', '위치');
+    }, 'slb-position-field', '삽입 위치');
     const depthField = Array.from(entry.querySelectorAll('.slb-depth-field')).find(field => field.querySelector('input')) || ensureNativeHeaderField(entry, {
         names: ['depth', 'entryDepth'],
         classes: ['input.world_entry_depth', 'input.WIEntryDepth', 'input.entry-depth'],
@@ -5208,14 +5184,14 @@ function recoverResponsiveHeaderFields(entry) {
         blocks: ['[name="OrderBlock"]', '.WIEntryOrderBlock', '.world_entry_order_block'],
         labels: ['Order', '순서'],
         control: 'input',
-    }, 'slb-order-field', '순서');
+    }, 'slb-order-field', '우선순위');
     const triggerField = Array.from(entry.querySelectorAll('.slb-trigger-field')).find(field => field.querySelector('input')) || ensureNativeHeaderField(entry, {
         names: ['probability', 'triggerPercent', 'activationPercent'],
         classes: ['input.world_entry_probability', 'input.WIEntryProbability', 'input.entry-probability'],
         blocks: ['[name="ProbabilityBlock"]', '.WIEntryProbabilityBlock', '.world_entry_probability_block'],
         labels: ['Trigger %', 'Probability', 'Activation Percent', '발동 확률'],
         control: 'input',
-    }, 'slb-trigger-field', '발동 확률 %');
+    }, 'slb-trigger-field', '등장 확률 %');
 
     const fields = [strategyField, positionField, depthField, orderField, triggerField];
     if (!stateSelect || fields.some(field => !field) || getResponsiveHeaderFields(entry).length !== 5) return false;
@@ -5319,11 +5295,7 @@ function restoreMobileActivationOverview(entry) {
     // 호출 조건 탭이 열린 뒤 ST가 헤더/폼을 다시 측정해도 최상단 다섯 필드가
     // 숨김 stash로 돌아가지 않도록 원본 컨트롤 노드를 overview에 재부착한다.
     placeResponsiveHeaderFields(entry, true);
-    // 상단 항목 필터는 사용자가 펼쳐 둔 상태라면 항목 탭 전환 뒤에도 유지한다.
-    const filterSection = document.getElementById('slb-entry-filters-section');
-    if (filterSection && !getSettings().entryFiltersCollapsed) {
-        setSummarySectionCollapsed(filterSection, false);
-    }
+
 }
 
 function syncResponsiveEntryLayouts() {
@@ -6259,10 +6231,14 @@ function toggleEntryLanguageDirection(ui) {
     ui.status.textContent = `방향 변경됨 · 원문 ${entryLanguageBadge(ui.sourceLanguage)} / 번역 ${entryLanguageBadge(ui.translationLanguage)} · 입력 내용은 그대로 유지했습니다.`;
 }
 
-function createTab(name, label) {
+function createTab(name, label, description = '') {
     const button = createElement('button', 'slb-tab', label);
     button.type = 'button';
     button.dataset.tab = name;
+    if (description) {
+        button.title = description;
+        button.setAttribute('aria-label', label + ': ' + description);
+    }
     return button;
 }
 
@@ -6442,8 +6418,27 @@ function bindLoreInfoEvents() {
     }, true);
 }
 
-function addLoreInfoIcon(label, help) {
+function addLoreInfoIcon(label, help, readableLabel = '') {
     if (!label || !help) return;
+    // This only changes the caption inside the already-created extension
+    // editor. The original ST input/select nodes and save listeners are intact.
+    if (readableLabel) {
+        const textSpan = Array.from(label.children).find(child => (
+            child.matches('span[data-i18n]') && !child.querySelector('input')
+        ));
+        const textNode = Array.from(label.childNodes).find(node => (
+            node.nodeType === 3 && node.textContent.trim()
+        ));
+        if (textSpan) {
+            textSpan.textContent = readableLabel;
+            textSpan.removeAttribute('data-i18n');
+        } else if (textNode) {
+            textNode.textContent = readableLabel;
+        } else if (!label.querySelector(':scope > input')) {
+            label.insertBefore(document.createTextNode(readableLabel), label.firstChild);
+        }
+    }
+    label.classList.add('slb-lore-field-caption');
     let icon = label.querySelector(':scope > .slb-lore-info-icon');
     if (!icon) {
         icon = label.querySelector(':scope > .fa-circle-info, :scope > .fa-circle-question');
@@ -6453,8 +6448,6 @@ function addLoreInfoIcon(label, help) {
         }
         icon.classList.add('fa-solid', 'fa-circle-info', 'slb-lore-info-icon');
     }
-    // Retain ST's original captions and real input handlers. Never combine
-    // native browser title tooltips with custom UI, nor duplicate the icon.
     label.removeAttribute('title');
     icon.removeAttribute('title');
     icon.removeAttribute('data-i18n');
@@ -6464,65 +6457,89 @@ function addLoreInfoIcon(label, help) {
     icon.dataset.slbHelp = help;
 }
 
+function localizeLoreOptionCaptions(activation) {
+    const labels = {
+        entryLogicType: {
+            '0': '하나 이상', '3': '전부', '1': '전부 아님', '2': '모두 제외',
+        },
+        caseSensitive: { null: '전체 설정', true: '켜기', false: '끄기' },
+        matchWholeWords: { null: '전체 설정', true: '켜기', false: '끄기' },
+        useGroupScoring: { null: '전체 설정', true: '켜기', false: '끄기' },
+    };
+    for (const [name, choices] of Object.entries(labels)) {
+        const select = activation.querySelector('select[name="' + name + '"]');
+        if (!select) continue;
+        for (const option of select.options) {
+            const caption = choices[option.value];
+            if (!caption || option.textContent === caption) continue;
+            option.textContent = caption;
+            option.removeAttribute('data-i18n');
+        }
+    }
+}
+
 function attachLoreEntryHelp(panels) {
+    // Describe the actual effect, not SillyTavern's internal field terminology.
     const groupHelp = [
-        ['group','같은 그룹 이름을 넣은 항목이 동시에 발동하면 하나만 선택합니다. 예: ‘맑음’과 ‘비’를 weather 그룹으로 묶으면 둘 중 하나가 사용됩니다.'],
-        ['groupOverride','같은 그룹에서 이 항목을 우선 선택합니다. 여러 항목에 켜졌으면 순서(Order)가 높은 항목을 선택합니다.'],
-        ['groupWeight','같은 그룹에서 여러 항목이 발동했을 때 추첨 비중입니다. 200은 100보다 두 배의 가중치이지, 200% 확률이 아닙니다.'],
-        ['sticky','한 번 발동하면 지정한 메시지 수 동안 계속 사용합니다. 3이면 이후 3개 메시지 동안 유지합니다.'],
-        ['cooldown','한 번 발동한 후 이 숫자만큼 메시지 동안 다시 발동하지 않습니다.'],
-        ['delay','대화에 메시지가 지정한 개수만큼 쌓이기 전에는 발동하지 않습니다. 예: 2이면 0~1개 메시지일 때는 발동하지 않습니다.'],
-        ['useGroupScoring','같은 그룹에서 더 많은 호출 키워드가 맞은 항목을 우선 남깁니다. 예: ‘노래’만 맞는 항목보다 ‘노래·유령’ 둘 다 맞는 항목이 우선입니다. 남은 항목끼리는 가중치·우선 선택 규칙을 적용합니다.'],
+        ['group','서로 같이 나오면 안 되는 로어에 같은 이름을 써. 예: 맑음과 비를 모두 weather 그룹으로 지정하면 조건에 맞아도 둘 중 하나만 나와.','그룹 이름'],
+        ['groupOverride','같은 그룹에서 여러 로어가 등장할 수 있으면 이 로어를 우선 골라. 여러 로어에 우선을 켜면 순서 숫자가 큰 쪽이 선택돼.','우선 선택'],
+        ['groupWeight','같은 그룹에서 우선 선택된 로어가 없을 때 뽑힐 비중이야. 다른 로어가 100이고 여기가 200이면 이쪽이 두 배쯤 잘 뽑혀.','선택 가중치'],
+        ['sticky','한 번 등장하면 이후 몇 개의 메시지 동안 계속 유지할지 정해. 0은 유지하지 않고 다음번에 다시 판단해.','등장 유지'],
+        ['cooldown','이 로어가 나온 뒤 몇 개의 메시지 동안 다시 나오지 못하게 할지 정해. 0은 대기 없음.','재등장 대기'],
+        ['delay','대화 메시지가 몇 개 쌓인 뒤부터 이 로어가 등장할 수 있는지 정해. 예: 2이면 메시지가 2개 이상일 때부터 가능해.','등장 시작'],
     ];
-    for (const [name, help] of groupHelp) {
+    for (const [name, help, caption] of groupHelp) {
         const control = panels.group.querySelector('[name="' + name + '"]');
         const field = control?.closest('.slb-group-field') || control?.closest('label');
-        const label = name === 'groupOverride' ? control?.closest('label')
+        const label = name === 'groupOverride'
+            ? control?.closest('label')?.querySelector('small') || control?.closest('label')
             : field?.querySelector('small[for="' + name + '"],label[for="' + name + '"],small');
-        addLoreInfoIcon(label,help);
+        addLoreInfoIcon(label, help, caption);
     }
-    // SillyTavern owns all select/input handlers and saves. Only append hints
-    // to the native captions that exist in the current ST release.
     const settingHelp = [
-        ['entryLogicType','기본 키워드가 맞은 뒤 보조 키워드의 조건을 적용합니다. AND ANY는 보조 키워드 중 하나, AND ALL은 전부 일치해야 합니다. NOT ANY는 어느 것도 일치하면 안 되고, NOT ALL은 전부 일치하면 안 됩니다.'],
-        ['matchWholeWords','단어 전체가 일치할 때만 호출합니다. 예: king이 liking 안에서 감지되지 않게 합니다. 한·중·일어처럼 띄어쓰기가 다른 언어에서는 결과가 달라질 수 있습니다.'],
-        ['caseSensitive','영문 대소문자를 구분합니다. 예: Rose와 rose를 다른 단어로 검사합니다.'],
-        ['useGroupScoring','같은 그룹에서 키워드가 더 많이 맞는 항목을 우선합니다. 예: song과 Ghosts까지 맞는 항목을 song만 맞는 항목보다 우선합니다.'],
-        ['probability','항목이 조건에 맞아도 실제 주입될 확률입니다. 100은 항상, 50은 절반, 0은 주입하지 않습니다. 예: 랜덤 사건을 드물게 발생시킬 때 씁니다.'],
+        ['entryLogicType','기본 키워드가 맞은 뒤 추가 키워드를 검사하는 방식이야. 하나 이상은 하나라도 맞아야 등장, 모두는 전부 맞아야 등장, 전부 아님은 모두가 동시에 맞으면 제외, 모두 제외는 하나라도 맞으면 제외해.','조합 규칙'],
+        ['matchWholeWords','단어가 통째로 맞아야 등장해. 예: king은 liking에 들어 있어도 일치로 보지 않아. 한국어처럼 띄어쓰기가 다른 언어는 결과가 달라질 수 있어.','단어 통째로'],
+        ['caseSensitive','영어 대문자와 소문자를 구별해. 예: Rose와 rose를 다른 단어로 찾아.','대소문자 구별'],
+        ['useGroupScoring','같은 그룹에서 여러 로어가 등장할 수 있을 때, 검색 키워드가 더 많이 맞은 로어를 우선 남기는 방식이야.','키워드 일치 비교'],
+        ['probability','키워드 등 조건이 맞아도 실제로 등장할 확률이야. 100%는 항상, 50%는 절반 정도, 0%는 등장하지 않아.','등장 확률'],
+        ['position','로어 본문을 AI가 읽는 지시문 안의 어느 위치에 넣을지 정해. 대부분은 기본 위치를 그대로 사용하면 돼.','삽입 위치'],
+        ['depth','삽입 위치를 대화 깊이로 정했을 때 어느 지점에 넣을지 정하는 숫자야. 그 위치가 아니면 사용되지 않아.','대화 깊이'],
+        ['order','같은 위치에 여러 로어가 들어갈 때의 정렬 우선순위야. 그룹에서 우선 선택이 겹쳐도 이 숫자가 높은 로어를 먼저 선택해.','우선순위'],
     ];
-    for (const [name, help] of settingHelp) {
+    for (const [name, help, caption] of settingHelp) {
         const control = panels.activation.querySelector('[name="' + name + '"]')
             || panels.group.querySelector('[name="' + name + '"]');
         const label = control?.closest('label')
             || control?.closest('.slb-override-field, .slb-keyword-core-field, .slb-group-field, .slb-header-field')
                 ?.querySelector(':scope > small, :scope > label, :scope > .slb-header-label, :scope > .world_entry_form_label');
-        addLoreInfoIcon(label, help);
+        addLoreInfoIcon(label, help, caption);
     }
-    for (const [selector, help] of [
-        ['.slb-filter-title-slot-1','이 항목을 사용할 캐릭터와 태그를 지정합니다. 아무것도 선택하지 않으면 제한하지 않습니다.'],
-        ['.slb-filter-title-slot-2','이 로어를 사용할 생성 상황을 고릅니다. 예: Swipe만 선택하면 답변을 스와이프할 때만 발동합니다. 아무것도 고르지 않으면 모든 생성 유형에서 사용할 수 있습니다.'],
+    for (const [selector, help, caption] of [
+        ['.slb-filter-title-slot-1','이 로어를 사용할 캐릭터나 태그를 골라. 아무것도 고르지 않으면 모든 캐릭터에서 쓸 수 있어.','캐릭터·태그'],
+        ['.slb-filter-title-slot-2','일반 답변, 스와이프(다른 답변 보기) 등 어떤 상황에 이 로어를 사용할지 골라. 비워두면 제한하지 않아.','생성 상황'],
     ]) {
-        const label=panels.filter.querySelector(selector+' > .slb-filter-title');
-        addLoreInfoIcon(label,help);
+        const label = panels.filter.querySelector(selector + ' > .slb-filter-title');
+        addLoreInfoIcon(label, help, caption);
     }
     addLoreInfoIcon(panels.filter.querySelector('[name="character_exclusion"]')?.closest('label'),
-        '선택한 캐릭터·태그에서 사용하지 않도록 조건을 반대로 바꿉니다.');
+        '위에서 고른 캐릭터나 태그를 사용 대상에서 제외하는 반대 설정이야. 켜면 선택한 곳에서는 이 로어가 나오지 않아.');
     addLoreInfoIcon(panels.filter.querySelector('.slb-matching-sources .inline-drawer-toggle strong'),
-        '대화 내용 외에 캐릭터 설명·성격·시나리오에서도 호출 키워드를 찾도록 선택합니다.');
+        '키워드를 찾을 때 최근 대화뿐 아니라 캐릭터 설명이나 시나리오 같은 자료도 함께 확인할지 골라.');
 
-    for (const [name,help] of [
-        ['excludeRecursion','다른 로어북의 내용에 이 항목 키워드가 등장해도 연쇄적으로 발동하지 않습니다.'],
-        ['preventRecursion','이 항목의 본문에서 다른 로어북의 키워드를 발견하더라도 다음 항목을 연쇄 호출하지 않습니다.'],
-        ['delay_until_recursion','대화의 일반 키워드 검색이 아닌 다른 로어북의 연쇄 호출에서만 발동합니다.'],
-        ['ignoreBudget','다른 발동 조건을 만족하면 로어북 토큰 예산을 넘겨도 포함합니다.'],
+    for (const [name, help] of [
+        ['excludeRecursion','다른 로어의 본문에 이 로어의 키워드가 있어도, 거기서 이어지는 추가 검색만으로는 등장하지 않아.'],
+        ['preventRecursion','이 로어가 등장해도 이 로어의 본문을 이용해 다른 로어를 연달아 찾아내지 않아.'],
+        ['delay_until_recursion','일반 대화의 첫 키워드 검색에서는 제외하고, 이미 등장한 다른 로어의 내용을 추가로 검색할 때만 등장할 수 있어.'],
+        ['ignoreBudget','다른 등장 조건이 맞으면 로어에 정해둔 토큰(글자 분량) 한도를 넘더라도 포함해.'],
     ]) addLoreInfoIcon(panels.activation.querySelector('[name="' + name + '"]')?.closest('label'),help);
-    for (const [name,help] of [
-        ['scanDepth','최근 대화 몇 개에서 키워드를 찾을지 지정합니다. 비어 있으면 전체 설정을 따릅니다.'],
-        ['delayUntilRecursionLevel','연쇄 호출이 몇 단계 진행됐을 때부터 이 항목이 발동할지 정합니다.'],
-        ['automationId','빠른 답변(Quick Replies)의 STscript 자동화 ID와 이 항목의 ID가 같으면, 이 항목이 발동할 때 해당 스크립트가 실행됩니다. 예: 같은 ID를 7로 지정.'],
+    for (const [name, help, caption] of [
+        ['scanDepth','최근 대화 몇 개 메시지까지 살펴 키워드를 찾을지 정해. 비워두면 로어북 전체 설정의 검색 범위를 따라.','대화 검색 범위'],
+        ['delayUntilRecursionLevel','다른 로어의 내용을 이어서 검색하는 단계가 몇 단계 진행됐을 때 등장할지 정해. 사용하지 않으면 비워둬.','추가 검색 단계'],
+        ['automationId','빠른 답변(Quick Replies)에서 같은 번호를 가진 자동 동작과 연결할 때만 사용해. 연결할 필요가 없으면 비워둬.','자동화 번호'],
+        ['outletName','삽입 위치를 아웃렛(Outlet)으로 설정했을 때 쓰는 이름이야. 프롬프트에 {{outlet::이름}}을 적은 위치로 이 로어의 본문을 보낼 수 있어. 일반 로어북이면 비워둬도 돼.','출력 슬롯 이름'],
     ]) {
-        const input=panels.activation.querySelector('[name="' + name + '"]');
-        addLoreInfoIcon(input?.closest('.slb-override-field')?.querySelector('small'),help);
+        const input = panels.activation.querySelector('[name="' + name + '"]');
+        addLoreInfoIcon(input?.closest('.slb-override-field')?.querySelector('small'), help, caption);
     }
 }
 
@@ -6690,10 +6707,10 @@ function enhanceEntry(entry) {
 
     const tabbar = createElement('div', 'slb-tabbar');
     const tabs = [
-        createTab('content', '원문 · 번역'),
-        createTab('activation', '호출 조건'),
-        createTab('group', '그룹 · 반복'),
-        createTab('filter', '연결 필터'),
+        createTab('content', '본문·번역', '로어북 본문을 쓰고 번역문을 확인하거나 수정하는 곳'),
+        createTab('activation', '등장 조건', '어떤 키워드에 반응하고 어디에 들어가는지 정하는 곳'),
+        createTab('group', '그룹·주기', '겹치는 항목 중 하나만 고르거나 유지·재등장 간격을 정하는 곳'),
+        createTab('filter', '적용 대상', '어떤 캐릭터 또는 어떤 답변 생성 상황에 사용할지 정하는 곳'),
     ];
     tabbar.append(...tabs);
 
@@ -6882,6 +6899,7 @@ function enhanceEntry(entry) {
     }
 
     edit.replaceChildren(tabbar, panels.content, panels.activation, panels.group, panels.filter);
+    localizeLoreOptionCaptions(panels.activation);
     attachLoreEntryHelp(panels);
     syncMemoryBooksRegenerationButton(entry);
     placeResponsiveHeaderFields(entry);

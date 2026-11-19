@@ -52,7 +52,9 @@
 #slb-ai-tools .slb-backup-toolbar > label {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 7px;
+    min-height: 26px;
+    line-height: 1.3;
     white-space: nowrap;
 }
 
@@ -1023,8 +1025,8 @@
 }
 
 #WorldInfo.slb-active .slb-keyword-grid > .slb-keyword-core-field > small {
-    font-size: 0.95em;
-    line-height: 1.2;
+    font-size: 1em;
+    line-height: 1.25;
 }
 
 /* Native override inputs retain their own save handlers; layout only. */
@@ -1084,13 +1086,45 @@
     min-height: 20px;
     margin: 0 0 2px !important;
     align-items: flex-end !important;
-    font-size: 0.95em;
+    font-size: 1em;
     line-height: 1.25;
 }
 
 #WorldInfo.slb-active .slb-group-grid > .slb-group-field:not(.slb-group-field-1) > :first-child {
     justify-content: center !important;
     text-align: center;
+}
+/* The native '?' documentation and our help 'i' stay beside the label.
+   Extra narrow columns may wrap the whole caption, not its icon alone. */
+#WorldInfo.slb-active .slb-group-grid .slb-lore-field-caption,
+#WorldInfo.slb-active .slb-overrides-grid .slb-lore-field-caption,
+#WorldInfo.slb-active .slb-keyword-grid .slb-lore-field-caption,
+#WorldInfo.slb-active .slb-filter-grid .slb-lore-field-caption {
+    display: inline-flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 1em;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: visible;
+    overflow-wrap: normal;
+    text-align: center;
+}
+#WorldInfo.slb-active .slb-lore-field-caption > :is(a, i, svg),
+#WorldInfo.slb-active .slb-lore-field-caption .slb-lore-info-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    margin: 0;
+    vertical-align: middle;
+}
+#WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child,
+#WorldInfo.slb-active .slb-overrides-grid > .slb-override-field > small {
+    font-size: 1em;
 }
 
 #WorldInfo.slb-active .slb-group-grid .range-block-range,
@@ -1990,8 +2024,9 @@
 #WorldInfo.slb-active .slb-auto-option-grid > label {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     min-width: 0;
+    min-height: 26px;
     margin: 0;
     line-height: 1.3;
     font-size: inherit;
@@ -2004,64 +2039,64 @@
     margin: 0;
 }
 
-/* One readable, theme-following typographic scale for the collapsible
-   lorebook overview. No per-mobile tiny-font overrides or nested scaling. */
-#WorldInfo.slb-active .slb-summary-section {
-    box-sizing: border-box;
-    width: 100%;
-    margin: 5px 0;
-    border: 1px solid var(--slb-border);
-    border-radius: 7px;
-    overflow: hidden;
-    color: var(--slb-text);
-    font-size: max(13px, 0.95em);
-    line-height: 1.35;
-}
-#WorldInfo.slb-active .slb-summary-toggle {
-    display: flex;
-    box-sizing: border-box;
-    width: 100%;
-    min-height: 32px;
-    margin: 0;
-    padding: 5px 8px;
+/* The user can hide both rows in extension settings, so neither row
+   needs another drawer. Use an inline title/divider + compact control row. */
+#WorldInfo.slb-active .slb-summary-row {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 7px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 2px 0;
+    padding: 4px 0;
     border: 0;
+    border-radius: 0;
     background: transparent;
-    color: inherit;
-    font: inherit;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
+    color: var(--slb-text);
+    font-size: max(12px, 0.92em);
+    line-height: 1.3;
 }
-#WorldInfo.slb-active .slb-summary-toggle > span {
+#WorldInfo.slb-active .slb-summary-label {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    align-self: stretch;
+    margin: 0;
+    padding: 0 7px 0 1px;
+    border-right: 1px solid var(--slb-border);
+    font: inherit;
+    font-weight: 600;
+    white-space: nowrap;
 }
-#WorldInfo.slb-active .slb-summary-chevron {
-    font-size: 0.9em;
-    transition: transform 120ms ease;
-}
-#WorldInfo.slb-active .slb-summary-section.is-collapsed .slb-summary-chevron {
-    transform: rotate(180deg);
-}
-#WorldInfo.slb-active .slb-summary-body[hidden] { display: none !important; }
-#WorldInfo.slb-active .slb-summary-section .slb-token-strip,
-#WorldInfo.slb-active .slb-summary-section .slb-entry-filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 9px;
+#WorldInfo.slb-active .slb-summary-row > .slb-summary-body {
     min-width: 0;
     margin: 0;
-    padding: 6px 8px;
+    padding: 0;
     border: 0;
-    border-top: 1px solid var(--slb-border);
+    background: transparent;
     font: inherit;
-    line-height: 1.35;
 }
+#WorldInfo.slb-active .slb-summary-section .slb-token-strip {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    font: inherit;
+}
+#WorldInfo.slb-active .slb-summary-section .slb-token-strip::-webkit-scrollbar {
+    display: none;
+}
+#WorldInfo.slb-active .slb-summary-section .slb-entry-filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    gap: 4px;
+    font: inherit;
+}
+
 #WorldInfo.slb-active .slb-token-strip > span {
     display: inline-flex;
     gap: 5px;
@@ -2080,22 +2115,22 @@
 }
 #WorldInfo.slb-active .slb-stat-constant { color: #428bfa; }
 #WorldInfo.slb-active .slb-stat-normal { color: #29b765; }
-#WorldInfo.slb-active .slb-summary-section .slb-entry-filters { gap: 6px; }
 #WorldInfo.slb-active .slb-summary-section .slb-filter-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
     box-sizing: border-box;
-    width: auto;
+    width: 100%;
     min-width: 0;
-    min-height: 29px;
+    min-height: 30px;
     margin: 0;
-    padding: 4px 8px;
+    padding: 4px 2px;
     font: inherit;
-    line-height: 1.25;
+    line-height: 1.2;
     white-space: nowrap;
-    word-break: keep-all;
+}
+#WorldInfo.slb-active .slb-entry-filters .slb-stat-icon {
+    font-size: 1em;
 }
 #WorldInfo.slb-active .slb-filter-button.is-active {
     border-color: var(--slb-accent);
@@ -2216,7 +2251,7 @@
     #WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child {
         min-height: 20px;
         margin-bottom: 1px;
-        font-size: 0.95em;
+        font-size: 1em;
         line-height: 1.25;
         white-space: normal;
         overflow-wrap: break-word;
@@ -3044,21 +3079,29 @@
 #slb-ai-tools .slb-mobile-display-settings > .slb-mobile-display-options {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-    gap: 5px 12px;
+    gap: 3px 12px;
 }
 #slb-ai-tools .slb-mobile-display-settings > .slb-mobile-display-options > label {
-    min-width: 0;
-    min-height: 30px;
-    padding: 2px 0;
     display: inline-flex;
     align-items: center;
+    min-width: 0;
+    min-height: 26px;
     gap: 7px;
+    padding: 0;
     font-size: inherit;
     line-height: 1.3;
     white-space: normal;
 }
-#slb-ai-tools .slb-mobile-display-options input[type="checkbox"] {
-    flex: 0 0 auto;
+#slb-ai-tools .slb-mobile-display-options input[type="checkbox"],
+#slb-ai-tools .slb-linked-world-setting input[type="checkbox"],
+#slb-ai-tools .slb-backup-toolbar input[type="checkbox"],
+#slb-ai-tools .slb-auto-option-grid input[type="checkbox"] {
+    flex: 0 0 16px;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
     margin: 0;
 }
 
@@ -3569,10 +3612,37 @@
     align-items: center;
     flex: 0 0 auto;
     gap: 6px;
-    min-height: 0;
+    min-height: 30px;
     margin: 0;
-    padding: 0;
+    padding: 4px 8px;
+    border: 1px solid var(--SmartThemeBorderColor, currentColor);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, inherit);
+    font: inherit;
+    line-height: 1.2;
     cursor: pointer;
+    white-space: nowrap;
+}
+#WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label:has(input:checked) {
+    border-color: var(--slb-accent);
+    background: color-mix(in srgb, var(--slb-accent) 10%, transparent);
+}
+#WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label:focus-within {
+    outline: 2px solid var(--slb-accent);
+    outline-offset: 1px;
+}
+#WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    margin: -1px;
+}
+#WorldInfo.slb-active .slb-bulk-selection-count {
+    font-size: 0.92em;
+    font-weight: 500;
     white-space: nowrap;
 }
 
@@ -3581,7 +3651,7 @@
     flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
 }
 
@@ -3626,8 +3696,7 @@
     touch-action: manipulation;
 }
 
-#WorldInfo.slb-active .slb-entry-selection-checkbox,
-#WorldInfo.slb-active .slb-bulk-mode {
+#WorldInfo.slb-active .slb-entry-selection-checkbox {
     accent-color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor));
     width: var(--mainFontSize, 14px) !important;
     height: var(--mainFontSize, 14px) !important;
@@ -4153,17 +4222,17 @@
     cursor: pointer;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 28px max-content !important;
+    grid-template-columns: auto minmax(0, 1fr) 20px max-content !important;
     align-items: center;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
     display: inline-flex;
     grid-column: 3;
     grid-row: 1;
-    width: 28px;
-    min-width: 28px;
-    max-width: 28px;
-    height: 32px;
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    height: 30px;
     align-items: center;
     justify-content: center;
     justify-self: center;
@@ -4399,7 +4468,7 @@
   color: var(--SmartThemeQuoteColor, currentColor);
 }
 #WorldInfo.slb-active .slb-lore-info-icon:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
-#WorldInfo.slb-active .slb-panel { font-size: max(13px, 0.95em); line-height: 1.3; }
+#WorldInfo.slb-active .slb-panel { font-size: max(14px, 0.95em); line-height: 1.3; }
 #WorldInfo.slb-active .slb-panel :is(label, .checkbox, .checkbox_label) {
     font-size: inherit;
     line-height: 1.3;
@@ -4413,12 +4482,6 @@
 }
 /* Native style supplies the rounded outer entry; extension-built inner cards
    should not add square borders or tinted panels inside the same entry. */
-#WorldInfo.slb-active .slb-summary-section {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  margin: 3px 0;
-}
 
 
 /* Native ST popup picker. Keep themed buttons, do not create another
