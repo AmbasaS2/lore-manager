@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.15';
+const VERSION = '1.4.85-ambasa.16';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -103,7 +103,6 @@ const DEFAULT_SETTINGS = Object.freeze({
     aiOutputTokens: DEFAULT_AI_OUTPUT_TOKENS,
     tokenScope: 'active',
     entryFilter: 'all',
-    quickOptionsLocation: 'lorebook',
     tokenSummaryCollapsed: false,
     entryFiltersCollapsed: false,
     showMobileEntryState: false,
@@ -254,6 +253,10 @@ function getSettings() {
         delete settings.language;
         state.settingsMigrationNeeded = true;
     }
+    if ('quickOptionsLocation' in settings) {
+        delete settings.quickOptionsLocation;
+        state.settingsMigrationNeeded = true;
+    }
     for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
         if (!(key in settings)) {
             settings[key] = structuredClone(value);
@@ -268,7 +271,6 @@ function getSettings() {
     }
 
     settings.aiOutputTokens = normalizeAIOutputTokens(settings.aiOutputTokens);
-    settings.quickOptionsLocation = settings.quickOptionsLocation === 'extension' ? 'extension' : 'lorebook';
     settings.tokenSummaryCollapsed = Boolean(settings.tokenSummaryCollapsed);
     settings.entryFiltersCollapsed = Boolean(settings.entryFiltersCollapsed);
     settings.showMobileEntryState = Boolean(settings.showMobileEntryState);
@@ -289,24 +291,14 @@ function isFoldyLinkedMode() {
 // 제목 입력창의 실제 배경·테두리 색을 배지에 복사한다.
 // 다크테마 등 테마 CSS가 늦게 적용되거나 무드등으로 실시간 변경되는 경우가
 // 있으므로, 1초 루프에서 반복 호출해 스냅샷이 아닌 라이브 추종으로 만든다.
-function syncCompactStrategyIcon(entry, value) {
-    // Keep the *original* SillyTavern select and event listeners. This is only
-    // a small visual representation, never a second input or a custom saver.
-    const field = entry?.querySelector('.slb-strategy-field');
-    const select = field?.querySelector('select');
-    if (!field || !select) return;
-    let icon = field.querySelector(':scope > .slb-strategy-icon');
-    if (!icon) {
-        icon = document.createElement('i');
-        icon.className = 'slb-strategy-icon fa-solid';
-        icon.setAttribute('aria-hidden', 'true');
-        field.append(icon);
+function syncCompactStrategyIcon(entry, _value) {
+    // The entry header is now permanently title-only. The original select
+    // stays inside the activation tab; duplicating its blue/green glyph
+    // created an extra child and unnecessary DOM work on every state sync.
+    const select = entry?.querySelector('.slb-strategy-field > select');
+    if (select && select.getAttribute('aria-label') !== '로어 등장 방식') {
+        select.setAttribute('aria-label', '로어 등장 방식');
     }
-    const current = ['normal', 'constant', 'vectorized'].includes(value) ? value : 'normal';
-    if (field.dataset.slbState !== current) field.dataset.slbState = current;
-    const iconClass = 'slb-strategy-icon fa-solid ' + (current === 'vectorized' ? 'fa-link' : 'fa-circle');
-    if (icon.className !== iconClass) icon.className = iconClass;
-    select.setAttribute('aria-label', '로어북 주입 방식');
 }
 
 function syncMobileEntryStateBadge(entry, _syncTheme = true) {
@@ -3187,10 +3179,6 @@ function createAIBar() {
                 <details class="slb-settings-card slb-advanced-settings">
                     <summary><span><i class="fa-solid fa-sliders" aria-hidden="true"></i> 화면 · 고급 설정</span><small>표시 · 연동</small></summary>
                     <div class="slb-settings-card-body">
-                        <label class="slb-field slb-options-location-field"><small>자동 번역 옵션 표시 위치</small><select id="slb-options-location" class="text_pole">
-                            <option value="lorebook">로어북 상단</option>
-                            <option value="extension">확장 탭</option>
-                        </select></label>
                         <div class="slb-linked-world-setting">
                             <label><input type="checkbox" id="slb-filter-linked-lorebooks"> 선택 캐릭터의 로어북만 표시</label>
                             <small>캐릭터 미선택 시 전체 목록. 로어북 연결은 변경되지 않습니다.</small>
@@ -3262,6 +3250,8 @@ function createAIBar() {
         </div>`;
 
     container.append(bar);
+    bar.querySelector('#slb-quick-options-host')?.append(createQuickTranslationOptions());
+    updateBulkTranslationStatus();
     fillProfileSelect();
 
     const settings = getSettings();
@@ -3290,7 +3280,6 @@ function createAIBar() {
     });
     const profile = document.getElementById('slb-profile');
     const outputTokens = document.getElementById('slb-output-tokens');
-    const optionsLocation = document.getElementById('slb-options-location');
     const autoBackupEnabled = document.getElementById('slb-auto-backup-enabled');
     const linkedBookFilterControl = document.getElementById('slb-filter-linked-lorebooks');
     linkedBookFilterControl.checked = settings.showOnlyLinkedLorebooks !== false;
@@ -3315,7 +3304,6 @@ function createAIBar() {
     const translatePrompt = document.getElementById('slb-translate-prompt');
     provider.value = settings.translationProvider;
     outputTokens.value = String(settings.aiOutputTokens);
-    optionsLocation.value = settings.quickOptionsLocation;
     autoBackupEnabled.checked = settings.autoBackupEnabled;
     const syncManagerModeControls = () => {
         const mode = getSettings().managerMode;
@@ -3381,14 +3369,6 @@ function createAIBar() {
         settings.aiOutputTokens = value;
         saveSettingsDebounced();
         notify(`AI 출력 토큰을 ${value.toLocaleString()}으로 저장했습니다.`);
-    });
-    optionsLocation.addEventListener('change', () => {
-        settings.quickOptionsLocation = optionsLocation.value === 'extension' ? 'extension' : 'lorebook';
-        saveSettingsDebounced();
-        syncQuickTranslationOptionsPlacement();
-        notify(settings.quickOptionsLocation === 'extension'
-            ? '자동 번역 옵션을 확장 탭에 표시합니다.'
-            : '자동 번역 옵션을 로어북 상단에 표시합니다.');
     });
     autoBackupEnabled.addEventListener('change', () => {
         settings.autoBackupEnabled = autoBackupEnabled.checked;
@@ -3526,7 +3506,6 @@ function createAIBar() {
             button.disabled = false;
         }
     });
-    syncQuickTranslationOptionsPlacement();
     // 헤더가 아직 없는 첫 생성 단계에서는 표시 클래스만 갱신한다.
     applyMobileDisplaySettings(false);
     // The backup list is created on demand when the backup card is expanded.
@@ -3540,7 +3519,7 @@ function createQuickTranslationOptions() {
         options.innerHTML = `
             <div class="slb-bulk-action">
                 <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>로어북 일괄 번역…</span></button>
-                <small class="slb-translate-book-help">로어북 선택 → 미번역 항목만 번역하거나 전체 재번역을 선택할 수 있어.</small>
+                <small class="slb-translate-book-help">번역할 로어북을 선택한 뒤, 미번역 항목만 번역하거나 전체 재번역을 진행합니다.</small>
             </div>
             <section class="slb-auto-options" aria-label="자동 번역 및 원문 반영 설정">
                 <strong class="slb-auto-options-title">자동 번역 · 원문 반영 설정</strong>
@@ -4097,30 +4076,6 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
     }
 }
 
-function syncQuickTranslationOptionsPlacement() {
-    const settings = getSettings();
-    const select = document.getElementById('slb-options-location');
-    if (select) select.value = settings.quickOptionsLocation;
-
-    let options = document.getElementById('slb-quick-options');
-    if (settings.quickOptionsLocation === 'extension') {
-        const host = document.getElementById('slb-quick-options-host');
-        if (!host) return;
-        options = options || createQuickTranslationOptions();
-        host.append(options);
-        return;
-    }
-
-    const popup = document.getElementById('world_popup');
-    const entries = document.getElementById('world_popup_entries_list');
-    if (!popup || !entries) {
-        options?.remove();
-        return;
-    }
-
-    options = options || createQuickTranslationOptions();
-    popup.insertBefore(options, document.getElementById('slb-token-summary-section') || entries);
-}
 
 function createSummarySection(id, title, body) {
     const section = createElement('section', 'slb-summary-section slb-summary-row');
@@ -4531,7 +4486,6 @@ function createWorkspace() {
     if (tokenSection.nextElementSibling !== filterSection) popup.insertBefore(tokenSection, filterSection);
     bindWorkspaceEntries(entries);
     bindWorkspacePopupObserver(popup);
-    syncQuickTranslationOptionsPlacement();
     syncFilterButtons();
     // 각 새 헤더가 자기 배지를 연결하므로 여기서 전체 목록을 다시 훑지 않는다.
     applyMobileDisplaySettings(false);
@@ -4807,7 +4761,6 @@ function enhanceEntryHeader(entry, options = {}) {
     state.entryStateValues.set(entry, stateSelect.value);
 
     titleField.classList.add('slb-header-field', 'slb-title-field');
-    titleField.prepend(createElement('small', 'slb-header-label', '제목'));
 
     const strategyField = createElement('div', 'slb-header-field slb-strategy-field');
     strategyField.append(createElement('small', 'slb-header-label', '등장 방식'));
@@ -4967,22 +4920,11 @@ function isNarrowEntryLayout(entry) {
     return layoutWidth > 0 && layoutWidth <= 760;
 }
 
-function shouldUseCompactHeader(entry) {
-    if (isNarrowEntryLayout(entry)) return true;
-
-    const shell = entry?.querySelector('.slb-entry-header-shell');
-    if (!shell) return false;
-    const availableWidth = shell.clientWidth || shell.getBoundingClientRect().width;
-    if (!availableWidth) return false;
-
-    const measuredWidth = element => {
-        if (!element) return 0;
-        return Math.ceil(Math.max(element.scrollWidth, element.getBoundingClientRect().width));
-    };
-    const reservedWidth = measuredWidth(entry.querySelector('.slb-header-toggles'))
-        + measuredWidth(entry.querySelector('.slb-header-actions'))
-        + HEADER_LAYOUT_SAFETY_GAP;
-    return availableWidth < FULL_HEADER_FIELDS_MIN_WIDTH + reservedWidth;
+function shouldUseCompactHeader(_entry) {
+    // The native five status/placement controls belong to the entry's
+    // activation tab on every screen size. No viewport-dependent six-field
+    // header that shoves the title and action buttons out of alignment.
+    return true;
 }
 
 function getResponsiveHeaderFields(entry) {
@@ -5022,10 +4964,9 @@ function placeInitialHeaderFields(entry, compact, knownFields = null) {
     // 새로 렌더된 접힌 행은 호출 조건 패널이 아직 없으므로 픽셀 측정이나
     // drawer 상태 판독 없이 결정적으로 배치할 수 있다. 이후 탭/상태 변경은
     // placeResponsiveHeaderFields의 기존 보존 로직만 사용한다.
-    const target = compact ? stash : grid;
-    if (fields.some(field => field.parentElement !== target)) target.append(...fields);
-    entry.classList.toggle('slb-compact-entry', compact);
-    grid.classList.toggle('slb-header-title-only', compact);
+    if (fields.some(field => field.parentElement !== stash)) stash.append(...fields);
+    entry.classList.add('slb-compact-entry');
+    grid.classList.add('slb-header-title-only');
     if (overview) {
         overview.hidden = true;
         overview.dataset.slbVisible = 'false';
@@ -5256,7 +5197,6 @@ function placeResponsiveHeaderFields(entry, forceCompact = false) {
         return;
     }
 
-    const compact = forceCompact || shouldUseCompactHeader(entry);
     const activationActive = entry.dataset.slbActiveTab === 'activation' || Boolean(activationPanel
         ?.classList.contains('is-active'));
     // 주입 방식 저장 중에는 활성 탭/패널 클래스가 한 프레임 사라질 수 있다.
@@ -5266,14 +5206,12 @@ function placeResponsiveHeaderFields(entry, forceCompact = false) {
     const drawerOpen = !closing && (panelVisible || isEntryDrawerStablyOpen(entry));
     // 좁은 화면에서도 호출 조건 탭을 보고 있을 때만 editOutlet 내부로
     // 이동한다. 그 외에는 삭제되지 않는 헤더 stash에 안전하게 보관한다.
-    const target = compact
-        ? (activationActive && drawerOpen && overview?.isConnected ? overview : stash)
-        : grid;
+    const target = activationActive && drawerOpen && overview?.isConnected ? overview : stash;
     if (fields.some(field => field.parentElement !== target)) target.append(...fields);
-    entry.classList.toggle('slb-compact-entry', compact);
-    grid.classList.toggle('slb-header-title-only', compact);
+    entry.classList.add('slb-compact-entry');
+    grid.classList.add('slb-header-title-only');
     if (overview) {
-        const visible = compact && activationActive && drawerOpen && fields.length === 5;
+        const visible = Boolean(activationActive && drawerOpen && fields.length === 5);
         overview.hidden = !visible;
         overview.dataset.slbVisible = String(visible);
     }
@@ -5322,31 +5260,6 @@ function scheduleResponsiveEntryLayouts(syncDisplay = false) {
     });
 }
 
-function scheduleInitialResponsiveGroupValidation(book, entries) {
-    if (state.responsiveMedia?.matches || window.matchMedia('(max-width: 760px)').matches) return;
-    requestAnimationFrame(() => {
-        if (currentBookName() !== book) return;
-        const liveList = document.getElementById('world_popup_entries_list');
-        if (!liveList || entries.some(entry => !entry.isConnected || !liveList.contains(entry))) return;
-
-        // 로딩 마스크가 display:none인 동안에는 개별 shell 폭이 0일 수 있다.
-        // 공개된 다음 각 Foldy 컨테이너의 대표 행 하나만 실제 측정하고, 결과가
-        // 달라진 컨테이너에만 측정 없는 배치를 적용한다.
-        const groups = new Map();
-        for (const entry of entries) {
-            const container = entry.parentElement;
-            if (!groups.has(container)) groups.set(container, []);
-            groups.get(container).push(entry);
-        }
-        for (const groupEntries of groups.values()) {
-            const representative = groupEntries[0];
-            if (!representative?.isConnected) continue;
-            const compact = shouldUseCompactHeader(representative);
-            if (groupEntries.every(entry => entry.classList.contains('slb-compact-entry') === compact)) continue;
-            for (const entry of groupEntries) placeInitialHeaderFields(entry, compact);
-        }
-    });
-}
 
 function entryLabel(entry) {
     const uid = getUid(entry);
@@ -6481,12 +6394,12 @@ function localizeLoreOptionCaptions(activation) {
 function attachLoreEntryHelp(panels) {
     // Describe the actual effect, not SillyTavern's internal field terminology.
     const groupHelp = [
-        ['group','서로 같이 나오면 안 되는 로어에 같은 이름을 써. 예: 맑음과 비를 모두 weather 그룹으로 지정하면 조건에 맞아도 둘 중 하나만 나와.','그룹 이름'],
-        ['groupOverride','같은 그룹에서 여러 로어가 등장할 수 있으면 이 로어를 우선 골라. 여러 로어에 우선을 켜면 순서 숫자가 큰 쪽이 선택돼.','우선 선택'],
-        ['groupWeight','같은 그룹에서 우선 선택된 로어가 없을 때 뽑힐 비중이야. 다른 로어가 100이고 여기가 200이면 이쪽이 두 배쯤 잘 뽑혀.','선택 가중치'],
-        ['sticky','한 번 등장하면 이후 몇 개의 메시지 동안 계속 유지할지 정해. 0은 유지하지 않고 다음번에 다시 판단해.','등장 유지'],
-        ['cooldown','이 로어가 나온 뒤 몇 개의 메시지 동안 다시 나오지 못하게 할지 정해. 0은 대기 없음.','재등장 대기'],
-        ['delay','대화 메시지가 몇 개 쌓인 뒤부터 이 로어가 등장할 수 있는지 정해. 예: 2이면 메시지가 2개 이상일 때부터 가능해.','등장 시작'],
+        ['group','같은 그룹 이름을 지정한 로어는 조건이 모두 맞아도 하나만 선택합니다. 예: ‘맑음’과 ‘비’를 weather 그룹으로 묶으면 둘 중 하나만 사용합니다.','그룹 이름'],
+        ['groupOverride','같은 그룹에서 여러 로어가 발동할 때 이 항목을 우선합니다. 여러 항목에 적용한 경우 삽입 순서 숫자가 높은 항목을 먼저 선택합니다.','우선 선택'],
+        ['groupWeight','그룹에서 우선 선택할 항목이 없으면 가중치에 따라 뽑습니다. 200은 100보다 두 배의 선택 비중을 의미하며 200% 확률은 아닙니다.','선택 가중치'],
+        ['sticky','한 번 사용한 로어를 이후 몇 개의 메시지 동안 유지할지 정합니다. 0이면 유지하지 않고 다음 메시지에서 다시 조건을 검사합니다.','등장 유지'],
+        ['cooldown','이 로어가 사용된 뒤 몇 개의 메시지 동안 다시 발동하지 않을지 정합니다. 0이면 대기하지 않습니다.','재등장 대기'],
+        ['delay','이 로어를 사용하기 전에 필요한 대화 메시지 수를 정합니다. 예: 2이면 메시지가 2개 이상 쌓인 뒤부터 사용할 수 있습니다.','등장 시작'],
     ];
     for (const [name, help, caption] of groupHelp) {
         const control = panels.group.querySelector('[name="' + name + '"]');
@@ -6497,14 +6410,14 @@ function attachLoreEntryHelp(panels) {
         addLoreInfoIcon(label, help, caption);
     }
     const settingHelp = [
-        ['entryLogicType','기본 키워드가 맞은 뒤 추가 키워드를 검사하는 방식이야. 하나 이상은 하나라도 맞아야 등장, 모두는 전부 맞아야 등장, 전부 아님은 모두가 동시에 맞으면 제외, 모두 제외는 하나라도 맞으면 제외해.','조합 규칙'],
-        ['matchWholeWords','단어가 통째로 맞아야 등장해. 예: king은 liking에 들어 있어도 일치로 보지 않아. 한국어처럼 띄어쓰기가 다른 언어는 결과가 달라질 수 있어.','단어 통째로'],
-        ['caseSensitive','영어 대문자와 소문자를 구별해. 예: Rose와 rose를 다른 단어로 찾아.','대소문자 구별'],
-        ['useGroupScoring','같은 그룹에서 여러 로어가 등장할 수 있을 때, 검색 키워드가 더 많이 맞은 로어를 우선 남기는 방식이야.','키워드 일치 비교'],
-        ['probability','키워드 등 조건이 맞아도 실제로 등장할 확률이야. 100%는 항상, 50%는 절반 정도, 0%는 등장하지 않아.','등장 확률'],
-        ['position','로어 본문을 AI가 읽는 지시문 안의 어느 위치에 넣을지 정해. 대부분은 기본 위치를 그대로 사용하면 돼.','삽입 위치'],
-        ['depth','삽입 위치를 대화 깊이로 정했을 때 어느 지점에 넣을지 정하는 숫자야. 그 위치가 아니면 사용되지 않아.','대화 깊이'],
-        ['order','같은 위치에 여러 로어가 들어갈 때의 정렬 우선순위야. 그룹에서 우선 선택이 겹쳐도 이 숫자가 높은 로어를 먼저 선택해.','우선순위'],
+        ['entryLogicType','기본 키워드가 일치한 뒤 추가 키워드를 검사하는 규칙입니다. ‘하나 이상’은 한 개 이상 필요, ‘전부’는 모두 필요, ‘전부 아님’은 모두 동시에 일치할 때 제외, ‘모두 제외’는 하나라도 일치하면 제외합니다.','조합 규칙'],
+        ['matchWholeWords','단어 전체가 일치할 때만 발동합니다. 예: king은 king과 일치하지만 liking 안에서는 일치하지 않습니다. 띄어쓰기가 다른 언어에서는 결과가 달라질 수 있습니다.','단어 통째로'],
+        ['caseSensitive','영어의 대문자와 소문자를 구별합니다. 예: Rose와 rose를 다른 키워드로 검사합니다.','대소문자 구별'],
+        ['useGroupScoring','같은 그룹의 여러 항목이 조건에 맞으면 일치한 키워드 수가 많은 항목을 우선 선택합니다.','키워드 일치 비교'],
+        ['probability','모든 조건이 맞았을 때 실제로 사용할 확률입니다. 100%는 매번, 50%는 약 절반, 0%는 사용하지 않습니다.','등장 확률'],
+        ['position','AI에게 전달할 프롬프트의 어느 위치에 로어 본문을 넣을지 정합니다. 특별한 목적이 없다면 기본 위치를 사용하면 됩니다.','삽입 위치'],
+        ['depth','삽입 위치를 대화 깊이로 지정했을 때 사용할 숫자입니다. 그 위치가 아니면 적용되지 않습니다.','대화 깊이'],
+        ['order','같은 위치에 여러 로어를 넣을 때의 정렬 우선순위입니다. 그룹에서 우선 선택이 겹치면 숫자가 높은 항목을 먼저 선택합니다.','우선순위'],
     ];
     for (const [name, help, caption] of settingHelp) {
         const control = panels.activation.querySelector('[name="' + name + '"]')
@@ -6515,28 +6428,28 @@ function attachLoreEntryHelp(panels) {
         addLoreInfoIcon(label, help, caption);
     }
     for (const [selector, help, caption] of [
-        ['.slb-filter-title-slot-1','이 로어를 사용할 캐릭터나 태그를 골라. 아무것도 고르지 않으면 모든 캐릭터에서 쓸 수 있어.','캐릭터·태그'],
-        ['.slb-filter-title-slot-2','일반 답변, 스와이프(다른 답변 보기) 등 어떤 상황에 이 로어를 사용할지 골라. 비워두면 제한하지 않아.','생성 상황'],
+        ['.slb-filter-title-slot-1','이 로어를 사용할 캐릭터 또는 태그를 지정합니다. 아무것도 선택하지 않으면 캐릭터에 따른 제한이 없습니다.','캐릭터·태그'],
+        ['.slb-filter-title-slot-2','일반 답변, 스와이프, 재생성 등 어떤 생성 상황에서 사용할지 지정합니다. 선택하지 않으면 생성 상황을 제한하지 않습니다.','생성 상황'],
     ]) {
         const label = panels.filter.querySelector(selector + ' > .slb-filter-title');
         addLoreInfoIcon(label, help, caption);
     }
     addLoreInfoIcon(panels.filter.querySelector('[name="character_exclusion"]')?.closest('label'),
-        '위에서 고른 캐릭터나 태그를 사용 대상에서 제외하는 반대 설정이야. 켜면 선택한 곳에서는 이 로어가 나오지 않아.');
+        '선택한 캐릭터 또는 태그를 허용 목록이 아닌 제외 목록으로 바꿉니다. 켜면 해당 대상에서 로어를 사용하지 않습니다.');
     addLoreInfoIcon(panels.filter.querySelector('.slb-matching-sources .inline-drawer-toggle strong'),
-        '키워드를 찾을 때 최근 대화뿐 아니라 캐릭터 설명이나 시나리오 같은 자료도 함께 확인할지 골라.');
+        '키워드를 검색할 때 최근 대화 외에 캐릭터 설명이나 시나리오도 함께 확인할지 선택합니다.');
 
-    for (const [name, help] of [
-        ['excludeRecursion','다른 로어의 본문에 이 로어의 키워드가 있어도, 거기서 이어지는 추가 검색만으로는 등장하지 않아.'],
-        ['preventRecursion','이 로어가 등장해도 이 로어의 본문을 이용해 다른 로어를 연달아 찾아내지 않아.'],
-        ['delay_until_recursion','일반 대화의 첫 키워드 검색에서는 제외하고, 이미 등장한 다른 로어의 내용을 추가로 검색할 때만 등장할 수 있어.'],
-        ['ignoreBudget','다른 등장 조건이 맞으면 로어에 정해둔 토큰(글자 분량) 한도를 넘더라도 포함해.'],
-    ]) addLoreInfoIcon(panels.activation.querySelector('[name="' + name + '"]')?.closest('label'),help);
     for (const [name, help, caption] of [
-        ['scanDepth','최근 대화 몇 개 메시지까지 살펴 키워드를 찾을지 정해. 비워두면 로어북 전체 설정의 검색 범위를 따라.','대화 검색 범위'],
-        ['delayUntilRecursionLevel','다른 로어의 내용을 이어서 검색하는 단계가 몇 단계 진행됐을 때 등장할지 정해. 사용하지 않으면 비워둬.','추가 검색 단계'],
-        ['automationId','빠른 답변(Quick Replies)에서 같은 번호를 가진 자동 동작과 연결할 때만 사용해. 연결할 필요가 없으면 비워둬.','자동화 번호'],
-        ['outletName','삽입 위치를 아웃렛(Outlet)으로 설정했을 때 쓰는 이름이야. 프롬프트에 {{outlet::이름}}을 적은 위치로 이 로어의 본문을 보낼 수 있어. 일반 로어북이면 비워둬도 돼.','출력 슬롯 이름'],
+        ['excludeRecursion','다른 로어 본문에 키워드가 있더라도 연쇄 검색만으로는 이 항목이 발동하지 않습니다.','연쇄 발동 제외'],
+        ['preventRecursion','이 로어의 본문을 이용해 다른 로어를 연쇄적으로 검색하지 않습니다.','연쇄 호출 차단'],
+        ['delay_until_recursion','일반 대화에 대한 첫 번째 검색에서는 제외하고, 이미 발동한 다른 로어 본문을 추가 검색할 때만 발동할 수 있습니다.','연쇄 검색에서만'],
+        ['ignoreBudget','다른 발동 조건이 맞으면 로어북 토큰 예산이 부족하더라도 이 항목을 포함합니다.','토큰 예산 무시'],
+    ]) addLoreInfoIcon(panels.activation.querySelector('[name="' + name + '"]')?.closest('label'), help, caption);
+    for (const [name, help, caption] of [
+        ['scanDepth','키워드 검색에 사용할 최근 메시지 수를 지정합니다. 비워 두면 로어북 전체 설정을 따릅니다.','대화 검색 범위'],
+        ['delayUntilRecursionLevel','다른 로어를 연쇄 검색할 때 어느 단계부터 이 항목을 검사할지 지정합니다. 사용하지 않으면 비워 둡니다.','추가 검색 단계'],
+        ['automationId','빠른 답변(Quick Replies)의 자동 실행 ID와 연결할 때 사용합니다. 사용하지 않으면 비워 둡니다.','자동화 번호'],
+        ['outletName','삽입 위치를 Outlet으로 설정한 경우에만 사용합니다. 프롬프트에 {{outlet::이름}}을 넣으면 해당 위치에 로어 본문이 삽입됩니다.','출력 슬롯 이름'],
     ]) {
         const input = panels.activation.querySelector('[name="' + name + '"]');
         addLoreInfoIcon(input?.closest('.slb-override-field')?.querySelector('small'), help, caption);
@@ -8021,7 +7934,6 @@ function enhanceAll() {
         if (!needsAnotherEnhancePass && !listRevealed) {
             listRevealed = revealCompletedEntryList(bookAtStart, entries, freshHeadersVerified);
             if (listRevealed && freshHeaderPass && !narrowLayout) {
-                scheduleInitialResponsiveGroupValidation(bookAtStart, entries);
             }
         }
     };
@@ -8118,7 +8030,6 @@ function enhanceAll() {
         // 수행한다.
         listRevealed = revealCompletedEntryList(bookAtStart, entries, freshHeadersVerified);
         if (listRevealed && freshHeaderPass && !narrowLayout) {
-            scheduleInitialResponsiveGroupValidation(bookAtStart, entries);
         }
         if (!listRevealed && state.enhancePending) {
             finish();

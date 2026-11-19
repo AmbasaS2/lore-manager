@@ -41,7 +41,13 @@ test('settings cards preserve controls and user data; connected filter is manage
         let saves=0,filterSync=0,backupReads=0;
         const saveSettings=()=>{saves++};
         const syncConnectedWorldOptions=()=>{filterSync++};
-        const syncQuickTranslationOptionsPlacement=()=>{};
+        const createQuickTranslationOptions=()=>{
+            const node=document.createElement('div');
+            node.id='slb-quick-options';
+            node.innerHTML='<button id="slb-translate-book">로어북 일괄 번역</button>';
+            return node;
+        };
+        const updateBulkTranslationStatus=()=>{};
         const applyMobileDisplaySettings=()=>{};
         const renderBackupList=()=>{backupReads++};
     `;
@@ -63,13 +69,17 @@ test('settings cards preserve controls and user data; connected filter is manage
         assert.equal(root.querySelector('#slb-profile').value,'stored-profile');
         for (const id of ['slb-provider','slb-profile','slb-output-tokens','slb-translate-content',
             'slb-translate-title','slb-translate-keywords','slb-hide-translated-source',
-            'slb-translate-prompt','slb-options-location','slb-filter-linked-lorebooks',
+            'slb-translate-prompt','slb-filter-linked-lorebooks',
             'slb-show-mobile-entry-state','slb-show-mobile-token-summary','slb-show-mobile-entry-filters',
             'slb-auto-backup-enabled','slb-backup-now','slb-backup-export-all','slb-clear-translations',
             'slb-reset-extension']) {
             assert.ok(root.querySelector('#'+id),'missing native setting '+id);
         }
         assert.equal(root.querySelector('#slb-connected-world-toggle'),null);
+        assert.equal(root.querySelector('#slb-options-location'),null,'old location picker removed');
+        assert.equal(w.document.querySelector('#world_popup #slb-quick-options'),null);
+        assert.equal(root.querySelectorAll('#slb-quick-options-host > #slb-quick-options').length,1,
+            'book-wide translation always mounts in extension settings');
         const checkbox=root.querySelector('#slb-filter-linked-lorebooks');
         assert.equal(checkbox.checked,true);
         checkbox.checked=false;

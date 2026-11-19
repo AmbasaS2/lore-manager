@@ -11,7 +11,7 @@ function functionBody(name) {
     return match[0];
 }
 
-test('compact Font Awesome strategy leaves the native select intact and keeps handlers', () => {
+test('always-compact header does not duplicate native strategy icon or alter values', () => {
     const dom = new JSDOM('<div class="world_entry"><div class="slb-strategy-field"><select name="entryStateSelector"><option value="normal">normal</option><option value="constant">constant</option><option value="vectorized">vectorized</option></select></div></div>', { runScripts: 'outside-only' });
     const w = dom.window;
     w.eval(functionBody('syncCompactStrategyIcon'));
@@ -22,14 +22,14 @@ test('compact Font Awesome strategy leaves the native select intact and keeps ha
     try {
         w.syncCompactStrategyIcon(entry, 'normal');
         w.syncCompactStrategyIcon(entry, 'normal');
-        assert.equal(entry.querySelectorAll('.slb-strategy-icon').length, 1, 'no duplicated icon');
+        assert.equal(entry.querySelectorAll('.slb-strategy-icon').length, 0, 'unused wide-header glyph removed');
         assert.equal(entry.querySelector('select'), select, 'original native select node retained');
-        assert.equal(entry.querySelector('.slb-strategy-field').dataset.slbState, 'normal');
+        assert.equal(select.getAttribute('aria-label'), '로어 등장 방식');
         select.value = 'vectorized';
         select.dispatchEvent(new w.Event('input', { bubbles: true }));
         w.syncCompactStrategyIcon(entry, select.value);
         assert.equal(count, 1, 'original listener survives');
-        assert.ok(entry.querySelector('.slb-strategy-icon').classList.contains('fa-link'));
+        assert.equal(entry.querySelectorAll('.slb-strategy-icon').length, 0);
         assert.equal(select.value, 'vectorized', 'no value modification');
     } finally { w.close(); }
 });

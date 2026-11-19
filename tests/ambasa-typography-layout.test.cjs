@@ -61,8 +61,8 @@ test('compact editor uses native controls, labels have readable scale without mo
 });
 
 test('quick options have one real label group and no legacy two-column shrinking',()=>{
- assert.match(css,/#slb-ai-tools \.slb-auto-options,[\s\S]*?border-top:\s*1px solid var\(--slb-border\)/);
- assert.match(css,/#slb-ai-tools \.slb-auto-option-grid,[\s\S]*?grid-template-columns:\s*repeat\(auto-fit/);
+ assert.match(css,/#slb-ai-tools \.slb-auto-options\s*\{[^}]*border-top:\s*1px solid var\(--slb-border\)/);
+ assert.match(css,/#slb-ai-tools \.slb-auto-option-grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit/);
  assert.doesNotMatch(css,/#slb-ai-tools #slb-quick-options-host > \.slb-quick-options\s*\{[^}]*font-size:\s*0\.88em/s);
  assert.match(css,/#slb-ai-tools \.slb-settings-card-body,[\s\S]*?gap:\s*6px/s);
  assert.match(css,/#slb-ai-tools \.slb-settings-card-body,[\s\S]*?gap:\s*6px/s);

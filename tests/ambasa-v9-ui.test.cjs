@@ -95,7 +95,7 @@ test('readable Korean captions preserve ST native controls and focusable help', 
         assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('캐릭터·태그'),true);
         const info=panels.group.querySelector('[for="group"] .slb-lore-info-icon');
         assert.ok(info);
-        assert.match(info.dataset.slbHelp,/같은 이름/);
+        assert.match(info.dataset.slbHelp,/같은 그룹 이름/);
         assert.equal(info.hasAttribute('title'),false,'only one tooltip source may exist');
         assert.equal(info.tabIndex,0);
         assert.equal(w.document.querySelectorAll('.slb-entry-help').length,0);
