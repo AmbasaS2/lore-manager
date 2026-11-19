@@ -21,7 +21,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.6';
+const VERSION = '1.4.85-ambasa.7';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -2839,37 +2839,16 @@ function showLorebookExportSelection() {
 }
 
 function createBulkLorebookExportControls() {
-    const nativeExport = document.getElementById('world_popup_export');
-    if (!nativeExport?.parentElement) return;
-    if (document.getElementById('slb-export-selected-lorebooks')) return;
+    // The two ZIP exports belong to the extension settings, not in the
+    // already crowded native lorebook toolbar.
+    const selectedButton = document.getElementById('slb-export-selected-lorebooks');
+    const allButton = document.getElementById('slb-export-all-lorebooks');
+    if (!selectedButton || !allButton || selectedButton.dataset.slbBound === 'true') return;
 
-    const selectedButton = createElement('div', 'menu_button fa-solid fa-list-check slb-bulk-export-button');
-    selectedButton.id = 'slb-export-selected-lorebooks';
-    selectedButton.tabIndex = 0;
-    selectedButton.setAttribute('role', 'button');
-    selectedButton.title = '여러 로어북 선택 내보내기';
-    selectedButton.setAttribute('aria-label', selectedButton.title);
-
-    const allButton = createElement('div', 'menu_button fa-solid fa-file-zipper slb-bulk-export-button');
-    allButton.id = 'slb-export-all-lorebooks';
-    allButton.tabIndex = 0;
-    allButton.setAttribute('role', 'button');
-    allButton.title = '모든 로어북 내보내기';
-    allButton.setAttribute('aria-label', allButton.title);
-
+    selectedButton.dataset.slbBound = 'true';
+    allButton.dataset.slbBound = 'true';
     selectedButton.addEventListener('click', showLorebookExportSelection);
     allButton.addEventListener('click', () => exportAllLorebooks(allButton));
-    selectedButton.addEventListener('keydown', event => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        showLorebookExportSelection();
-    });
-    allButton.addEventListener('keydown', event => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        exportAllLorebooks(allButton);
-    });
-    nativeExport.after(selectedButton, allButton);
 }
 
 function backupExportEnvelope(backups) {
@@ -3177,12 +3156,20 @@ function createAIBar() {
                             <div class="slb-backup-toolbar-actions">
                                 <button type="button" id="slb-backup-now" class="menu_button"><i class="fa-solid fa-floppy-disk"></i> 지금 백업</button>
                                 <button type="button" id="slb-backup-import" class="menu_button"><i class="fa-solid fa-file-import"></i> 가져오기</button>
-                                <button type="button" id="slb-backup-export-all" class="menu_button"><i class="fa-solid fa-file-export"></i> 전체 내보내기</button>
+                                <button type="button" id="slb-backup-export-all" class="menu_button"><i class="fa-solid fa-file-export"></i> 전체 백업 내보내기</button>
                                 <input type="file" id="slb-backup-import-file" accept="application/json,.json" hidden>
                             </div>
                         </div>
                         <small class="slb-backup-note">API를 사용하지 않습니다. 로어북을 열 때 기준본을 저장하고, 마지막 수정 3분 후 또는 계속 수정 중이면 30분마다 변경본을 저장합니다. 모든 로어북을 합쳐 최근 20개를 보관합니다.</small>
                         <div id="slb-backup-list" class="slb-backup-list"></div>
+                        <section class="slb-lorebook-export-section">
+                            <strong>로어북 원본 파일 내보내기</strong>
+                            <div class="slb-lorebook-export-tools">
+                                <button type="button" id="slb-export-selected-lorebooks" class="menu_button"><i class="fa-solid fa-list-check" aria-hidden="true"></i> 여러 로어북 선택 내보내기</button>
+                                <button type="button" id="slb-export-all-lorebooks" class="menu_button"><i class="fa-solid fa-file-zipper" aria-hidden="true"></i> 모든 로어북 내보내기</button>
+                            </div>
+                            <small>로어북 원본 JSON을 ZIP으로 저장합니다. 위의 백업 내보내기와는 별개입니다.</small>
+                        </section>
                     </div>
                 </details>
                 <details class="slb-settings-card slb-data-settings">
@@ -7779,7 +7766,78 @@ function bindConnectedWorldFilter() {
     syncConnectedWorldOptions();
 }
 
+
+function localizeNativeSortingPopup() {
+    const input = document.getElementById('wi_sort_start');
+    const popup = input?.closest('.popup');
+    if (!popup || popup.dataset.slbSortingLocalized === 'true') return false;
+    popup.dataset.slbSortingLocalized = 'true';
+
+    const content = popup.querySelector('.popup-content');
+    const heading = content?.querySelector('h3');
+    if (heading) heading.textContent = '현재 정렬을 순서값에 적용';
+    const paragraphs = content?.querySelectorAll('p') || [];
+    if (paragraphs[0]) paragraphs[0].textContent =
+        '현재 정렬된 순서에 따라 로어북의 모든 항목에 순서(Order) 값을 지정해 저장합니다.';
+    if (paragraphs[1]) paragraphs[1].textContent =
+        '기본값은 내림차순으로, 첫 항목에 가장 큰 숫자가 지정됩니다. 실제 주입 순서는 다른 우선순위 설정의 영향을 받을 수도 있습니다.';
+    const count = content?.querySelector('small');
+    if (count) {
+        const matches = count.textContent.match(/[\d,]+/);
+        if (matches) count.textContent = '(전체 ' + matches[0] + '개 항목)';
+    }
+
+    const definitions = [
+        ['wi_sort_start', '시작 순서값', '맨 위 항목에 부여할 순서값입니다.'],
+        ['wi_sort_step', '순서값 간격', '항목마다 차례대로 더하거나 뺄 숫자입니다.'],
+        ['wi_sort_ascending', '오름차순으로 값 지정', '켜면 위에서부터 순서값이 증가합니다.'],
+    ];
+    for (const [id, labelText, helpText] of definitions) {
+        const label = popup.querySelector('label[for="' + id + '"]');
+        const textNode = label?.querySelector('span');
+        if (textNode) {
+            textNode.textContent = labelText;
+            textNode.removeAttribute('data-i18n');
+        }
+        const field = popup.querySelector('#' + id);
+        if (field && field.type !== 'checkbox') field.title = helpText;
+        const helpIcon = label?.querySelector('.fa-circle-info');
+        if (helpIcon) {
+            helpIcon.title = helpText;
+            helpIcon.removeAttribute('data-i18n');
+        }
+    }
+    for (const [selector, caption] of [
+        ['.popup-button-ok', '적용'],
+        ['.popup-button-cancel', '취소'],
+    ]) {
+        const button = popup.querySelector(selector);
+        if (!button) continue;
+        button.textContent = caption;
+        button.removeAttribute('data-i18n');
+    }
+    return true;
+}
+
+function bindNativeSortingHelp() {
+    const button = document.getElementById('world_apply_current_sorting');
+    if (!button || button.dataset.slbSortHelpBound === 'true') return;
+    button.dataset.slbSortHelpBound = 'true';
+    button.title = '현재 정렬을 순서값에 적용 · 로어북 전체 항목의 순서 숫자를 변경합니다';
+    button.setAttribute('aria-label', '현재 정렬을 순서값에 적용');
+    button.removeAttribute('data-i18n');
+
+    // ST constructs its own popup and retains its original values / save
+    // listener. Translate only the resulting labels; never override onclick.
+    button.addEventListener('click', () => {
+        queueMicrotask(() => {
+            if (!localizeNativeSortingPopup()) requestAnimationFrame(localizeNativeSortingPopup);
+        });
+    });
+}
+
 function bindEvents() {
+    bindNativeSortingHelp();
     const worldSelect = document.getElementById('world_editor_select');
     bindConnectedWorldFilter();
     const worldInfoDrawerToggle = document.querySelector('#WI-SP-button > .drawer-toggle');

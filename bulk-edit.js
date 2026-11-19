@@ -66,8 +66,9 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
         toolbar.querySelector('.slb-bulk-selection-tools').hidden = !enabled;
         toolbar.querySelector('.slb-bulk-selection-count').textContent = `${selected.size}개 선택 중`;
         toolbar.querySelector('.slb-bulk-select-all').disabled = selectingAll;
-        toolbar.querySelector('.slb-bulk-selection-status').textContent = message
-            || '설정 변경·삭제·번역: 선택한 항목에서 실행하면 선택 목록에 함께 적용';
+        // Keep accessible confirmation, but don't fill the editor with a
+        // permanent instructions paragraph on every refresh.
+        toolbar.querySelector('.slb-bulk-selection-status').textContent = message;
     }
 
     function syncRow(row) {
@@ -149,10 +150,10 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
             toolbar.innerHTML = `
                 <label class="slb-bulk-mode-label"><input type="checkbox" class="slb-bulk-mode"><span>선택</span></label>
                 <div class="slb-bulk-selection-tools" hidden>
-                    <strong class="slb-bulk-selection-count" aria-live="polite"></strong>
+                    <strong class="slb-bulk-selection-count slb-screen-reader-only" aria-live="polite"></strong>
                     <button type="button" class="menu_button slb-bulk-select-all" title="현재 로어북의 모든 항목 선택 (다른 페이지와 필터로 숨긴 항목 포함)">전체 선택</button>
                     <button type="button" class="menu_button slb-bulk-clear">선택 해제</button>
-                    <small class="slb-bulk-selection-status" role="status"></small>
+                    <small class="slb-bulk-selection-status slb-screen-reader-only" role="status"></small>
                 </div>`;
             toolbar.querySelector('.slb-bulk-mode').addEventListener('change', event => {
                 revision++;

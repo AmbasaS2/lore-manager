@@ -421,12 +421,11 @@
 }
 
 #WorldInfo.slb-active #world_import_button,
-#WorldInfo.slb-active #world_popup_export,
-#WorldInfo.slb-active .slb-bulk-export-button {
+#WorldInfo.slb-active #world_popup_export {
     flex: 0 0 auto;
 }
 
-#WorldInfo.slb-active .slb-bulk-export-button.slb-export-busy,
+#slb-ai-tools .slb-lorebook-export-tools .slb-export-busy,
 .slb-export-modal .slb-export-busy {
     cursor: wait;
     opacity: 0.58;
@@ -4435,11 +4434,11 @@
 }
 
 #WorldInfo.slb-active .slb-bulk-selection-tools {
-    display: flex;
-    flex: 1 1 240px;
+    display: inline-flex;
+    flex: 0 1 auto;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 8px;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -4448,19 +4447,27 @@
 }
 
 #WorldInfo.slb-active .slb-bulk-selection-tools .menu_button {
+    box-sizing: border-box;
     width: auto;
     margin: 0;
+    padding: 3px 8px;
+    font: inherit;
+    line-height: 1.13;
     white-space: nowrap;
 }
 
-#WorldInfo.slb-active .slb-bulk-selection-count {
+/* Accessibility-only status; no permanent instructional block or count takes
+   up space in the lorebook editor. */
+#WorldInfo.slb-active .slb-screen-reader-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
     white-space: nowrap;
-}
-
-#WorldInfo.slb-active .slb-bulk-selection-status {
-    flex: 1 1 100%;
-    opacity: .8;
-    overflow-wrap: anywhere;
 }
 
 #WorldInfo.slb-active .world_entry .slb-header-toggles > .slb-entry-selection {
@@ -4588,20 +4595,13 @@
 }
 
 /* v1.4.84: match the compact automatic-translation options. */
-#WorldInfo.slb-active #slb-entry-selection-toolbar { font-size: .9em; }
 #WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
-    gap: 4px;
-    font-size: inherit;
-    line-height: 1.22;
+    gap: 6px;
+    line-height: 1.2;
 }
 #slb-ai-tools .slb-translation-display-options { margin: 0 0 8px; }
 #slb-ai-tools .slb-translation-targets > .slb-mobile-display-options { width: 100%; }
-@media (max-width: 760px) {
-    #WorldInfo.slb-active #slb-entry-selection-toolbar,
-    #WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
-        font-size: clamp(10px, 2.6vw, 13px) !important;
-    }
-}
+/* Selection toolbar follows the native menu_button size on every screen. */
 /* Desktop: the native label/control rows stay aligned across all columns.
    Translation gets a third row in the title column, never a spanning flex item. */
 @media (min-width: 761px) {
@@ -5120,4 +5120,45 @@
 }
 #slb-strategy-picker .slb-strategy-picker-option .slb-picker-glyph {
     pointer-events: none;
+}
+
+
+/* Distinguish actual ZIP export of lorebooks from the local-backup export.
+   Use the same native theme variables as the existing extension settings. */
+#slb-ai-tools .slb-lorebook-export-section {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--SmartThemeBorderColor, currentColor);
+}
+
+#slb-ai-tools .slb-lorebook-export-section > strong {
+    font-size: inherit;
+    font-weight: 600;
+}
+
+#slb-ai-tools .slb-lorebook-export-section > small {
+    opacity: 0.75;
+    line-height: 1.35;
+}
+
+#slb-ai-tools .slb-lorebook-export-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+#slb-ai-tools .slb-lorebook-export-tools .menu_button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 5px 8px;
+    gap: 6px;
+    font: inherit;
+    line-height: 1.2;
+    white-space: normal;
 }
