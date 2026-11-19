@@ -13,38 +13,54 @@ function extract(name) {
 const elementStub='const createElement=(tag,cls,text)=>{const e=document.createElement(tag);'+
     'if(cls)e.className=cls;if(text)e.textContent=text;return e;};';
 
-test('one button invokes native expand/collapse handlers and retains native buttons',()=>{
-    const html='<div id="WorldInfo"><div id="world_popup">'+
+test('combined button uses native ST toggleDrawer directly and preserves both original controls',async()=>{
+    const html='<div id="WorldInfo"><div id="world_popup">' +
         '<button id="OpenAllWIEntries" class="menu_button">Native open</button>'+
         '<button id="CloseAllWIEntries" class="menu_button">Native close</button>'+
         '<div id="world_info_pagination"></div><select id="world_editor_select"></select>'+
-        '<button id="world_refresh">Refresh</button></div></div>';
-    const dom=new JSDOM(html,{runScripts:'outside-only'});
+        '<button id="world_refresh">Refresh</button>'+
+        '<div id="world_popup_entries_list">'+
+        '<div class="inline-drawer"><div class="inline-drawer-header"><i class="inline-drawer-icon down"></i></div><div class="inline-drawer-content" style="display:none"></div></div>'+
+        '<div class="inline-drawer"><div class="inline-drawer-header"><i class="inline-drawer-icon down"></i></div><div class="inline-drawer-content" style="display:none"></div></div>'+
+        '</div></div></div>';
+    const dom=new JSDOM(html,{runScripts:'outside-only',pretendToBeVisual:true});
     const w=dom.window;
-    w.eval(elementStub+'\n'+extract('bindCombinedEntryToggle')+'\nwindow.bind=bindCombinedEntryToggle;');
-    let expand=0,collapse=0;
+    w.eval(elementStub + '\nlet calls=[]; const toggleDrawer=(drawer, expand)=>{' +
+        'calls.push(expand);let icon=drawer.querySelector(".inline-drawer-icon");' +
+        'icon.classList.toggle("up",expand);icon.classList.toggle("down",!expand);' +
+        'drawer.querySelector(".inline-drawer-content").style.display=expand?"block":"none";' +
+        'drawer.dispatchEvent(new Event("inline-drawer-toggle",{bubbles:true}));' +
+        '};\n'+extract('bindCombinedEntryToggle')+
+        '\nwindow.bind=bindCombinedEntryToggle;window.calls=()=>calls;');
     const nativeOpen=w.document.getElementById('OpenAllWIEntries');
     const nativeClose=w.document.getElementById('CloseAllWIEntries');
-    nativeOpen.addEventListener('click',()=>expand++);
-    nativeClose.addEventListener('click',()=>collapse++);
+    let nativeClicks=0;
+    nativeOpen.addEventListener('click',()=>nativeClicks++);
+    nativeClose.addEventListener('click',()=>nativeClicks++);
     try {
         w.bind();w.bind();
         const btn=w.document.getElementById('slb-toggle-all-entries');
         assert.ok(btn);
         assert.equal(w.document.querySelectorAll('#slb-toggle-all-entries').length,1);
-        assert.equal(btn.dataset.slbAction,'close');
-        btn.click();
-        assert.equal(collapse,1);
         assert.equal(btn.dataset.slbAction,'open');
         btn.click();
-        assert.equal(expand,1);
+        assert.deepEqual(Array.from(w.calls()),[true,true]);
         assert.equal(btn.dataset.slbAction,'close');
+        btn.click();
+        assert.deepEqual(Array.from(w.calls()),[true,true,false,false]);
+        assert.equal(btn.dataset.slbAction,'open');
+        nativeOpen.click();
+        nativeClose.click();
+        assert.equal(nativeClicks,2,'unmodified native buttons remain functional');
         w.document.getElementById('world_info_pagination').click();
-        assert.equal(btn.dataset.slbAction,'close');
-        assert.equal(w.document.getElementById('OpenAllWIEntries'),nativeOpen);
-        assert.equal(w.document.getElementById('CloseAllWIEntries'),nativeClose);
-        assert.match(css,/slb-combined-entry-toggle #OpenAllWIEntries/);
-    } finally {w.close();}
+        await new Promise(resolve=>w.requestAnimationFrame(()=>{
+            assert.equal(btn.dataset.slbAction,'open');
+            assert.equal(w.document.getElementById('OpenAllWIEntries'),nativeOpen);
+            assert.equal(w.document.getElementById('CloseAllWIEntries'),nativeClose);
+            assert.match(css,/slb-combined-entry-toggle #OpenAllWIEntries/);
+            resolve();
+        }));
+    }finally{w.close();}
 });
 
 test('original ST labels remain intact and help icons explain on hover or focus', () => {
@@ -73,7 +89,8 @@ test('original ST labels remain intact and help icons explain on hover or focus'
         assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('Filter to Characters or Tags'),true);
         const info=panels.group.querySelector('[for="group"] .slb-lore-info-icon');
         assert.ok(info);
-        assert.match(info.title,/같은 그룹/);
+        assert.match(info.dataset.slbHelp,/같은 그룹/);
+        assert.equal(info.hasAttribute('title'),false,'only one tooltip source may exist');
         assert.equal(info.tabIndex,0);
         assert.equal(w.document.querySelectorAll('.slb-entry-help').length,0);
         const excluded=panels.filter.querySelector('[name="character_exclusion"]');

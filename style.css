@@ -98,8 +98,11 @@
 
 #slb-ai-tools .slb-backup-list {
     display: grid;
-    max-height: 320px;
-    overflow: auto;
+    min-height: 0;
+    max-height: min(420px, 50vh);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     gap: 6px;
 }
 
@@ -132,9 +135,7 @@
 
 #slb-ai-tools .slb-backup-group-title {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 #slb-ai-tools .slb-backup-group-toggle {
@@ -165,17 +166,13 @@
 }
 
 #slb-ai-tools .slb-backup-group:not([open]) > .slb-backup-group-body {
-    display: none !important;
-}
-
-#slb-ai-tools .slb-backup-group[open] > .slb-backup-group-body {
-    display: grid !important;
+    display: none;
 }
 
 #slb-ai-tools .slb-backup-row {
-    display: grid;
-    grid-template-columns: minmax(160px, 1fr) auto;
-    gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
     padding: 7px;
     align-items: center;
     border: 1px solid var(--SmartThemeBorderColor);
@@ -184,6 +181,7 @@
 
 #slb-ai-tools .slb-backup-info {
     display: grid;
+    flex: 1 1 145px;
     min-width: 0;
     gap: 2px;
 }
@@ -198,15 +196,27 @@
 
 #slb-ai-tools .slb-backup-actions {
     display: flex;
+    flex: 1 1 265px;
+    min-width: 0;
+    flex-wrap: wrap;
     align-items: center;
     gap: 4px;
 }
 
 #slb-ai-tools .slb-backup-actions .menu_button,
-#slb-ai-tools .slb-backup-toolbar-actions .menu_button {
-    min-height: 28px;
-    padding: 3px 7px;
-    white-space: nowrap;
+#slb-ai-tools .slb-backup-toolbar-actions .menu_button,
+#slb-ai-tools .slb-data-actions .menu_button,
+#slb-ai-tools .slb-backup-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    min-width: 0;
+    padding: 4px 7px;
+    font: inherit;
+    white-space: normal;
+    word-break: keep-all;
 }
 
 @media (max-width: 760px) {
@@ -216,7 +226,8 @@
     }
 
     #slb-ai-tools .slb-backup-row {
-        grid-template-columns: minmax(0, 1fr);
+        flex-direction: column;
+        align-items: stretch;
     }
 
     #slb-ai-tools .slb-backup-actions {
@@ -2227,12 +2238,12 @@
     }
 
     #WorldInfo.slb-active .slb-keyword-grid > .slb-keyword-core-field > small {
-        height: 16px;
-        min-height: 16px;
+        min-height: 19px;
         margin: 0 !important;
-        font-size: 0.68em;
-        line-height: 1;
+        font-size: 0.85em;
+        line-height: 1.2;
         text-align: center;
+        overflow-wrap: anywhere;
     }
 
     #WorldInfo.slb-active .slb-keyword-grid select[name="entryLogicType"] {
@@ -2270,7 +2281,7 @@
     #WorldInfo.slb-active .slb-overrides-grid {
         display: grid !important;
         grid-template-columns: 50px repeat(3, minmax(0, 1fr)) 66px;
-        grid-auto-rows: 42px;
+        grid-auto-rows: minmax(48px, auto);
         gap: 4px !important;
         align-items: end !important;
         width: 100% !important;
@@ -2279,7 +2290,7 @@
     #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field {
         display: grid;
         box-sizing: border-box;
-        grid-template-rows: 15px 27px;
+        grid-template-rows: minmax(19px, auto) 27px;
         min-width: 0 !important;
         width: 100% !important;
         margin: 0 !important;
@@ -2289,14 +2300,14 @@
     #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field > small {
         box-sizing: border-box;
         min-width: 0;
-        min-height: 15px;
+        min-height: 19px;
         margin: 0 !important;
-        overflow: hidden;
-        font-size: 0.61em;
-        line-height: 1;
+        overflow: visible;
+        font-size: 0.8em;
+        line-height: 1.2;
         text-align: center;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field input,
@@ -2310,7 +2321,7 @@
         margin: 0 !important;
         padding: 1px 5px !important;
         overflow: hidden;
-        font-size: 0.7em;
+        font-size: 0.84em;
         text-overflow: ellipsis;
     }
 
@@ -4201,6 +4212,9 @@
     max-width: 30px !important;
     height: 32px !important;
     padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid > .slb-strategy-field .slb-header-label {
     display: none !important;
@@ -4578,17 +4592,17 @@
     color: var(--SmartThemeBodyColor, inherit);
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 25px auto !important;
+    grid-template-columns: auto minmax(0, 1fr) 32px auto !important;
     align-items: center;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
     display: inline-flex !important;
     grid-column: 3;
     grid-row: 1;
-    width: 25px;
-    min-width: 25px;
-    max-width: 25px;
-    height: 25px;
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    height: 34px;
     align-items: center;
     justify-content: center;
     justify-self: center;
@@ -4623,7 +4637,7 @@
 }
 #WorldInfo.slb-active .slb-mobile-entry-state-badge:hover,
 #WorldInfo.slb-active .slb-mobile-entry-state-badge:focus-visible {
-    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 12%, transparent);
+    color: var(--SmartThemeQuoteColor, currentColor);
 }
 #WorldInfo.slb-active .slb-mobile-entry-state-badge:focus-visible {
     outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
@@ -4870,9 +4884,6 @@
     gap: 9px;
     color: var(--SmartThemeBodyColor, inherit);
 }
-.slb-translation-picker-title {
-    font-size: 1em;
-}
 .slb-translation-picker-label {
     font-weight: 600;
 }
@@ -4895,16 +4906,26 @@
 }
 .slb-translation-picker-status:empty { display: none; }
 .popup:has(.slb-translation-picker) .popup-controls {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 420px;
+    gap: 7px;
 }
 .popup:has(.slb-translation-picker) .popup-controls .menu_button {
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    box-sizing: border-box;
+    width: 100%;
     min-width: 0;
+    min-height: 36px;
+    justify-content: center;
+    font: inherit;
     white-space: normal;
+    overflow-wrap: normal;
+    word-break: keep-all;
 }
 #WorldInfo.slb-active .slb-quick-options .slb-translate-book,
 #slb-ai-tools .slb-quick-options .slb-translate-book {
@@ -4922,7 +4943,7 @@
 #WorldInfo.slb-active .slb-lore-info-icon {
     position: relative;
 }
-#WorldInfo.slb-active .slb-lore-info-icon:is(:hover, :focus-visible)::after {
+#WorldInfo.slb-active .slb-lore-info-icon:is(:hover, :focus)::after {
     content: attr(data-slb-help);
     position: absolute;
     z-index: 200;
