@@ -57,8 +57,11 @@ test('Google translation remains in the original independent request path',async
  assert.equal(google,1);assert.equal(ai,0);
 });
 
-test('entry source and bulk code pass field context without altering actual key data',()=>{
- const generated=source.match(/results\[field\] = await translateText\(/g)||[];
- assert.equal(generated.length,2,'both single and bulk translate use field context');
- assert.equal((source.match(/reference: field === 'content' \? '' : sources\.content/g)||[]).length,2);
+test('entry source and bulk flow use a shared field-aware translation batch',()=>{
+ const count=(source.match(/translateLoreFieldsForEntry\(/g)||[]).length;
+ assert.ok(count>=4,'bulk, editor, and helper all route through field batch');
+ assert.match(source,/translateEntryCombinedFields\(/);
+ assert.match(source,/return translateLoreFieldsBatch\(/);
+ assert.match(source,/translationProvider !== 'profile'/);
+ assert.match(source,/reference: field === 'content' \? '' : sources\.content/);
 });

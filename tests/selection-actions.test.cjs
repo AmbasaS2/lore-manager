@@ -49,7 +49,7 @@ function fixture() {
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
 
     });
-    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
@@ -664,4 +664,138 @@ test('reselecting an unchanged language direction never queues another full sett
         assert.equal(f.settings.entryLanguagePairs['A:0'].translationLanguage,'en');
         assert.equal(f.counters().debounceCalls,2);
     } finally {f.close();}
+});
+
+test('independently chosen lorebook continues translating after switching to a different displayed book', async () => {
+    const f=fixture();
+    try {
+        const openUI=f.ui(0);
+        let release;
+        const gate=new Promise(resolve=>{release=resolve});
+        let first=true;
+        f.translate(async src=>{
+            if(first){first=false;await gate;}
+            return 'translated '+src;
+        });
+        const running=f.context.translateCurrentLorebook('all',null,'A');
+        await flush();
+        f.switchBook();
+        release();
+        await running;
+        assert.equal(f.settings.translations['A:0'].text,'translated source 0');
+        assert.equal(f.settings.translations['A:1'].text,'translated source 1');
+        assert.equal(f.settings.translations['A:2'].text,'translated source 2');
+        assert.equal(f.settings.translations['A:3'].text,'translated source 3');
+        assert.equal(openUI.translation.value,'','stale editor not written after switching books');
+        assert.equal(f.settings.translations['B:0'],undefined,'other book with same UID untouched');
+        assert.equal(f.context.state.bulkTranslation,null,'work completed without cancellation');
+    } finally{f.close();}
+});
+
+test('missing-only translation uses the chosen off-screen lorebook records, never the current displayed rows', async () => {
+    const f=fixture();
+    try{
+        f.ui(0).translation.value='Visible UI text from book B';
+        f.switchBook();
+        f.settings.translations['A:0']={
+            uid:'0',book:'A',sourceHash:'source 0',sourceText:'source 0',
+            language:'ko',text:'existing saved translation',
+        };
+        await f.context.translateCurrentLorebook('missing',null,'A');
+        assert.equal(f.settings.translations['A:0'].text,'existing saved translation');
+        assert.equal(f.requests.length,3);
+        assert.equal(f.settings.translations['B:0'],undefined);
+    }finally{f.close();}
+});
+
+test('profile bulk translation sends body, title and both keyword fields in one request',async()=>{
+ const {translateLoreFieldsBatch}=await import(require('node:url').pathToFileURL(require('node:path').join(__dirname,'../lore-translation-batch.js')).href);
+ const f=fixture();
+ try{
+  f.settings.translationProvider='profile';
+  f.settings.translateContent=true;
+  f.settings.translateTitle=true;
+  f.settings.translateKeywords=true;
+  f.settings.translationPrompt='Use established names.';
+  f.context.translateLoreFieldsBatch=translateLoreFieldsBatch;
+  const entry=f.data.entries[0];
+  entry.comment='057 - 1981/10/18 | The First Dance';
+  entry.key=['Remus','Catherine'];entry.keysecondary=['Moony'];
+  const original=JSON.stringify(f.data);
+  const prompts=[];
+  f.context.requestWithProfile=async prompt=>{
+   prompts.push(prompt);
+   assert.match(prompt,/Fields to return: content, comment, key, keysecondary/);
+   assert.match(prompt,/Use established names/);
+   return JSON.stringify({
+    content:'번역 source 0',
+    comment:'057 - 1981/10/18 | 첫 춤',
+    key:'리무스, 캐서린',
+    keysecondary:'무니',
+   });
+  };
+  await f.context.translateCurrentLorebook('selected',{book:'A',uids:['0']});
+  assert.equal(prompts.length,1,'one paid model call for the entire entry');
+  assert.equal(f.requests.length,0,'no separately billed field requests');
+  assert.equal(f.settings.translations['A:0'].text,'번역 source 0');
+  assert.equal(f.settings.translations['A:0'].fields.comment.text,'057 - 1981/10/18 | 첫 춤');
+  assert.equal(f.settings.translations['A:0'].fields.key.text,'리무스, 캐서린');
+  assert.equal(f.settings.translations['A:0'].fields.keysecondary.text,'무니');
+  assert.equal(JSON.stringify(f.data),original,'actual lorebook fields remain intact');
+ }finally{f.close();}
+});
+
+test('editor full translation batches body and title; keyword source values remain native',async()=>{
+ const {translateLoreFieldsBatch}=await import(require('node:url').pathToFileURL(require('node:path').join(__dirname,'../lore-translation-batch.js')).href);
+ const f=fixture();
+ try{
+  f.settings.translationProvider='profile';
+  f.settings.translateContent=true;
+  f.settings.translateTitle=true;
+  f.settings.translateKeywords=true;
+  f.context.translateLoreFieldsBatch=translateLoreFieldsBatch;
+  const ui=f.ui(0);
+  ui.entry.insertAdjacentHTML('afterbegin',
+    '<div class="slb-title-field"><textarea name="comment">The First Meeting</textarea></div>'+
+    '<div class="slb-keyword-core-field"><textarea name="key">Remus, Catherine</textarea></div>');
+  f.data.entries[0].comment='The First Meeting';f.data.entries[0].key=['Remus','Catherine'];
+  const prompts=[];
+  f.context.requestWithProfile=async prompt=>{
+   prompts.push(prompt);
+   return JSON.stringify({
+    content:'번역 source 0',
+    comment:'첫 만남',
+    key:'리무스, 캐서린',
+   });
+  };
+  await f.context.translateEntrySource(ui,true,false);
+  assert.equal(prompts.length,1);
+  assert.equal(f.requests.length,0);
+  assert.equal(ui.source.value,'source 0');
+  assert.equal(ui.translation.value,'번역 source 0');
+  assert.equal(ui.entry.querySelector('[name="comment"]').value,'The First Meeting');
+  assert.equal(ui.entry.querySelector('[name="key"]').value,'Remus, Catherine');
+  assert.equal(f.settings.translations['A:0'].fields.comment.text,'첫 만남');
+  assert.equal(f.settings.translations['A:0'].fields.key.text,'리무스, 캐서린');
+ }finally{f.close();}
+});
+
+test('batch translation skips saving if a title changes while a shared request is pending',async()=>{
+ const {translateLoreFieldsBatch}=await import(require('node:url').pathToFileURL(require('node:path').join(__dirname,'../lore-translation-batch.js')).href);
+ const f=fixture();
+ try{
+  f.settings.translationProvider='profile';
+  f.settings.translateContent=true;
+  f.settings.translateTitle=true;
+  f.context.translateLoreFieldsBatch=translateLoreFieldsBatch;
+  f.data.entries[0].comment='Before';
+  let finish;
+  f.context.requestWithProfile=async()=>new Promise(resolve=>{finish=resolve;});
+  const task=f.context.translateCurrentLorebook('selected',{book:'A',uids:['0']});
+  await flush();
+  f.data.entries[0].comment='After';
+  finish(JSON.stringify({content:'번역 source 0',comment:'번역 Before'}));
+  await task;
+  assert.equal(f.settings.translations['A:0'],undefined,'stale combined result never applied');
+ }finally{f.close();}
 });

@@ -10,7 +10,7 @@ import {
 import { extension_settings } from '../../../extensions.js';
 import { getTokenCountAsync } from '../../../tokenizers.js';
 import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, world_names, selected_world_info, world_info, world_info_position } from '../../../world-info.js';
-import { Popup, POPUP_RESULT } from '../../../popup.js';
+import { Popup, POPUP_TYPE, POPUP_RESULT } from '../../../popup.js';
 import { isMobile } from '../../../RossAscends-mods.js';
 import { getCharaFilename, select2ModifyOptions } from '../../../utils.js';
 import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js';
@@ -18,11 +18,12 @@ import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
 import { createTranslationFallbackLookup } from './translation-lookup.js';
 import { translateLoreWithValidation } from './lore-translation.js';
+import { translateLoreFieldsBatch } from './lore-translation-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.9';
+const VERSION = '1.4.85-ambasa.10';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -1748,6 +1749,34 @@ async function translateText(source, targetLanguage, onProgress = null, options 
     });
 }
 
+// One model request per ordinary lorebook entry, not one per field.
+// Google Translate and single-field requests retain their existing path.
+// Response keys are individually validated before touching any saved data.
+async function translateLoreFieldsForEntry(sources, fields, targetLanguage) {
+    const active = fields.filter(field => typeof sources[field] === 'string' && sources[field].trim());
+    const fallback = async (field, original) => translateText(
+        original, targetLanguage, null,
+        { field, reference: field === 'content' ? '' : sources.content },
+    );
+    if (getSettings().translationProvider !== 'profile' || active.length <= 1) {
+        const results = {};
+        for (const field of active) results[field] = await fallback(field, sources[field]);
+        return results;
+    }
+    const settings = getSettings();
+    return translateLoreFieldsBatch({
+        sources, fields: active,
+        targetLanguage: normalizeEntryLanguage(targetLanguage) || ENTRY_LANGUAGE_KOREAN,
+        instructions: settings.translationPrompt || '',
+        maxCombinedChars: Math.max(2800, Math.min(9500, Math.floor((settings.aiOutputTokens || 8192) * 1.1))),
+        request: prompt => requestWithProfile(prompt),
+        fallback,
+        onWarning: warning => {
+            console.warn('[로어북 매니저] 묶음 번역 형식 복구', warning.field || '', warning.reason || warning.message || '');
+        },
+    });
+}
+
 function splitReflectionDocument(value) {
     const text = String(value ?? '');
     const segments = [];
@@ -3463,8 +3492,7 @@ function createQuickTranslationOptions() {
         options.id = 'slb-quick-options';
         options.innerHTML = `
             <div class="slb-bulk-action">
-                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book">이 로어북 전체 번역</button>
-                <button type="button" class="menu_button slb-translate-book" id="slb-translate-missing-book">번역 안 된 항목만 번역</button>
+                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-language" aria-hidden="true"></i><span>로어북 번역</span></button>
             </div>
             <label><input type="checkbox" id="slb-translate-missing"> 항목 열 때 자동 번역</label>
             <label><input type="checkbox" id="slb-auto-translate"> 원문 변경 시 재번역</label>
@@ -3494,27 +3522,97 @@ function createQuickTranslationOptions() {
         saveSettingsDebounced();
         syncAutoControls();
     });
-    options.querySelector('#slb-translate-book').addEventListener('click', () => translateCurrentLorebook('all'));
-    options.querySelector('#slb-translate-missing-book').addEventListener('click', () => translateCurrentLorebook('missing'));
+    options.querySelector('#slb-translate-book').addEventListener('click', () => {
+        if (state.bulkTranslation) {
+            state.bulkTranslation.cancelled = true;
+            updateBulkTranslationStatus('진행 중인 항목이 끝나면 중단합니다.');
+            return;
+        }
+        void showLorebookTranslationPicker();
+    });
     updateBulkTranslationStatus();
     options.dataset.slbBound = VERSION;
     return options;
 }
 
 function updateBulkTranslationStatus(message = '') {
-    const allButton = document.getElementById('slb-translate-book');
-    const missingButton = document.getElementById('slb-translate-missing-book');
+    const button = document.getElementById('slb-translate-book');
     const status = document.getElementById('slb-bulk-status');
-    const job = state.bulkTranslation;
-    if (allButton) {
-        allButton.textContent = job?.mode === 'all' ? '전체 번역 취소' : '이 로어북 전체 번역';
-        allButton.disabled = Boolean(job && job.mode !== 'all');
-    }
-    if (missingButton) {
-        missingButton.textContent = job?.mode === 'missing' ? '미번역 번역 취소' : '번역 안 된 항목만 번역';
-        missingButton.disabled = Boolean(job && job.mode !== 'missing');
+    if (button) {
+        button.title = state.bulkTranslation
+            ? '번역 중 · 누르면 중단 요청'
+            : '번역할 로어북과 번역 범위를 선택';
+        button.setAttribute('aria-label', button.title);
     }
     if (status && message) status.textContent = message;
+}
+
+// Same native Popup and linked lorebook selection approach as AmbasaS2/STLO.
+async function showLorebookTranslationPicker() {
+    const allBooks = availableLorebookNames();
+    if (!allBooks.length) {
+        notify('번역할 로어북이 없습니다.', 'warning');
+        return;
+    }
+    const linkedBooks = currentCharacterLinkedBooks();
+    const current = currentBookName();
+    const form = createElement('div', 'slb-translation-picker');
+    const title = createElement('strong', 'slb-translation-picker-title', '로어북 번역');
+    const fieldLabel = createElement('label', 'slb-translation-picker-label', '로어북 선택');
+    fieldLabel.htmlFor = 'slb-translate-world-select';
+    const select = createElement('select', 'text_pole textarea_compact');
+    select.id = 'slb-translate-world-select';
+    const showAllLabel = createElement('label', 'checkbox_label slb-translation-picker-all');
+    const showAll = document.createElement('input');
+    showAll.type = 'checkbox';
+    showAll.id = 'slb-translate-world-show-all';
+    showAll.checked = linkedBooks === null;
+    showAll.disabled = linkedBooks === null;
+    // Match STLO/SillyTavern's native checkbox structure; without .checkmark
+    // some themes hide the actual input and no checkbox is visible.
+    showAllLabel.append(showAll, createElement('span', 'checkmark'),
+        createElement('span', '', '모든 로어북 보기'));
+    const status = createElement('small', 'slb-translation-picker-status');
+    const updateOptions = () => {
+        const allowed = showAll.checked || linkedBooks === null
+            ? allBooks : allBooks.filter(name => linkedBooks.has(name));
+        const previous = select.value;
+        select.replaceChildren();
+        for (const name of allowed) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.append(option);
+        }
+        select.value = allowed.includes(previous) ? previous
+            : allowed.includes(current) ? current : allowed[0] ?? '';
+        status.textContent = allowed.length ? '' : '연결된 로어북이 없습니다. 모든 로어북 보기를 선택해주세요.';
+    };
+    showAll.addEventListener('change', updateOptions);
+    updateOptions();
+    form.append(title, fieldLabel, select, showAllLabel, status);
+
+    const popup = new Popup(form, POPUP_TYPE.CONFIRM, '', {
+        okButton: false,
+        cancelButton: '닫기',
+        customButtons: [
+            { text: '번역문 없는 로어 전체 번역', result: 2, icon: 'fa-language' },
+            { text: '이 로어북 전체 재번역', result: 3, icon: 'fa-arrows-rotate' },
+        ],
+        onClosing: dialog => {
+            if ((dialog.result === 2 || dialog.result === 3) && !select.value) {
+                status.textContent = '번역할 로어북을 먼저 선택해주세요.';
+                return false;
+            }
+            return true;
+        },
+    });
+    const result = await popup.show();
+    if (result !== 2 && result !== 3) return;
+    const selectedBook = select.value;
+    // Popup closes, browser-tab work continues. Closing the ST tab still
+    // interrupts browser-side API requests: this is not a server-side job.
+    void translateCurrentLorebook(result === 2 ? 'missing' : 'all', null, selectedBook);
 }
 
 function selectedTranslationFields() {
@@ -3731,7 +3829,8 @@ function syncMetadataTranslations(entry, options = {}) {
 
 function hasEntryTranslation(book, entry) {
     const uid = String(entry.uid);
-    const open = renderedEntries().find(element => getUid(element) === uid);
+    const open = currentBookName() === book
+        ? renderedEntries().find(element => getUid(element) === uid) : null;
     const ui = open?.querySelector('.world_entry_edit')?.slbTranslationUI;
     const sources = getEntryTranslationSources(entry, ui, open);
     const language = ui?.translationLanguage ?? getEntryLanguagePair(book, uid).translationLanguage;
@@ -3796,13 +3895,14 @@ async function deleteSelectedEntries(selection) {
     notify(`선택한 ${uids.length}개 항목을 삭제했습니다.`, 'success');
 }
 
-async function translateCurrentLorebook(mode = 'all', selection = null) {
+async function translateCurrentLorebook(mode = 'all', selection = null, selectedBook = null) {
     if (state.bulkTranslation) {
         state.bulkTranslation.cancelled = true;
         updateBulkTranslationStatus('진행 중인 항목이 끝나면 중단합니다.');
         return;
     }
-    const book = currentBookName();
+    const book = selectedBook || currentBookName();
+    const independent = Boolean(selectedBook);
     if (selection && !entryBulkEditor.isCurrentSelection(selection)) return;
     if (!book) {
         notify('먼저 번역할 로어북을 선택해주세요.', 'warning');
@@ -3817,7 +3917,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
         return;
     }
 
-    const job = { book, mode, cancelled: false, uids: selection ? new Set(selection.uids) : null };
+    const job = { book, mode, independent, cancelled: false, uids: selection ? new Set(selection.uids) : null };
     state.bulkTranslation = job;
     updateBulkTranslationStatus('로어북 항목을 불러오는 중…');
     let succeeded = 0;
@@ -3844,12 +3944,13 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
         let checkpoint = Promise.resolve();
         showProgress();
         await mapLimit(entries, concurrency, async entry => {
-            if (currentBookName() !== book) job.cancelled = true;
+            if (!independent && currentBookName() !== book) job.cancelled = true;
             if (job.cancelled) return;
             const uid = String(entry.uid);
             try {
                 if (data.entries[uid] !== entry) { skipped += 1; return; }
-                const open = renderedEntries().find(element => getUid(element) === uid);
+                const open = currentBookName() === book
+                    ? renderedEntries().find(element => getUid(element) === uid) : null;
                 const ui = open?.querySelector('.world_entry_edit')?.slbTranslationUI;
                 const source = ui?.source.value ?? entry.content;
                 const pair = ui
@@ -3867,20 +3968,16 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
                         ? !(translationBefore?.trim() || previous?.language === pair.translationLanguage && previous?.text?.trim())
                         : !currentMetadataTranslation(previous?.language === pair.translationLanguage ? previous : null, field, sources[field]))
                 ));
-                const results = {};
-                for (const field of fields) {
-                    if (job.cancelled || currentBookName() !== book) return;
-                    results[field] = await translateText(
-                        sources[field], pair.translationLanguage, null,
-                        { field, reference: field === 'content' ? '' : sources.content },
-                    );
-                    if (!results[field]?.trim()) throw new Error('번역 결과가 비어 있습니다.');
+                if (job.cancelled || (!independent && currentBookName() !== book)) return;
+                const results = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
+                if (fields.some(field => !results[field]?.trim())) {
+                    throw new Error('선택한 번역 결과 중 비어 있는 항목이 있습니다.');
                 }
                 const translated = results.content;
                 if (job.cancelled) return;
                 const latest = getSettings().translations[translationKey(book, uid)];
                 if (
-                    currentBookName() !== book || data.entries[uid] !== entry || ui?.flags.deleted
+                    (!independent && currentBookName() !== book) || data.entries[uid] !== entry || ui?.flags.deleted
                     || (ui ? ui.source.value : entry.content) !== source
                     || ui?.translation.value !== translationBefore
                     || latest !== previous
@@ -3890,9 +3987,10 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
                     skipped += 1;
                     return;
                 }
-                const liveUI = renderedEntries().find(row => getUid(row) === uid)
-                    ?.querySelector('.world_entry_edit')?.slbTranslationUI;
-                const latestRow = renderedEntries().find(row => getUid(row) === uid);
+                const liveRow = currentBookName() === book
+                    ? renderedEntries().find(row => getUid(row) === uid) : null;
+                const liveUI = liveRow?.querySelector('.world_entry_edit')?.slbTranslationUI;
+                const latestRow = liveRow;
                 if (fields.some(field => getEntryTranslationSources(entry, liveUI, latestRow)[field] !== sources[field])) {
                     skipped += 1;
                     return;
@@ -3916,7 +4014,8 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
                     });
                 }
                 saveMetadataTranslations(book, uid, pair, sources, results);
-                const liveEntry = renderedEntries().find(row => getUid(row) === uid);
+                const liveEntry = currentBookName() === book
+                    ? renderedEntries().find(row => getUid(row) === uid) : null;
                 if (liveEntry) syncMetadataTranslations(liveEntry);
                 if (liveUI) liveUI.status.textContent = `${jobLabel}으로 선택한 번역본을 저장했습니다.`;
                 succeeded += 1;
@@ -5611,6 +5710,55 @@ async function translateChangedSourceLines(previousSource, source, translation, 
     };
 }
 
+// Full editor translation: body, title and selected keywords share one AI
+// request when the source is short enough. Partial source edits deliberately
+// retain the old segment-preserving path below.
+async function translateEntryCombinedFields(ui, pair, sources, metadataFields, background) {
+    const fields = ['content', ...metadataFields];
+    const source = ui.source.value;
+    const translationBefore = ui.translation.value;
+    const savedBefore = getSettings().translations[translationKey(ui.book, ui.uid)];
+    ui.flags.translating = true;
+    if (background) {
+        ui.translationPane.classList.add('slb-pane-busy');
+        ui.status.textContent = '본문과 제목·키워드를 함께 번역 중…';
+    } else {
+        setEntryBusy(ui, true, '본문과 제목·키워드를 함께 번역 중…');
+    }
+    try {
+        const results = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
+        if (fields.some(field => !results[field]?.trim())) {
+            throw new Error('번역이 누락된 항목이 있어 기존 번역본을 유지했습니다.');
+        }
+        const latestSources = getEntryTranslationSources(entryData(ui.uid), ui);
+        if (ui.flags.deleted || !ui.root.isConnected || currentBookName() !== ui.book
+            || ui.source.value !== source || ui.translation.value !== translationBefore
+            || ui.sourceLanguage !== pair.sourceLanguage || ui.translationLanguage !== pair.translationLanguage
+            || getSettings().translations[translationKey(ui.book, ui.uid)] !== savedBefore
+            || fields.some(field => latestSources[field] !== sources[field])) {
+            ui.status.textContent = '번역 도중 원문 또는 설정이 바뀌어 이전 결과를 적용하지 않았습니다.';
+            return;
+        }
+        ui.flags.writingTranslation = true;
+        try { ui.translation.value = results.content; }
+        finally { ui.flags.writingTranslation = false; }
+        markTranslationSynced(ui, source, results.content);
+        saveMetadataTranslations(ui.book, ui.uid, pair, sources, results);
+        syncMetadataTranslations(ui.entry);
+        ui.status.textContent = '본문·제목·키워드 번역본을 저장했습니다.';
+    } catch(error) {
+        ui.status.textContent = error.message || '로어북 번역에 실패했습니다.';
+        notify(ui.status.textContent,'error');
+    } finally {
+        ui.flags.translating = false;
+        ui.translationPane.classList.remove('slb-pane-busy');
+        if (!background) setEntryBusy(ui,false);
+        if (ui.source.value !== source && getSettings().autoTranslateSource && ui.root.isConnected) {
+            scheduleSourceTranslation(ui);
+        }
+    }
+}
+
 async function translateEntrySource(ui, force = false, background = false) {
     if (ui.flags.deleted || ui.flags.writingSource || state.bulkTranslation?.book === ui.book) return;
     if (ui.flags.translating) {
@@ -5633,8 +5781,14 @@ async function translateEntrySource(ui, force = false, background = false) {
     const record = previous?.language === pair.translationLanguage ? previous : null;
     const fields = selected.filter(field => field !== 'content' && sources[field].trim())
         .filter(field => force && !background || !currentMetadataTranslation(record, field, sources[field]));
-    if (selected.includes('content') && sources.content.trim()
-        && !(background && ui.translation.value.trim() && record?.sourceHash === hashText(sources.content))) {
+    const shouldTranslateBody = selected.includes('content') && sources.content.trim()
+        && !(background && ui.translation.value.trim() && record?.sourceHash === hashText(sources.content));
+    if (getSettings().translationProvider === 'profile' && shouldTranslateBody && fields.length
+        && (force || !ui.translation.value.trim())) {
+        await translateEntryCombinedFields(ui, pair, sources, fields, background);
+        return;
+    }
+    if (shouldTranslateBody) {
         await translateEntryBodySource(ui, force, background);
     }
     if (!fields.length || ui.flags.deleted || currentBookName() !== ui.book) return;
@@ -5642,15 +5796,8 @@ async function translateEntrySource(ui, force = false, background = false) {
     ui.flags.translating = true;
     setEntryBusy(ui, true, '제목·호출 키워드를 번역하는 중…');
     try {
-        const results = {};
-        for (const field of fields) {
-            if (ui.flags.deleted || currentBookName() !== ui.book) return;
-            results[field] = await translateText(
-                sources[field], pair.translationLanguage, null,
-                { field, reference: field === 'content' ? '' : sources.content },
-            );
-            if (!results[field]?.trim()) throw new Error('번역 결과가 비어 있습니다.');
-        }
+        const results = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
+        if (fields.some(field => !results[field]?.trim())) throw new Error('번역 결과가 비어 있습니다.');
         const liveEntry = renderedEntries().find(row => getUid(row) === String(ui.uid)) || ui.entry;
         const liveUI = liveEntry.querySelector('.world_entry_edit')?.slbTranslationUI || ui;
         const latestSources = getEntryTranslationSources(entryData(ui.uid), liveUI, liveEntry);
@@ -6126,112 +6273,82 @@ function useNativeConnectionFilterLists(root) {
     });
 }
 
-// Change only visible captions and help text. Keep native inputs, names,
-// values, event handlers and original lorebook storage intact.
-function setLoreCaption(label, caption, help = '') {
-    if (!label) return;
-    const leaves = Array.from(label.querySelectorAll('[data-i18n]'))
-        .filter(node => !node.querySelector('[data-i18n]') && !node.matches('i'));
-    const target = leaves[0] || label;
-    if (target !== label || !label.children.length) {
-        target.textContent = caption;
-    } else {
-        const textNode = Array.from(label.childNodes).find(node => node.nodeType === 3 && node.textContent.trim());
-        if (textNode) textNode.textContent = caption;
-        else label.insertBefore(document.createTextNode(caption + ' '), label.firstChild);
+// The original SillyTavern labels are kept. A small info glyph next to a
+// native label explains the actual behavior only when hovered or focused.
+function addLoreInfoIcon(label, help) {
+    if (!label || !help) return;
+    let icon = label.querySelector(':scope > .slb-lore-info-icon');
+    if (!icon) {
+        icon = label.querySelector(':scope > .fa-circle-info, :scope > .fa-circle-question');
+        if (!icon) {
+            icon = document.createElement('i');
+            label.append(icon);
+        }
+        icon.classList.add('fa-solid', 'fa-circle-info', 'slb-lore-info-icon');
+        icon.setAttribute('role', 'button');
+        icon.tabIndex = 0;
+        icon.setAttribute('aria-label', help);
+        icon.addEventListener('pointerdown', event => event.stopPropagation());
+        icon.addEventListener('click', event => {
+            // The hint may sit inside a native label: never toggle its actual
+            // checkbox just because the user tapped the explanation icon.
+            event.preventDefault();
+            event.stopPropagation();
+            icon.focus();
+        });
+        icon.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            event.stopPropagation();
+            icon.focus();
+        });
     }
-    target.removeAttribute?.('data-i18n');
-    label.removeAttribute('data-i18n');
-    if (help) label.title = help;
+    icon.title = help;
+    icon.dataset.slbHelp = help;
+    icon.removeAttribute('data-i18n');
 }
 
-// On-demand examples explain native SillyTavern settings without changing
-// actual storage values. Nothing opens automatically when creating a new entry.
-function addLoreEntryHelp(panel, paragraphs) {
-    if (!panel || panel.querySelector(':scope > .slb-entry-help')) return;
-    const help = createElement('details', 'slb-entry-help');
-    const summary = createElement('summary', 'slb-entry-help-toggle');
-    summary.append(createElement('i', 'fa-regular fa-circle-question'));
-    summary.append(document.createTextNode(' 예시로 이해하기'));
-    help.append(summary);
-    for (const [term, example] of paragraphs) {
-        const line = createElement('p', 'slb-entry-help-line');
-        line.append(createElement('strong', '', term + ': '));
-        line.append(document.createTextNode(example));
-        help.append(line);
-    }
-    panel.prepend(help);
-}
-
-function localizeLoreEntryControls(panels) {
-    addLoreEntryHelp(panels.activation, [
-        ['파랑 · 항상 사용', '대화에 키워드가 없어도 이 항목을 AI에게 전달합니다.'],
-        ['초록 · 키워드로 사용', '대화에 지정한 단어가 있을 때만 내용을 불러옵니다.'],
-        ['링크 · 비슷한 내용 찾기', '벡터 검색을 설정했을 때 비슷한 주제의 항목을 찾아 불러옵니다.'],
-        ['AI에게 넣을 위치', '불러온 내용을 AI에게 전달할 프롬프트의 위치를 정합니다. 모르겠다면 기본값을 유지해도 됩니다.'],
-        ['연쇄 호출', '한 항목의 내용에 다른 항목의 키워드가 등장하면 다음 항목까지 불러오는 기능입니다.'],
-    ]);
-    addLoreEntryHelp(panels.group, [
-        ['같은 묶음에서 하나 선택', '예: 맑음과 비에 같은 묶음 이름을 넣으면 둘 다 조건이 맞아도 하나만 선택합니다.'],
-        ['뽑힐 비중', '맑음 100, 비 50이면 맑음이 더 잘 선택되지만 100% 확정은 아닙니다.'],
-        ['발동 후 유지', '3이면 한 번 발동한 뒤 3개 메시지 동안 계속 사용합니다.'],
-        ['재발동 대기', '3이면 발동 후 3개 메시지 동안 새로 발동하지 않습니다.'],
-        ['발동 지연', '3이면 대화가 최소 3개 메시지 진행된 뒤 발동할 수 있습니다.'],
-    ]);
-    addLoreEntryHelp(panels.filter, [
-        ['사용할 캐릭터·태그', '특정 캐릭터나 태그에만 쓰고 싶을 때 선택합니다.'],
-        ['선택 대상 제외', '체크하면 선택한 캐릭터·태그에서는 반대로 사용하지 않습니다.'],
-        ['사용할 응답 상황', '보통 답변, 다시 생성 등 특정 상황에서만 사용하게 제한합니다.'],
-        ['추가로 키워드를 찾을 곳', '대화 외에 캐릭터 소개·성격·시나리오에서도 키워드를 찾게 할 수 있습니다.'],
-    ]);
-    const group = [
-        ['group','같은 묶음 이름','같은 이름을 넣은 항목들이 동시에 조건에 맞으면 그중 하나만 고릅니다.'],
-        ['groupWeight','뽑힐 비중','같은 묶음의 다른 항목과 비교하는 숫자입니다. 100은 100%를 뜻하지 않습니다.'],
-        ['sticky','몇 메시지 동안 유지?','발동 후 이 숫자만큼 메시지 동안 계속 사용합니다.'],
-        ['cooldown','몇 메시지 쉬고 다시?','발동 후 이 숫자만큼 메시지 동안 다시 발동하지 않습니다.'],
-        ['delay','몇 메시지 뒤부터?','대화가 이 숫자만큼 진행된 뒤 발동할 수 있습니다.'],
+function attachLoreEntryHelp(panels) {
+    const groupHelp = [
+        ['group','같은 그룹 이름을 넣은 항목이 여러 개 발동하면 그중 하나만 고릅니다. 예: 맑음과 비를 같은 그룹으로 지정.'],
+        ['groupOverride','같은 그룹에서 이 항목을 우선 선택합니다. 여러 항목에 켜졌으면 순서(Order)가 높은 항목을 선택합니다.'],
+        ['groupWeight','같은 그룹에서 뽑힐 상대적 비중입니다. 100은 100%라는 뜻이 아닙니다.'],
+        ['sticky','한 번 발동하면 지정한 메시지 수 동안 계속 사용합니다. 3이면 이후 3개 메시지 동안 유지합니다.'],
+        ['cooldown','한 번 발동한 후 이 숫자만큼 메시지 동안 다시 발동하지 않습니다.'],
+        ['delay','대화 메시지가 이 숫자만큼 쌓이기 전까지는 발동하지 않습니다.'],
     ];
-    for (const [name, caption, help] of group) {
-        const field = panels.group.querySelector('[name="' + name + '"]')?.closest('.slb-group-field');
-        const label = field?.querySelector('small[for="' + name + '"],label[for="' + name + '"],small[data-i18n],small');
-        setLoreCaption(label,caption,help);
+    for (const [name, help] of groupHelp) {
+        const control = panels.group.querySelector('[name="' + name + '"]');
+        const field = control?.closest('.slb-group-field') || control?.closest('label');
+        const label = name === 'groupOverride' ? control?.closest('label')
+            : field?.querySelector('small[for="' + name + '"],label[for="' + name + '"],small');
+        addLoreInfoIcon(label,help);
     }
-    setLoreCaption(panels.group.querySelector('[name="groupOverride"]')?.closest('label'),
-        '이 항목 먼저 고르기','같은 묶음에서 우선 선택합니다. 여러 항목에 켜면 순서값이 높은 항목이 선택됩니다.');
-    for (const [selector,caption,help] of [
-        ['.slb-filter-title-slot-1','사용할 캐릭터·태그','선택한 캐릭터나 태그에서만 이 항목을 발동합니다.'],
-        ['.slb-filter-title-slot-2','어떤 답변에서 쓸까?','일반 답변·답변 재생성 등 적용할 상황을 선택합니다.'],
+    for (const [selector, help] of [
+        ['.slb-filter-title-slot-1','이 항목을 사용할 캐릭터와 태그를 지정합니다. 아무것도 선택하지 않으면 제한하지 않습니다.'],
+        ['.slb-filter-title-slot-2','일반 답변, 답변 다시 생성 등 어떤 상황에서 사용할지 지정합니다.'],
     ]) {
-        const slot=panels.filter.querySelector(selector);
-        setLoreCaption(slot?.querySelector('small,label,.slb-filter-title'),caption,help);
-        if(slot)slot.title=help;
+        const label=panels.filter.querySelector(selector+' > .slb-filter-title');
+        addLoreInfoIcon(label,help);
     }
-    setLoreCaption(panels.filter.querySelector('[name="character_exclusion"]')?.closest('label'),
-        '선택 대상 제외','켜면 선택한 캐릭터와 태그에서는 사용하지 않습니다.');
-    setLoreCaption(panels.filter.querySelector('.slb-matching-sources .inline-drawer-toggle strong'),
-        '추가로 키워드를 찾을 곳','대화 외에 캐릭터 설정에서도 호출 키워드를 찾습니다.');
-    const options = { normal:'일반 답변',continue:'이어쓰기',impersonate:'사용자 대신 작성',
-        swipe:'다른 답변',regenerate:'다시 생성',quiet:'조용히 생성' };
-    for(const option of panels.filter.querySelectorAll('select[name="triggers"] option')){
-        if(!options[option.value])continue;
-        option.textContent=options[option.value];
-        option.removeAttribute('data-i18n');
-    }
-    for(const [name,caption,help] of [
-        ['scanDepth','최근 몇 메시지에서 찾을까?','대화의 최근 메시지 몇 개에서 호출 키워드를 찾을지 정합니다.'],
-        ['delayUntilRecursionLevel','연쇄 호출 몇 단계부터?','다른 로어북의 내용에서 키워드를 다시 발견할 때 몇 단계부터 적용할지 정합니다.'],
-        ['automationId','자동 실행 ID','빠른 답변 등 연결 기능에 쓰는 식별자입니다.'],
-    ]){
-        const field=panels.activation.querySelector('[name="'+name+'"]')?.closest('.slb-override-field,.slb-header-field');
-        setLoreCaption(field?.querySelector('small,.slb-header-label'),caption,help);
-    }
-    for(const [name,caption,help] of [
-        ['excludeRecursion','연쇄 호출로 발동 안 함','다른 항목이 이 키워드를 불러도 연쇄 발동하지 않습니다.'],
-        ['preventRecursion','다른 항목 연쇄 호출 안 함','이 항목 내용으로 다른 항목을 연달아 호출하지 않습니다.'],
-        ['delay_until_recursion','연쇄 호출 때만 발동','일반 검색에서는 제외하고 연쇄 호출에서만 발동합니다.'],
-        ['ignoreBudget','토큰 한도보다 우선 사용','다른 조건을 만족하면 로어북 토큰 한도를 넘어도 포함합니다.'],
-    ]){
-        setLoreCaption(panels.activation.querySelector('[name="'+name+'"]')?.closest('label'),caption,help);
+    addLoreInfoIcon(panels.filter.querySelector('[name="character_exclusion"]')?.closest('label'),
+        '선택한 캐릭터·태그에서 사용하지 않도록 조건을 반대로 바꿉니다.');
+    addLoreInfoIcon(panels.filter.querySelector('.slb-matching-sources .inline-drawer-toggle strong'),
+        '대화 내용 외에 캐릭터 설명·성격·시나리오에서도 호출 키워드를 찾도록 선택합니다.');
+
+    for (const [name,help] of [
+        ['excludeRecursion','다른 로어북의 내용에 이 항목 키워드가 등장해도 연쇄적으로 발동하지 않습니다.'],
+        ['preventRecursion','이 항목의 본문에서 다른 로어북의 키워드를 발견하더라도 다음 항목을 연쇄 호출하지 않습니다.'],
+        ['delay_until_recursion','대화의 일반 키워드 검색이 아닌 다른 로어북의 연쇄 호출에서만 발동합니다.'],
+        ['ignoreBudget','다른 발동 조건을 만족하면 로어북 토큰 예산을 넘겨도 포함합니다.'],
+    ]) addLoreInfoIcon(panels.activation.querySelector('[name="' + name + '"]')?.closest('label'),help);
+    for (const [name,help] of [
+        ['scanDepth','최근 대화 몇 개에서 키워드를 찾을지 지정합니다. 비어 있으면 전체 설정을 따릅니다.'],
+        ['delayUntilRecursionLevel','연쇄 호출이 몇 단계 진행됐을 때부터 이 항목이 발동할지 정합니다.'],
+        ['automationId','빠른 답변 같은 자동화 기능에서 사용할 ID입니다.'],
+    ]) {
+        const input=panels.activation.querySelector('[name="' + name + '"]');
+        addLoreInfoIcon(input?.closest('.slb-override-field')?.querySelector('small'),help);
     }
 }
 
@@ -6400,9 +6517,9 @@ function enhanceEntry(entry) {
     const tabbar = createElement('div', 'slb-tabbar');
     const tabs = [
         createTab('content', '원문 · 번역'),
-        createTab('activation', '발동 조건'),
-        createTab('group', '그룹 · 발동 시간'),
-        createTab('filter', '사용 대상'),
+        createTab('activation', '호출 조건'),
+        createTab('group', '그룹 · 반복'),
+        createTab('filter', '연결 필터'),
     ];
     tabbar.append(...tabs);
 
@@ -6414,11 +6531,9 @@ function enhanceEntry(entry) {
 
     const keywordAssistant = createElement('section', 'slb-keyword-assistant');
     const keywordHead = createElement('div', 'slb-keyword-head');
-    const keywordTitle = createElement('div', 'slb-keyword-title');
-    keywordTitle.innerHTML = '<i class="fa-solid fa-key" aria-hidden="true"></i><strong>AI 키워드 추천</strong>';
-    const recommendButton = createMenuButton('fa-solid fa-wand-magic-sparkles', '키워드 추천', '원문을 읽고 호출 키워드 추천');
-    keywordHead.append(keywordTitle, recommendButton);
-    const keywordHelp = createElement('small', 'slb-keyword-help', '추천 키워드는 확인 후 직접 추가할 수 있습니다.');
+    const recommendButton = createMenuButton('fa-solid fa-key', 'AI 키워드 추천', 'AI가 본문을 읽고 호출 키워드를 추천합니다.');
+    recommendButton.classList.add('slb-keyword-recommend-button');
+    keywordHead.append(recommendButton);
     const keywordResults = createElement('div', 'slb-keyword-results');
     keywordResults.hidden = true;
     const keywordTextarea = createElement('textarea', 'text_pole slb-keyword-textarea');
@@ -6432,7 +6547,7 @@ function enhanceEntry(entry) {
     const keywordStatus = createElement('small', 'slb-keyword-status', '아직 적용되지 않음');
     keywordActions.append(refineKeywordsButton, insertKeywordsButton);
     keywordResults.append(keywordTextarea, keywordActions, keywordStatus);
-    keywordAssistant.append(keywordHead, keywordHelp, keywordResults);
+    keywordAssistant.append(keywordHead, keywordResults);
 
     panels.content.append(contentBlock, syncRow);
     if (contentMeta.childElementCount) panels.content.append(contentMeta);
@@ -6593,7 +6708,7 @@ function enhanceEntry(entry) {
     }
 
     edit.replaceChildren(tabbar, panels.content, panels.activation, panels.group, panels.filter);
-    localizeLoreEntryControls(panels);
+    attachLoreEntryHelp(panels);
     syncMemoryBooksRegenerationButton(entry);
     placeResponsiveHeaderFields(entry);
 

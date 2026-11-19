@@ -1205,15 +1205,6 @@
     max-width: 100%;
 }
 
-#WorldInfo.slb-active .slb-keyword-assistant {
-    margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid var(--slb-border);
-    border-radius: 9px;
-    background: var(--slb-surface);
-}
-
-#WorldInfo.slb-active .slb-keyword-head,
 #WorldInfo.slb-active .slb-keyword-actions {
     display: flex;
     align-items: center;
@@ -1221,35 +1212,6 @@
     flex-wrap: wrap;
 }
 
-#WorldInfo.slb-active .slb-keyword-head {
-    justify-content: space-between;
-    flex-wrap: nowrap !important;
-}
-
-#WorldInfo.slb-active .slb-keyword-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-}
-
-#WorldInfo.slb-active .slb-keyword-head > .menu_button {
-    display: inline-flex !important;
-    flex: 0 0 142px !important;
-    flex-flow: row nowrap !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-sizing: border-box !important;
-    width: 142px !important;
-    min-width: 142px !important;
-    max-width: 142px !important;
-    writing-mode: horizontal-tb !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-}
-
-#WorldInfo.slb-active .slb-keyword-help,
 #WorldInfo.slb-active .slb-keyword-status {
     display: block;
     margin-top: 5px;
@@ -1372,30 +1334,6 @@
         display: inline-flex;
         padding-inline: 10px;
         white-space: nowrap;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-head {
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 8px;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-title {
-        min-width: 0;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-head > .menu_button {
-        display: inline-flex !important;
-        inline-size: 142px !important;
-        min-inline-size: 142px !important;
-        max-inline-size: 142px !important;
-        flex-flow: row nowrap !important;
-        justify-content: center;
-        white-space: nowrap !important;
-        word-break: keep-all !important;
-        overflow-wrap: normal !important;
-        writing-mode: horizontal-tb !important;
     }
 
     #WorldInfo.slb-active .world_entry .slb-entry-header-shell {
@@ -2257,32 +2195,6 @@
         max-width: 50px !important;
     }
 
-    #WorldInfo.slb-active .slb-keyword-assistant {
-        margin-top: 10px !important;
-        margin-bottom: 6px;
-        padding: 7px;
-        border-radius: 7px;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-head {
-        gap: 6px;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-title {
-        gap: 4px;
-        font-size: 0.9em;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-head > .menu_button {
-        inline-size: 118px !important;
-        min-inline-size: 118px !important;
-        max-inline-size: 118px !important;
-        min-height: 28px !important;
-        padding: 2px 6px !important;
-        font-size: 0.8em;
-    }
-
-    #WorldInfo.slb-active .slb-keyword-help,
     #WorldInfo.slb-active .slb-keyword-status {
         margin-top: 3px;
         font-size: 0.76em;
@@ -2884,9 +2796,6 @@
 }
 
 /* overview의 실제 아래 padding으로 키워드 카드와 마진 상쇄 없이 분리한다. */
-#WorldInfo.slb-active .slb-panel[data-panel="activation"] > .slb-keyword-assistant {
-    margin-top: 0 !important;
-}
 
 /* ── 연결 필터: 두 열이 하나의 제목 행·하나의 컨트롤 행을 공유 ── */
 #WorldInfo.slb-active .slb-filter-grid {
@@ -4669,17 +4578,17 @@
     color: var(--SmartThemeBodyColor, inherit);
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 28px auto !important;
+    grid-template-columns: auto minmax(0, 1fr) 25px auto !important;
     align-items: center;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
     display: inline-flex !important;
     grid-column: 3;
     grid-row: 1;
-    width: 28px;
-    min-width: 28px;
-    max-width: 28px;
-    height: 28px;
+    width: 25px;
+    min-width: 25px;
+    max-width: 25px;
+    height: 25px;
     align-items: center;
     justify-content: center;
     justify-self: center;
@@ -4814,64 +4723,32 @@
 }
 
 
-/* On narrow screens, search takes the real available viewport width.
-   Pagination gets its own stable line, so changing pages does not change
-   the layout when its range label gains another digit. */
+/* Fluid search: expand into unused toolbar space but never forcibly fill
+   an entire new line. Reserve the longest typical range-label width so
+   changing between page 1 and page 2 does not shift the pagination. */
 @media (max-width: 600px) {
     #WorldInfo.slb-active #world_popup > .flex-container:has(#world_info_pagination) {
         column-gap: 5px;
     }
     #WorldInfo.slb-active #slb-search-sort {
-        flex: 1 1 100%;
+        flex: 1 1 170px;
         width: auto;
         max-width: none;
-        min-width: 0;
+        min-width: min(140px, 100%);
         gap: 5px;
     }
     #WorldInfo.slb-active #world_info_pagination {
-        flex: 1 0 100%;
+        flex: 0 0 auto;
         min-width: 0;
+        max-width: 100%;
+    }
+    #WorldInfo.slb-active #world_info_pagination .paginationjs-nav {
+        min-width: 11ch;
     }
 }
 
 
 /* AmbasaS2 on-demand, plain-language examples. Collapsed by default. */
-#WorldInfo.slb-active .slb-panel > .slb-entry-help {
-    box-sizing: border-box;
-    margin: 0 0 9px;
-    padding: 0;
-    border: 1px solid var(--SmartThemeBorderColor, currentColor);
-    border-radius: 6px;
-    background: transparent;
-    color: var(--SmartThemeBodyColor, inherit);
-}
-#WorldInfo.slb-active .slb-entry-help > summary {
-    padding: 6px 9px;
-    cursor: pointer;
-    font-size: 0.88em;
-    font-weight: 500;
-    line-height: 1.35;
-}
-#WorldInfo.slb-active .slb-entry-help > summary:hover,
-#WorldInfo.slb-active .slb-entry-help > summary:focus-visible {
-    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 9%, transparent);
-}
-#WorldInfo.slb-active .slb-entry-help > summary > i {
-    margin-right: 4px;
-}
-#WorldInfo.slb-active .slb-entry-help[open] > summary {
-    border-bottom: 1px solid var(--SmartThemeBorderColor, currentColor);
-}
-#WorldInfo.slb-active .slb-entry-help-line {
-    margin: 0;
-    padding: 5px 9px;
-    font-size: 0.86em;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-#WorldInfo.slb-active .slb-entry-help-line + .slb-entry-help-line {
-    border-top: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor, currentColor) 40%, transparent);
-}
 
 /* Less unused vertical space before translation actions in settings. */
 #slb-ai-tools .slb-translation-settings .slb-settings-card-body {
@@ -4912,4 +4789,168 @@
 #WorldInfo.slb-active #slb-toggle-all-entries:hover,
 #WorldInfo.slb-active #slb-toggle-all-entries:focus-visible {
     color: var(--SmartThemeQuoteColor, currentColor);
+}
+
+/* Lightweight controls; the native WI form and theme own outer card shapes. */
+#WorldInfo.slb-active .slb-keyword-assistant {
+  display: block;
+  margin: 2px 0 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#WorldInfo.slb-active .slb-keyword-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0;
+}
+#WorldInfo.slb-active .slb-keyword-head > .slb-keyword-recommend-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 8px;
+  font: inherit;
+  white-space: nowrap;
+}
+#WorldInfo.slb-active .slb-keyword-results:not([hidden]) {
+  margin-top: 7px;
+  padding: 5px 0;
+  background: transparent;
+}
+#WorldInfo.slb-active .slb-lore-info-icon {
+  display: inline-block;
+  margin-inline-start: 5px;
+  font-size: 0.85em;
+  opacity: 0.7;
+  cursor: help;
+  vertical-align: middle;
+}
+#WorldInfo.slb-active .slb-lore-info-icon:hover,
+#WorldInfo.slb-active .slb-lore-info-icon:focus-visible {
+  opacity: 1;
+  color: var(--SmartThemeQuoteColor, currentColor);
+}
+#WorldInfo.slb-active .slb-lore-info-icon:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
+/* Tighten the four editor tabs without forcing a custom outer card shape. */
+#WorldInfo.slb-active .slb-tabbar { margin: 2px 0 5px; padding: 0; gap: 4px; }
+#WorldInfo.slb-active .slb-tab { padding: 4px 7px; line-height: 1.25; }
+#WorldInfo.slb-active .slb-panel { line-height: 1.4; }
+#WorldInfo.slb-active .slb-entry-editor-head { height: auto; min-height: 27px; max-height: none; margin: 0 0 3px; }
+#WorldInfo.slb-active .slb-source-pane textarea[name="content"],
+#WorldInfo.slb-active .slb-translation-text { height: auto; min-height: 145px; resize: vertical; }
+#WorldInfo.slb-active [name="contentAndCharFilterBlock"].slb-content-grid { gap: 8px; }
+@media (max-width: 620px) {
+  #WorldInfo.slb-active .slb-source-pane textarea[name="content"],
+  #WorldInfo.slb-active .slb-translation-text { height: auto; min-height: 140px; }
+}
+/* Native style supplies the rounded outer entry; extension-built inner cards
+   should not add square borders or tinted panels inside the same entry. */
+#WorldInfo.slb-active .slb-summary-section {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  margin: 3px 0;
+}
+
+
+/* Native ST popup picker. Keep themed buttons, do not create another
+   custom fixed-width overlay or constrain the desktop panel. */
+.slb-translation-picker {
+    display: grid;
+    min-width: 0;
+    width: min(100%, 420px);
+    gap: 9px;
+    color: var(--SmartThemeBodyColor, inherit);
+}
+.slb-translation-picker-title {
+    font-size: 1em;
+}
+.slb-translation-picker-label {
+    font-weight: 600;
+}
+.slb-translation-picker > select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+}
+.slb-translation-picker-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+}
+.slb-translation-picker-status {
+    min-height: 0;
+    color: var(--SmartThemeBodyColor, inherit);
+    opacity: 0.72;
+}
+.slb-translation-picker-status:empty { display: none; }
+.popup:has(.slb-translation-picker) .popup-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+.popup:has(.slb-translation-picker) .popup-controls .menu_button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    white-space: normal;
+}
+#WorldInfo.slb-active .slb-quick-options .slb-translate-book,
+#slb-ai-tools .slb-quick-options .slb-translate-book {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+/* Hover and keyboard focus expose descriptions; touch users may tap the
+   same information glyph to focus it. No accordion or extra render observers. */
+#WorldInfo.slb-active .slb-lore-info-icon {
+    position: relative;
+}
+#WorldInfo.slb-active .slb-lore-info-icon:is(:hover, :focus-visible)::after {
+    content: attr(data-slb-help);
+    position: absolute;
+    z-index: 200;
+    top: calc(100% + 5px);
+    left: 0;
+    box-sizing: border-box;
+    display: block;
+    width: max-content;
+    max-width: min(280px, 78vw);
+    padding: 7px 9px;
+    border: 1px solid var(--SmartThemeBorderColor, currentColor);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor, var(--SmartThemeBackgroundColor, #fff));
+    color: var(--SmartThemeBodyColor, inherit);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.14);
+    font: 12px/1.45 sans-serif;
+    font-weight: 400;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+    text-align: left;
+}
+
+/* The native card already has .wi-card-entry styling. Avoid layering
+   additional rectangular surfaces inside its four content panels. */
+#WorldInfo.slb-active .slb-panel[data-panel="activation"],
+#WorldInfo.slb-active .slb-panel[data-panel="group"],
+#WorldInfo.slb-active .slb-panel[data-panel="filter"] {
+    background: transparent;
+    border: 0;
 }
