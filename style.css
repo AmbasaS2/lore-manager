@@ -5210,7 +5210,6 @@
 #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-title-field > textarea[name="comment"],
 #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-title-field > textarea.slb-field-translation[data-field="comment"] {
     box-sizing: border-box;
-    display: block;
     width: 100% !important;
     field-sizing: content;
     height: auto !important;
@@ -5227,8 +5226,8 @@
 }
 
 /* Native desktop controls keep their label row aligned and grow the value
-   row when the title wraps. Dual-view mode preserves a separate translation
-   row instead of overlaying the original. */
+   row when the title wraps. Existing source/translation visibility behavior
+   remains governed by its original classes and settings. */
 @media (min-width: 761px) {
     #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-entry-header-shell > .slb-header-grid:not(.slb-header-title-only) {
         grid-template-rows: 22px minmax(32px, auto) !important;

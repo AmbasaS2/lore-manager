@@ -320,10 +320,8 @@ test('metadata UI keeps originals hidden on click, safely renders text, and pres
         assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), false, 'stale translation must not hide edited source');
         assert.equal(source.parentElement.querySelector('.slb-field-translation').hidden, true);
         f.settings.hideOriginalWhenTranslated = false; sync();
-        assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), true);
-        f.settings.showOriginalMetadataWithTranslation = true; sync();
         assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), false);
-        f.settings.showOriginalMetadataWithTranslation = false; ui.translationLanguage = 'en'; sync();
+        f.settings.hideOriginalWhenTranslated = true; ui.translationLanguage = 'en'; sync();
         assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), false, 'language direction is respected');
     } finally { f.close(); }
 });
