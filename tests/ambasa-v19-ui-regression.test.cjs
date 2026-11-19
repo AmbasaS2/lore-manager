@@ -11,30 +11,34 @@ function fn(name){
  return m[0];
 }
 
-test('single horizontal token + filter toolbar preserves independent saved display choices',()=>{
+test('token row and bulk-edit row separate controls while keeping both display settings',()=>{
  const w=new JSDOM('<div id="WorldInfo"><div id="world_popup"></div></div>',{runScripts:'outside-only'}).window;
  const stub='const createElement=(tag,cls,txt)=>{const e=document.createElement(tag);e.className=cls||"";if(txt)e.textContent=txt;return e};';
  w.eval(stub+'\n'+fn('createTokenStrip')+'\n'+fn('createEntryFilters')+'\n'+fn('createSummarySection')+
  '\nwindow.api={createTokenStrip,createEntryFilters,createSummarySection};');
  try{
   const wrap=w.document.createElement('div');wrap.id='slb-summary-toolbar';
+  const bulk=w.document.createElement('div');bulk.id='slb-entry-selection-toolbar';
   wrap.append(w.api.createSummarySection('slb-token-summary-section','토큰',w.api.createTokenStrip()));
-  wrap.append(w.api.createSummarySection('slb-entry-filters-section','',w.api.createEntryFilters()));
-  w.document.getElementById('world_popup').append(wrap);
-  assert.equal(wrap.children.length,2);
+  bulk.append(w.api.createSummarySection('slb-entry-filters-section','',w.api.createEntryFilters()));
+  w.document.getElementById('world_popup').append(wrap,bulk);
+  assert.equal(wrap.children.length,1);
+  assert.equal(bulk.children.length,1);
   assert.equal(wrap.querySelector('.slb-summary-label').textContent,'토큰');
-  assert.equal(wrap.querySelectorAll('.slb-summary-label').length,1);
+  assert.equal(bulk.querySelectorAll('.slb-summary-label').length,0);
   assert.equal(wrap.querySelectorAll('.slb-stat-icon').length,5);
-  assert.equal(wrap.querySelector('summary .fa-filter')!==null,true);
-  assert.equal(wrap.querySelectorAll('#slb-entry-filters button').length,4);
+  assert.equal(bulk.querySelector('summary .fa-filter')!==null,true);
+  assert.equal(bulk.querySelectorAll('#slb-entry-filters button').length,4);
   assert.match(js,/if \(tokenSection\.parentElement !== summaryBar\) summaryBar\.append\(tokenSection\)/);
-  assert.match(js,/if \(filterSection\.parentElement !== summaryBar\) summaryBar\.append\(filterSection\)/);
+  assert.match(js,/if \(filterSection\.parentElement !== selectionToolbar\) selectionToolbar\.append\(filterSection\)/);
+  assert.equal(w.document.getElementById('slb-entry-filters-section').parentElement.id,'slb-entry-selection-toolbar');
   assert.match(css,/#WorldInfo\.slb-active #slb-summary-toolbar\s*\{[^}]*flex-flow:\s*row nowrap/s);
   assert.match(css,/\.slb-summary-label\s*\{[^}]*font-weight:\s*400/s);
   assert.match(css,/\.slb-token-strip strong\s*\{[^}]*font-weight:\s*400/s);
   assert.match(css,/\.slb-mobile-token-summary-hidden #slb-token-summary-section/);
   assert.match(css,/\.slb-mobile-entry-filters-hidden #slb-entry-filters-section/);
-  assert.match(css,/#WorldInfo\.slb-active\.slb-mobile-token-summary-hidden\.slb-mobile-entry-filters-hidden #slb-summary-toolbar/);
+  assert.match(css,/#WorldInfo\.slb-active\.slb-mobile-token-summary-hidden #slb-summary-toolbar/);
+  assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section\s*\{[^}]*margin:\s*0 0 0 auto/s);
  }finally{w.close();}
 });
 
@@ -100,16 +104,16 @@ test('bulk translation has one persistent progress area, explicit cancel label a
   const bulk=w.document.getElementById('slb-bulk-status');
   w.api.state.bulkTranslation={book:'test',cancelled:false};
   w.api.updateBulkTranslationStatus('Remus · 전체 번역 4/12 (완료 4, 실패 0, 건너뜀 0)');
-  assert.equal(label.textContent,'번역 중단');
+  assert.equal(label.textContent,'번역 중…');
   assert.equal(button.disabled,false);
-  assert.match(button.getAttribute('aria-label'),/현재 진행 중인 번역 중단/);
+  assert.match(button.getAttribute('aria-label'),/현재 진행 중인 번역을 취소/);
   assert.match(bulk.textContent,/4\/12/);
   assert.equal(profile.textContent,'AI 프로필 연결됨');
   w.api.state.bulkTranslation.cancelled=true;
-  w.api.updateBulkTranslationStatus('현재 번역 중단 요청됨');
-  assert.equal(label.textContent,'중단 요청됨');
-  assert.equal(button.disabled,true);
   w.api.state.bulkTranslation=null;
+  w.api.updateBulkTranslationStatus();
+  assert.equal(label.textContent,'로어북 일괄 번역');
+  assert.equal(button.disabled,false);
   w.api.updateBulkTranslationStatus('전체 번역 완료 · 성공 12개');
   w.api.notify('전체 번역 완료 · 성공 12개','success',true);
   assert.equal(profile.textContent,'AI 프로필 연결됨','no duplicate summary in connection status above');
@@ -122,9 +126,14 @@ test('bulk translation has one persistent progress area, explicit cancel label a
  }finally{w.close();}
 });
 
-test('three original left controls have reserved nonoverlapping columns and never use negative header offsets',()=>{
- assert.match(css,/#WorldInfo\.slb-active \.world_entry\.slb-compact-entry \.slb-header-toggles\s*\{[^}]*margin:\s*0;/s);
- assert.match(css,/#WorldInfo\.slb-active \.world_entry\.slb-compact-entry \.slb-header-toggles\s*>\s*:is\([^}]*flex:\s*0 0 20px !important;/s);
- assert.match(css,/#WorldInfo\.slb-active\.slb-mobile-entry-state-enabled #world_popup_entries_list \.world_entry \.slb-entry-header-shell\s*\{[^}]*grid-template-columns:\s*max-content minmax\(0, 1fr\) 18px max-content !important;/s);
- assert.doesNotMatch(css,/\.slb-header-toggles\s*\{[^}]*margin-left:\s*-4px/s);
+test('left header controls keep native gap5px and intrinsic sizes without title overlap',()=>{
+ assert.match(js,/createElement\('div', 'slb-header-toggles gap5px alignitemscenter'\)/);
+ const rule=css.match(/#WorldInfo\.slb-active \.world_entry\.slb-compact-entry \.slb-header-toggles\s*\{([^}]+)\}/s);
+ assert.ok(rule);
+ assert.match(rule[1],/width:\s*max-content/);
+ assert.match(rule[1],/align-items:\s*center/);
+ assert.doesNotMatch(rule[1],/gap:\s*2px|margin-left:\s*-/);
+ assert.doesNotMatch(css,/\.slb-compact-entry \.slb-header-toggles\s*>\s*:is\(/);
+ assert.doesNotMatch(css,/\.slb-header-toggles\s*>\s*\*\s*\{[^}]*height:\s*32px/s);
+ assert.match(css,/#WorldInfo\.slb-active \.world_entry\.slb-compact-entry \.slb-entry-header-shell\s*\{[^}]*grid-template-columns:\s*max-content minmax\(0, 1fr\) max-content/s);
 });

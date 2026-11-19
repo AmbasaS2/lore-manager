@@ -10,7 +10,7 @@ const extract=n=>{
     const m=src.match(new RegExp('^function '+n+'\\([^]*?^}', 'm'));
     assert.ok(m,'missing '+n);return m[0];
 };
-test('token text and filter icon are distinct settings but share one visual row',()=>{
+test('token and filter retain independent display settings in separate compact rows',()=>{
     const dom=new JSDOM('<div id="WorldInfo" class="slb-active"><div id="world_popup"></div></div>',{runScripts:'outside-only'});
     const w=dom.window;
     const stub='const createElement=(tag,cls,txt)=>{const e=document.createElement(tag);e.className=cls||"";if(txt)e.textContent=txt;return e;};';
@@ -21,17 +21,21 @@ test('token text and filter icon are distinct settings but share one visual row'
       const popup=w.document.getElementById('world_popup');
       const strip=w.f.createSummarySection('slb-token-summary-section','토큰',w.f.createTokenStrip());
       const filter=w.f.createSummarySection('slb-entry-filters-section','',w.f.createEntryFilters());
-      const toolbar=w.document.createElement('div');toolbar.id='slb-summary-toolbar';toolbar.append(strip,filter);popup.append(toolbar);
+      const summary=w.document.createElement('div');summary.id='slb-summary-toolbar';summary.append(strip);
+      const toolbar=w.document.createElement('div');toolbar.id='slb-entry-selection-toolbar';toolbar.append(filter);
+      popup.append(summary,toolbar);
       assert.equal(strip.querySelector('.slb-summary-label').textContent,'토큰');
       assert.equal(filter.querySelector('.slb-summary-label'),null);
       assert.equal(filter.querySelector('.slb-filter-details').tagName,'DETAILS');
-      assert.equal(toolbar.children.length,2);
+      assert.equal(summary.children.length,1);
+      assert.equal(toolbar.children.length,1);
       const previous=filter.querySelector('#slb-entry-filters');
       const again=w.f.ensureWorkspaceSummarySection({id:'slb-entry-filters-section',
           bodyId:'slb-entry-filters',title:'',createBody:w.f.createEntryFilters});
       assert.equal(again.section,filter);
       assert.equal(again.body,previous);
       assert.match(css,/#WorldInfo\.slb-active #slb-summary-toolbar\s*\{[^}]*flex-flow:\s*row nowrap/s);
+      assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section\s*\{[^}]*margin:\s*0 0 0 auto/s);
       assert.match(css,/#WorldInfo\.slb-active \.slb-summary-label\s*\{[^}]*font-weight:\s*400/s);
       assert.match(css,/#WorldInfo\.slb-active \.slb-token-strip strong\s*\{[^}]*font-weight:\s*400/s);
       assert.match(css,/\.slb-mobile-token-summary-hidden #slb-token-summary-section/);

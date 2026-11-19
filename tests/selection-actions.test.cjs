@@ -19,7 +19,8 @@ function fixture() {
     let save = async () => { events.push('save'); };
     let debounceCalls = 0, backupCalls = 0;
     const context = vm.createContext({
-        console: { warn() {} }, clearTimeout, document: dom.window.document,
+        console: { warn() {} }, clearTimeout, document: dom.window.document, AbortController,
+        toastr: { info: message => events.push(['toast',message]) },
         state: { sourceTimers: new Map(), translationTimers: new Map(), bulkTranslation: null },
         Popup: { show: { confirm: (...args) => { events.push(args); return confirm(); } } },
         POPUP_RESULT: { AFFIRMATIVE: 1, CANCELLED: null },
@@ -49,7 +50,7 @@ function fixture() {
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
 
     });
-    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'throwIfTranslationCancelled', 'awaitCancelableTranslation', 'cancelBulkTranslation', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
@@ -196,24 +197,87 @@ test('three workers refill immediately and out-of-order results reach their own 
     } finally { f.close(); }
 });
 
-test('cancellation and book switch drain active workers without applying results or starting queued entries', async () => {
+test('cancel releases the button immediately without waiting for in-flight work; stale results are never saved', async () => {
     for (const cancel of ['button', 'book']) {
         const f = fixture();
         try {
             const finish = [];
             f.translate(() => new Promise(resolve => finish.push(resolve)));
             const pending = f.context.translateCurrentLorebook('selected', { book: 'A', uids: ['0', '1', '2', '3'] });
-            await flush(); assert.equal(f.requests.length, 3);
-            if (cancel === 'book') f.switchBook();
-            else await f.context.translateCurrentLorebook('selected', f.selection);
-            finish[0]('stale'); await flush();
-            assert.notEqual(f.context.state.bulkTranslation, null, 'job remains owned until in-flight requests settle');
-            finish[1]('stale'); finish[2]('stale'); await pending;
-            assert.equal(f.requests.length, 3);
-            assert.deepEqual(Object.keys(f.settings.translations), []);
-            assert.equal(f.context.state.bulkTranslation, null);
-        } finally { f.close(); }
+            await flush();
+            assert.equal(f.requests.length,3);
+            const active=f.context.state.bulkTranslation;
+            assert.equal(active.abortController.signal.aborted,false);
+            if(cancel==='book') {
+                f.switchBook();
+                f.context.cancelBulkTranslation({silent:true});
+            } else {
+                await f.context.translateCurrentLorebook('selected',f.selection);
+            }
+            assert.equal(f.context.state.bulkTranslation,null,'ready immediately');
+            assert.equal(active.abortController.signal.aborted,true,'in-flight requests signaled');
+            assert.equal(f.requests.length,3,'no new requests are launched');
+            if(cancel==='button') {
+                assert.equal(f.events.filter(x=>Array.isArray(x)&&x[0]==='toast').length,1);
+                assert.match(f.events.find(x=>Array.isArray(x)&&x[0]==='toast')[1],/번역이 취소되었습니다/);
+            }
+            await pending; // must finish without waiting for the remote request
+            assert.deepEqual(Object.keys(f.settings.translations),[]);
+            finish.forEach(resolve=>resolve('late stale response'));
+            await flush();
+            assert.deepEqual(Object.keys(f.settings.translations),[],'late results discarded');
+        }finally{f.close();}
     }
+});
+
+test('an immediate retry can translate while a canceled provider request is still unresolved', async()=>{
+    const f=fixture();
+    try{
+        let releaseOld;
+        let calls=0;
+        f.translate(source=>{
+            calls++;
+            if(calls===1)return new Promise(resolve=>{releaseOld=resolve;});
+            return 'new valid translation';
+        });
+        const first=f.context.translateCurrentLorebook('selected',{book:'A',uids:['0']});
+        await flush();
+        assert.equal(f.requests.length,1);
+        const before=f.context.state.bulkTranslation;
+        assert.ok(before);
+        const cancelled=f.context.cancelBulkTranslation();
+        assert.equal(cancelled,true);
+        assert.equal(f.context.state.bulkTranslation,null);
+        assert.equal(before.abortController.signal.aborted,true);
+        const second=f.context.translateCurrentLorebook('selected',{book:'A',uids:['0']});
+        await second;
+        assert.equal(f.requests.length,2,'new work starts without waiting for first provider');
+        assert.equal(f.settings.translations['A:0'].text,'new valid translation');
+        releaseOld('old stale translation');
+        await first;
+        assert.equal(f.settings.translations['A:0'].text,'new valid translation','late result cannot overwrite retry');
+        assert.equal(f.context.state.bulkTranslation,null,'old job never changes new ownership');
+        assert.equal(f.events.filter(e=>Array.isArray(e)&&e[0]==='toast').length,1);
+    }finally{f.close();}
+});
+
+test('cancel during lorebook loading prevents API requests and immediately releases the button', async()=>{
+    const f=fixture();
+    try{
+        let finishLoad;
+        f.context.loadWorldInfo=()=>new Promise(resolve=>{finishLoad=resolve;});
+        const old=f.context.translateCurrentLorebook('selected',f.selection);
+        await flush();
+        const job=f.context.state.bulkTranslation;
+        assert.ok(job);
+        f.context.cancelBulkTranslation();
+        assert.equal(f.context.state.bulkTranslation,null);
+        assert.equal(job.abortController.signal.aborted,true);
+        finishLoad(f.data);
+        await old;
+        assert.equal(f.requests.length,0);
+        assert.equal(f.settings.translations['A:0'],undefined);
+    }finally{f.close();}
 });
 
 test('Google translation keeps one active request', async () => {

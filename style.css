@@ -401,8 +401,13 @@
     opacity: 0.75;
 }
 
-#WorldInfo.slb-active #world_popup > hr {
-    margin-top: 6px;
+/* No book selected: show SillyTavern's original empty editor, not the
+   extension's token, filter and bulk-edit controls (or their empty row).
+   The native <hr> and all original ST controls remain untouched. */
+#WorldInfo.slb-active #world_popup:has(#world_editor_select > option[value=""]:checked) > :is(
+    #slb-summary-toolbar, #slb-entry-selection-toolbar
+) {
+    display: none;
 }
 
 #WorldInfo.slb-active #world_popup > .flex-container {
@@ -455,14 +460,6 @@
 }
 
 #WorldInfo.slb-active .slb-header-toggles > .drag-handle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 18px;
-    width: 18px;
-    min-width: 18px;
-    min-height: 28px;
-    cursor: grab;
     touch-action: none;
 }
 
@@ -810,7 +807,14 @@
     align-items: center;
 }
 
-#WorldInfo.slb-active .world_entry .slb-header-toggles,
+#WorldInfo.slb-active .world_entry .slb-header-toggles {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+    padding: 0;
+}
 #WorldInfo.slb-active .world_entry .slb-header-actions {
     display: flex;
     flex-flow: row nowrap !important;
@@ -870,8 +874,7 @@
     margin-bottom: 0 !important;
 }
 
-#WorldInfo.slb-active .world_entry .slb-header-actions .menu_button,
-#WorldInfo.slb-active .world_entry .slb-header-toggles > * {
+#WorldInfo.slb-active .world_entry .slb-header-actions .menu_button {
     flex: 0 0 auto;
     display: inline-flex !important;
     box-sizing: border-box;
@@ -1766,41 +1769,19 @@
 }
 
 #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-header-toggles {
-    display: inline-flex !important;
-    flex-flow: row nowrap !important;
+    display: flex;
     align-items: center;
     grid-column: 1;
     grid-row: 1;
     align-self: center;
     justify-content: flex-start;
-    gap: 2px !important;
-    flex: 0 0 auto;
     width: max-content;
     min-width: 0;
     margin: 0;
     padding: 0;
 }
-#WorldInfo.slb-active .world_entry.slb-compact-entry .slb-header-toggles
-    > :is(.drag-handle, .inline-drawer-toggle, [name="entryKillSwitch"]) {
-    position: static;
-    float: none;
-    display: inline-flex !important;
-    box-sizing: border-box;
-    flex: 0 0 20px !important;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
-    width: 20px !important;
-    min-width: 20px !important;
-    max-width: 20px !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    max-height: 32px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1;
-    text-align: center;
-}
+/* Use the native gap5px layout and intrinsic Font Awesome icon dimensions.
+   No per-control width, height, margin or font-size override is necessary. */
 
 #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-header-title-only {
     display: block !important;
@@ -1974,8 +1955,8 @@
     margin: 0;
 }
 
-/* The token totals and one filter icon share a row. Both retain separate
-   show/hide settings, so hiding tokens cannot accidentally hide filters. */
+/* The token totals use their own row. The independently configurable
+   filter icon sits in the bulk-edit toolbar immediately below it. */
 #WorldInfo.slb-active #slb-summary-toolbar {
     display: flex;
     flex-flow: row nowrap;
@@ -1996,10 +1977,7 @@
     flex: 0 1 auto;
     min-width: 0;
 }
-#WorldInfo.slb-active #slb-entry-filters-section {
-    flex: 0 0 auto;
-}
-#WorldInfo.slb-active.slb-mobile-token-summary-hidden.slb-mobile-entry-filters-hidden #slb-summary-toolbar {
+#WorldInfo.slb-active.slb-mobile-token-summary-hidden #slb-summary-toolbar {
     display: none;
 }
 
@@ -2058,17 +2036,17 @@
 #WorldInfo.slb-active .slb-summary-section .slb-token-strip::-webkit-scrollbar {
     display: none;
 }
-/* One small FA filter button on the same row as token totals. HTML details
-   provides keyboard/touch toggling without a popup observer or polling. */
+/* FA funnel at far right of the bulk-edit toolbar. HTML details provides
+   keyboard and touch toggling without an observer or polling loop. */
 #WorldInfo.slb-active .slb-summary-filter-select {
     display: inline-flex;
     position: relative;
-    flex: 0 0 auto;
+    flex: 0 0 24px;
     align-items: center;
-    width: 29px;
-    min-width: 29px;
-    height: 29px;
-    min-height: 29px;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
     margin: 0;
     padding: 0;
     z-index: 6;
@@ -2076,22 +2054,23 @@
 #WorldInfo.slb-active .slb-filter-details {
     position: relative;
     display: block;
-    width: 29px;
-    height: 29px;
-    min-width: 29px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
 }
 #WorldInfo.slb-active .slb-filter-trigger {
     display: inline-flex;
     box-sizing: border-box;
     align-items: center;
     justify-content: center;
-    width: 29px;
-    min-width: 29px;
-    height: 29px;
-    min-height: 29px;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
     margin: 0;
-    padding: 3px;
+    padding: 2px;
     font: inherit;
+    font-size: 0.88em;
     line-height: 1;
     cursor: pointer;
     list-style: none;
@@ -2196,8 +2175,7 @@
         font-size: 0.9em;
     }
 
-    #WorldInfo.slb-active .world_entry .slb-header-actions .menu_button,
-    #WorldInfo.slb-active .world_entry .slb-header-toggles > * {
+    #WorldInfo.slb-active .world_entry .slb-header-actions .menu_button {
         height: 29px !important;
         min-height: 29px !important;
     }
@@ -3521,31 +3499,62 @@
 
 #WorldInfo.slb-active #slb-entry-selection-toolbar {
     display: flex;
-    flex-wrap: wrap;
+    flex-flow: row nowrap;
     align-items: center;
-    gap: 5px 8px;
-    margin: 2px 0 4px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 24px;
+    gap: 4px;
+    margin: 1px 0 3px;
     color: var(--SmartThemeBodyColor);
+    overflow: visible;
+}
+/* The far-right action is a true child of the bulk-edit toolbar, not a
+   floating control positioned over the entries or token statistics. */
+#WorldInfo.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section {
+    flex: 0 0 24px;
+    width: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    height: 24px;
+    margin: 0 0 0 auto;
+    align-self: center;
+}
+
+/* Bulk edit is an optional fork feature, OFF unless explicitly enabled.
+   Keep the independent funnel at the right edge even when bulk edit is off. */
+#WorldInfo.slb-active.slb-bulk-edit-hidden #slb-entry-selection-toolbar > .slb-bulk-mode-label,
+#WorldInfo.slb-active.slb-bulk-edit-hidden #slb-entry-selection-toolbar > .slb-bulk-selection-tools {
+    display: none;
+}
+#WorldInfo.slb-active.slb-bulk-edit-hidden.slb-mobile-entry-filters-hidden #slb-entry-selection-toolbar {
+    display: none;
 }
 
 #WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
-    gap: 5px;
+    gap: 4px;
     box-sizing: border-box;
-    min-height: 27px;
+    min-height: 24px;
+    height: 24px;
     margin: 0;
-    padding: 2px 8px;
+    padding: 1px 6px;
     border: 1px solid var(--SmartThemeBorderColor, currentColor);
-    border-radius: 6px;
+    border-radius: 5px;
     background: transparent;
     color: var(--SmartThemeBodyColor, inherit);
     font: inherit;
-    font-size: 1em;
-    line-height: 1.25;
+    font-size: 0.88em;
+    font-weight: 400;
+    line-height: 1.15;
     cursor: pointer;
     white-space: nowrap;
+}
+#WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label > i {
+    font-size: 0.9em;
 }
 #WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label:has(input:checked) {
     border-color: var(--slb-accent);
@@ -3564,8 +3573,8 @@
     margin: -1px;
 }
 #WorldInfo.slb-active .slb-bulk-selection-count {
-    font-size: 0.92em;
-    font-weight: 500;
+    font-size: 0.86em;
+    font-weight: 400;
     white-space: nowrap;
 }
 
@@ -3585,11 +3594,14 @@
 #WorldInfo.slb-active .slb-bulk-selection-tools .menu_button {
     box-sizing: border-box;
     width: auto;
-    min-height: 27px;
+    min-height: 24px;
+    height: 24px;
     margin: 0;
-    padding: 2px 8px;
+    padding: 1px 6px;
     font: inherit;
-    line-height: 1.25;
+    font-size: 0.88em;
+    font-weight: 400;
+    line-height: 1.15;
     white-space: nowrap;
 }
 

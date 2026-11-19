@@ -29,7 +29,7 @@ test('old select or four buttons are replaced with one FA funnel menu on refresh
   assert.deepEqual([...item.body.querySelectorAll('button')].map(x=>x.dataset.filter),['all','constant','normal','vectorized']);
   assert.equal(item.body.querySelector('summary i').classList.contains('fa-filter'),true);
   assert.match(css,/\.slb-summary-row\s*\{[^}]*min-height:\s*29px/s);
-  assert.match(css,/\.slb-summary-filter-select\s*\{[^}]*min-height:\s*29px/s);
+  assert.match(css,/\.slb-summary-filter-select\s*\{[^}]*min-height:\s*24px/s);
  }finally{dom.window.close();}
 });
 
@@ -78,9 +78,10 @@ test('backup list is natural height with expandable book rows and action buttons
  assert.match(source,/restoreLorebookBackup\(record\.id, 'copy'\)/);
 });
 
-test('selection control and translation action use the same readable size without truncated labels',()=>{
- assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar \.slb-bulk-mode-label\s*\{[^}]*min-height:\s*27px/s);
- assert.match(css,/#WorldInfo\.slb-active \.slb-bulk-selection-tools \.menu_button\s*\{[^}]*min-height:\s*27px/s);
+test('compact bulk-edit control stays smaller than translation action without truncating its text',()=>{
+ assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar \.slb-bulk-mode-label\s*\{[^}]*min-height:\s*24px/s);
+ assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar \.slb-bulk-mode-label\s*\{[^}]*font-size:\s*0\.88em/s);
+ assert.match(css,/#WorldInfo\.slb-active \.slb-bulk-selection-tools \.menu_button\s*\{[^}]*min-height:\s*24px/s);
  assert.match(css,/#slb-ai-tools \.slb-quick-options \.slb-translate-book\s*\{[^}]*min-width:\s*min\(180px,\s*100%\)/s);
  assert.match(source,/id="slb-translate-book"[\s\S]*?>[\s\S]*?<span>로어북 일괄 번역<\/span>/);
  assert.doesNotMatch(source,/로어북 일괄 번역…/);

@@ -26,7 +26,7 @@ test('real translateText routes body/title/keywords to specific prompt without c
   notify:(message,type)=>notices.push([message,type]),
   console,
  });
- vm.runInContext(getter[0]+'\nthis.translate=translateText;',ctx);
+ vm.runInContext(source.match(/^function throwIfTranslationCancelled\([^]*?^}/m)[0]+'\n'+getter[0]+'\nthis.translate=translateText;',ctx);
  const body=await ctx.translate('Remus rarely smokes.','ko');
  assert.equal(body,'리무스는 담배를 드물게 피운다.');
  const title=await ctx.translate('057 - 1981/10/18 | Seine Cruise','ko',null,{field:'comment',reference:'Remus and Catherine were on the river.'});
@@ -52,7 +52,7 @@ test('Google translation remains in the original independent request path',async
   googleTranslate:async(source,lang,cb)=>{google++;return source+':'+lang;},
   notify:()=>{},
  });
- vm.runInContext(getter[0]+'\nthis.translate=translateText;',ctx);
+ vm.runInContext(source.match(/^function throwIfTranslationCancelled\([^]*?^}/m)[0]+'\n'+getter[0]+'\nthis.translate=translateText;',ctx);
  assert.equal(await ctx.translate('Original','ko',null,{field:'comment'}),'Original:ko');
  assert.equal(google,1);assert.equal(ai,0);
 });

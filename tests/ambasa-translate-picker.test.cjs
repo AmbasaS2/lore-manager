@@ -85,5 +85,5 @@ test('translation picker uses native theme form and single source button',()=>{
  assert.doesNotMatch(source,/id="slb-translate-missing-book"/);
  assert.match(source,/new Popup\(form, POPUP_TYPE.CONFIRM/);
  assert.match(source,/selectedBook \|\| currentBookName\(\)/);
- assert.match(source,/if \(!independent && currentBookName\(\) !== book\)/);
+ assert.match(source,/if \(!independent && currentBookName\(\) !== book && state\.bulkTranslation === job\)/);
 });

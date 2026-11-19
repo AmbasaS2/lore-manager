@@ -18,7 +18,7 @@ test('three original stored visibility preferences apply across widths',()=>{
     const dom=new JSDOM('<div id="WorldInfo"><section id="slb-token-summary-section"></section><section id="slb-entry-filters-section"></section></div>',{runScripts:'outside-only'});
     const w=dom.window;
     const stubs=[
-       'const config={showMobileEntryState:true,showMobileTokenSummary:true,showMobileEntryFilters:true};',
+       'const config={showMobileEntryState:true,showMobileTokenSummary:true,showMobileEntryFilters:true,showBulkEditToolbar:false};',
        'const getSettings=()=>config;let walks=0;',
        'const renderedEntries=()=>{walks++;return []};',
        'const syncMobileEntryStateBadge=()=>{};',
@@ -31,11 +31,14 @@ test('three original stored visibility preferences apply across widths',()=>{
         assert.equal(root.classList.contains('slb-mobile-entry-state-enabled'),true);
         assert.equal(root.classList.contains('slb-mobile-token-summary-hidden'),false);
         assert.equal(root.classList.contains('slb-mobile-entry-filters-hidden'),false);
+        assert.equal(root.classList.contains('slb-bulk-edit-hidden'),true,'optional bulk editor is off by default');
         assert.equal(w.getWalks(),0,'simple visibility never rerenders rows');
         w.config.showMobileEntryState=false;
         w.config.showMobileTokenSummary=false;
         w.config.showMobileEntryFilters=false;
+        w.config.showBulkEditToolbar=true;
         w.change(false);
+        assert.equal(root.classList.contains('slb-bulk-edit-hidden'),false);
         assert.equal(root.classList.contains('slb-mobile-entry-state-enabled'),false);
         assert.equal(root.classList.contains('slb-mobile-token-summary-hidden'),true);
         assert.equal(root.classList.contains('slb-mobile-entry-filters-hidden'),true);
@@ -48,9 +51,9 @@ test('three original stored visibility preferences apply across widths',()=>{
 
 test('settings labels visibility as global without losing saved keys',()=>{
     assert.match(source,/class="slb-mobile-display-title">로어북 표시</);
-    assert.match(source,/PC와 모바일에 동일하게 적용됩니다/);
+    assert.match(source,/PC·모바일 공통/);
     assert.doesNotMatch(source,/모바일 로어북 표시/);
-    for(const key of ['showMobileEntryState','showMobileTokenSummary','showMobileEntryFilters']){
+    for(const key of ['showMobileEntryState','showMobileTokenSummary','showMobileEntryFilters','showBulkEditToolbar']){
         assert.match(source,new RegExp(key+':'));
     }
     assert.match(source,/applyMobileDisplaySettings\(key === 'showMobileEntryState'\)/);

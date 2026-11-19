@@ -23,7 +23,7 @@ test('settings cards preserve controls and user data; connected filter is manage
             hideOriginalWhenTranslated:true,aiOutputTokens:2048,
             quickOptionsLocation:'lorebook',autoBackupEnabled:true,managerMode:'standard',
             showMobileEntryState:false,showMobileTokenSummary:true,
-            showMobileEntryFilters:true,showOnlyLinkedLorebooks:true
+            showMobileEntryFilters:true,showBulkEditToolbar:false,showOnlyLinkedLorebooks:true
         };
         const state = {backupRenderRunId:0};
         const MANAGER_MODE_FOLDY = 'foldy';
@@ -38,7 +38,9 @@ test('settings cards preserve controls and user data; connected filter is manage
         };
         const isFoldyLoreAvailable=()=>false;
         const saveSettingsDebounced=()=>{};
-        let saves=0,filterSync=0,backupReads=0;
+        let saves=0,filterSync=0,backupReads=0,bulkResets=0;
+        const entryBulkEditor={reset:()=>{bulkResets++}};
+        const currentBookName=()=> 'Example';
         const saveSettings=()=>{saves++};
         const syncConnectedWorldOptions=()=>{filterSync++};
         const createQuickTranslationOptions=()=>{
@@ -52,7 +54,7 @@ test('settings cards preserve controls and user data; connected filter is manage
         const renderBackupList=()=>{backupReads++};
     `;
     w.eval(stubs + '\n' + productionFunction('createAIBar') + '\n'
-        + 'window.makePanel=createAIBar; window.getCounters=()=>({settings,saves,filterSync,backupReads});');
+        + 'window.makePanel=createAIBar; window.getCounters=()=>({settings,saves,filterSync,backupReads,bulkResets});');
     try {
         w.makePanel();
         w.makePanel();
@@ -71,7 +73,7 @@ test('settings cards preserve controls and user data; connected filter is manage
             'slb-translate-title','slb-translate-keywords','slb-hide-translated-source',
             'slb-translate-prompt','slb-filter-linked-lorebooks',
             'slb-show-mobile-entry-state','slb-show-mobile-token-summary','slb-show-mobile-entry-filters',
-            'slb-auto-backup-enabled','slb-backup-now','slb-backup-export-all','slb-clear-translations',
+            'slb-show-bulk-edit-toolbar','slb-auto-backup-enabled','slb-backup-now','slb-backup-export-all','slb-clear-translations',
             'slb-reset-extension']) {
             assert.ok(root.querySelector('#'+id),'missing native setting '+id);
         }
@@ -89,6 +91,18 @@ test('settings cards preserve controls and user data; connected filter is manage
         assert.equal(w.getCounters().saves,1);
         assert.equal(w.getCounters().settings.translationPrompt,
             'Existing custom translation instructions');
+        const bulk=root.querySelector('#slb-show-bulk-edit-toolbar');
+        assert.equal(bulk.checked,false,'the non-native bulk editor is hidden by default');
+        bulk.checked=true;
+        bulk.dispatchEvent(new w.Event('change',{bubbles:true}));
+        assert.equal(w.getCounters().settings.showBulkEditToolbar,true);
+        assert.equal(w.getCounters().bulkResets,0);
+        bulk.checked=false;
+        bulk.dispatchEvent(new w.Event('change',{bubbles:true}));
+        assert.equal(w.getCounters().settings.showBulkEditToolbar,false);
+        assert.equal(w.getCounters().bulkResets,1,
+            'turning the button off must first disarm any active bulk selection');
+        assert.equal(w.getCounters().saves,3,'display change is immediately saved');
         const backup=root.querySelector('.slb-backup-settings');
         backup.open=true;
         backup.dispatchEvent(new w.Event('toggle'));

@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.19';
+const VERSION = '1.4.85-ambasa.20';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -109,6 +109,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     showOnlyLinkedLorebooks: true,
     showMobileTokenSummary: true,
     showMobileEntryFilters: true,
+    showBulkEditToolbar: false,
     hideOriginalWhenTranslated: false,
     managerMode: MANAGER_MODE_STANDARD,
     autoBackupEnabled: false,
@@ -276,6 +277,7 @@ function getSettings() {
     settings.showMobileEntryState = Boolean(settings.showMobileEntryState);
     settings.showMobileTokenSummary = Boolean(settings.showMobileTokenSummary);
     settings.showMobileEntryFilters = Boolean(settings.showMobileEntryFilters);
+    settings.showBulkEditToolbar = Boolean(settings.showBulkEditToolbar);
     settings.managerMode = settings.managerMode === MANAGER_MODE_FOLDY
         ? MANAGER_MODE_FOLDY
         : MANAGER_MODE_STANDARD;
@@ -553,6 +555,7 @@ function applyMobileDisplaySettings(syncEntries = true) {
     worldInfo.classList.toggle('slb-mobile-entry-state-enabled', settings.showMobileEntryState);
     worldInfo.classList.toggle('slb-mobile-token-summary-hidden', !settings.showMobileTokenSummary);
     worldInfo.classList.toggle('slb-mobile-entry-filters-hidden', !settings.showMobileEntryFilters);
+    worldInfo.classList.toggle('slb-bulk-edit-hidden', !settings.showBulkEditToolbar);
     if (!syncEntries) return;
     // 사용자 표시 설정 변경과 반응형 전환에서는 전체 배지를 복구한다.
     // 색상 계산은 항목마다 강제로 하지 않고 같은 테마끼리 한 번만 읽는다.
@@ -1224,13 +1227,37 @@ function saveTranslationRecord(book, uid, source, translation, options = {}) {
     scheduleAutomaticLorebookBackup(book);
 }
 
-async function requestWithProfile(prompt, maxTokens = null) {
+function throwIfTranslationCancelled(signal) {
+    if (signal?.aborted) throw signal.reason || new Error('번역이 취소되었습니다.');
+}
+
+// A provider may ignore AbortSignal. Detach UI/workers immediately but also
+// pass the signal to transports below; ignore any result that arrives later.
+function awaitCancelableTranslation(work, signal) {
+    if (!signal) return Promise.resolve().then(work);
+    return new Promise((resolve, reject) => {
+        try { throwIfTranslationCancelled(signal); } catch (error) { reject(error); return; }
+        const cleanup = () => signal.removeEventListener('abort', onAbort);
+        const onAbort = () => {
+            cleanup();
+            reject(signal.reason || new Error('번역이 취소되었습니다.'));
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
+        Promise.resolve().then(work).then(
+            value => { cleanup(); resolve(value); },
+            error => { cleanup(); reject(error); },
+        );
+    });
+}
+
+async function requestWithProfile(prompt, maxTokens = null, signal = null) {
     const settings = getSettings();
     if (!settings.profileId) {
         throw new Error('로어북 AI 전용 연결 프로필을 먼저 선택해주세요.');
     }
 
     const requestedMaxTokens = maxTokens ?? settings.aiOutputTokens;
+    throwIfTranslationCancelled(signal);
 
     let response;
     try {
@@ -1240,7 +1267,7 @@ async function requestWithProfile(prompt, maxTokens = null) {
             requestedMaxTokens,
             {
                 stream: false,
-                signal: null,
+                signal,
                 extractData: true,
                 includePreset: false,
                 includeInstruct: false,
@@ -1248,10 +1275,12 @@ async function requestWithProfile(prompt, maxTokens = null) {
             },
         );
     } catch (error) {
+        throwIfTranslationCancelled(signal);
         console.error('[로어북 매니저] AI 전용 연결 프로필 요청 실패:', error);
         throw new Error(getAIRequestErrorMessage(error), { cause: error });
     }
 
+    throwIfTranslationCancelled(signal);
     const text = getResponseText(response);
     if (!text) throw new Error('AI 응답이 비어 있습니다.');
     return text;
@@ -1434,8 +1463,19 @@ function unmaskMacros(text, macros) {
     return String(text ?? '').replace(/\u27e6(\d+)\u27e7/g, (match, index) => macros[Number(index)] ?? match);
 }
 
-function waitForGoogleTranslation(milliseconds) {
-    return new Promise(resolve => setTimeout(resolve, milliseconds));
+function waitForGoogleTranslation(milliseconds, signal = null) {
+    if (!signal) return new Promise(resolve => setTimeout(resolve, milliseconds));
+    return new Promise((resolve, reject) => {
+        try { throwIfTranslationCancelled(signal); } catch (error) { reject(error); return; }
+        const cleanup = () => signal.removeEventListener('abort', onAbort);
+        const timer = setTimeout(() => { cleanup(); resolve(); }, milliseconds);
+        const onAbort = () => {
+            clearTimeout(timer);
+            cleanup();
+            reject(signal.reason || new Error('번역이 취소되었습니다.'));
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
+    });
 }
 
 function lastGoogleSplitBoundary(sample, minimum, limit, pattern, toBoundary) {
@@ -1536,24 +1576,28 @@ function unmaskLineBreaks(text, lineBreaks) {
     return restored;
 }
 
-async function requestGoogleTranslationChunk(text, lang) {
+async function requestGoogleTranslationChunk(text, lang, signal = null) {
     if (!text.trim()) return text;
     const { masked, lineBreaks } = maskLineBreaks(text);
     let lastError = null;
 
     for (let attempt = 0; attempt <= GOOGLE_TRANSLATE_RETRY_DELAYS.length; attempt += 1) {
-        if (attempt > 0) await waitForGoogleTranslation(GOOGLE_TRANSLATE_RETRY_DELAYS[attempt - 1]);
+        throwIfTranslationCancelled(signal);
+        if (attempt > 0) await waitForGoogleTranslation(GOOGLE_TRANSLATE_RETRY_DELAYS[attempt - 1], signal);
         try {
             const response = await fetch('/api/translate/google', {
                 method: 'POST',
                 headers: getRequestHeaders(),
                 body: JSON.stringify({ text: masked, lang }),
+                signal,
             });
             if (!response.ok) throw new Error(`구글 번역 서버 응답 오류 (${response.status})`);
             const translated = await response.text();
+            throwIfTranslationCancelled(signal);
             if (!translated.trim()) throw new Error('구글 번역 응답이 비어 있습니다.');
             return unmaskLineBreaks(translated, lineBreaks);
         } catch (error) {
+            throwIfTranslationCancelled(signal);
             lastError = error;
         }
     }
@@ -1561,10 +1605,11 @@ async function requestGoogleTranslationChunk(text, lang) {
     throw lastError || new Error('구글 번역 요청에 실패했습니다.');
 }
 
-async function translateGoogleChunkWithFallback(text, lang, depth = 0) {
+async function translateGoogleChunkWithFallback(text, lang, depth = 0, signal = null) {
     try {
-        return await requestGoogleTranslationChunk(text, lang);
+        return await requestGoogleTranslationChunk(text, lang, signal);
     } catch (error) {
+        throwIfTranslationCancelled(signal);
         if (depth >= 2 || text.length < 500) throw error;
         const fallbackLimit = Math.max(450, Math.floor(text.length / 2));
         const parts = splitGoogleTranslationChunks(text, fallbackLimit);
@@ -1572,47 +1617,50 @@ async function translateGoogleChunkWithFallback(text, lang, depth = 0) {
 
         let translated = '';
         for (let index = 0; index < parts.length; index += 1) {
-            translated += await translateGoogleChunkWithFallback(parts[index].text, lang, depth + 1);
+            throwIfTranslationCancelled(signal);
+            translated += await translateGoogleChunkWithFallback(parts[index].text, lang, depth + 1, signal);
             translated += parts[index].separator;
-            if (index < parts.length - 1) await waitForGoogleTranslation(GOOGLE_TRANSLATE_CHUNK_DELAY);
+            if (index < parts.length - 1) await waitForGoogleTranslation(GOOGLE_TRANSLATE_CHUNK_DELAY, signal);
         }
         return translated;
     }
 }
 
-async function runQueuedGoogleTranslation(text, lang, onProgress) {
+async function runQueuedGoogleTranslation(text, lang, onProgress, signal = null) {
     const { masked, macros } = maskMacros(text);
     const chunks = splitGoogleTranslationChunks(masked);
     let translated = '';
 
     for (let index = 0; index < chunks.length; index += 1) {
+        throwIfTranslationCancelled(signal);
         if (typeof onProgress === 'function') onProgress(index + 1, chunks.length);
-        translated += await translateGoogleChunkWithFallback(chunks[index].text, lang);
+        translated += await translateGoogleChunkWithFallback(chunks[index].text, lang, 0, signal);
         translated += chunks[index].separator;
-        if (index < chunks.length - 1) await waitForGoogleTranslation(GOOGLE_TRANSLATE_CHUNK_DELAY);
+        if (index < chunks.length - 1) await waitForGoogleTranslation(GOOGLE_TRANSLATE_CHUNK_DELAY, signal);
     }
     return unmaskMacros(translated, macros);
 }
 
-function googleTranslate(text, targetLanguage, onProgress = null) {
+function googleTranslate(text, targetLanguage, onProgress = null, signal = null) {
     const lang = GOOGLE_LANGUAGE_CODES[normalizeEntryLanguage(targetLanguage)] || 'ko';
-    return googleTranslateToLanguage(text, lang, onProgress);
+    return googleTranslateToLanguage(text, lang, onProgress, signal);
 }
 
-function googleTranslateToLanguage(text, lang, onProgress = null) {
+function googleTranslateToLanguage(text, lang, onProgress = null, signal = null) {
     const job = state.googleTranslationQueue
         .catch(() => undefined)
-        .then(() => runQueuedGoogleTranslation(String(text ?? ''), lang, onProgress));
+        .then(() => runQueuedGoogleTranslation(String(text ?? ''), lang, onProgress, signal));
     state.googleTranslationQueue = job.catch(() => undefined);
     return job;
 }
 
 async function translateText(source, targetLanguage, onProgress = null, options = {}) {
+    throwIfTranslationCancelled(options.signal);
     const settings = getSettings();
     const language = normalizeEntryLanguage(targetLanguage) || ENTRY_LANGUAGE_KOREAN;
     // Google Translate keeps its independent queue, macro masking and fallback.
     if (settings.translationProvider === 'google') {
-        return googleTranslate(source, language, onProgress);
+        return googleTranslate(source, language, onProgress, options.signal);
     }
     return translateLoreWithValidation({
         source,
@@ -1626,9 +1674,10 @@ async function translateText(source, targetLanguage, onProgress = null, options 
         // Only substantial lorebook bodies are divided, on paragraph
         // boundaries; normal short entries remain one literary request.
         maxChars: Math.max(5000, Math.min(12500, Math.floor((settings.aiOutputTokens || 8192) * 1.3))),
-        request: prompt => requestWithProfile(prompt),
+        request: prompt => requestWithProfile(prompt, null, options.signal),
         onProgress,
         onWarning: ({ field, issues }) => {
+            if (options.signal?.aborted) return;
             console.warn('[로어북 매니저] AI 번역 구조 점검 필요', field, issues);
             notify('AI 번역 결과는 표시하지만 일부 원문 형식·숫자를 확인해야 합니다. 원문에 반영하기 전 비교해주세요.', 'warning');
         },
@@ -1638,15 +1687,23 @@ async function translateText(source, targetLanguage, onProgress = null, options 
 // One model request per ordinary lorebook entry, not one per field.
 // Google Translate and single-field requests retain their existing path.
 // Response keys are individually validated before touching any saved data.
-async function translateLoreFieldsForEntry(sources, fields, targetLanguage) {
+async function translateLoreFieldsForEntry(sources, fields, targetLanguage, options = {}) {
+    const signal = options.signal;
+    throwIfTranslationCancelled(signal);
     const active = fields.filter(field => typeof sources[field] === 'string' && sources[field].trim());
-    const fallback = async (field, original) => translateText(
-        original, targetLanguage, null,
-        { field, reference: field === 'content' ? '' : sources.content },
-    );
+    const fallback = async (field, original) => {
+        throwIfTranslationCancelled(signal);
+        return translateText(
+            original, targetLanguage, null,
+            { field, reference: field === 'content' ? '' : sources.content, signal },
+        );
+    };
     if (getSettings().translationProvider !== 'profile' || active.length <= 1) {
         const results = {};
-        for (const field of active) results[field] = await fallback(field, sources[field]);
+        for (const field of active) {
+            throwIfTranslationCancelled(signal);
+            results[field] = await fallback(field, sources[field]);
+        }
         return results;
     }
     const settings = getSettings();
@@ -1655,9 +1712,10 @@ async function translateLoreFieldsForEntry(sources, fields, targetLanguage) {
         targetLanguage: normalizeEntryLanguage(targetLanguage) || ENTRY_LANGUAGE_KOREAN,
         instructions: settings.translationPrompt || '',
         maxCombinedChars: Math.max(2800, Math.min(9500, Math.floor((settings.aiOutputTokens || 8192) * 1.1))),
-        request: prompt => requestWithProfile(prompt),
+        request: prompt => requestWithProfile(prompt, null, signal),
         fallback,
         onWarning: warning => {
+            if (signal?.aborted) return;
             console.warn('[로어북 매니저] 묶음 번역 형식 복구', warning.field || '', warning.reason || warning.message || '');
         },
     });
@@ -3105,8 +3163,9 @@ function createAIBar() {
                         <label><input type="checkbox" id="slb-show-mobile-entry-state"> 제목 옆 발동 방식 아이콘</label>
                         <label><input type="checkbox" id="slb-show-mobile-token-summary"> 토큰 통계 표시</label>
                         <label><input type="checkbox" id="slb-show-mobile-entry-filters"> 항목 필터 표시</label>
+                        <label><input type="checkbox" id="slb-show-bulk-edit-toolbar"> 일괄 편집 버튼 표시</label>
                     </div>
-                    <small class="slb-mobile-display-note">PC와 모바일에 동일하게 적용됩니다.</small>
+                    <small class="slb-mobile-display-note">PC·모바일 공통. 일괄 편집은 선택한 항목의 발동 설정을 함께 수정하며 번역·삭제 선택에도 사용됩니다.</small>
                 </div>
                 <fieldset class="slb-manager-mode-settings">
                     <legend>화면 표시 방식</legend>
@@ -3210,6 +3269,7 @@ function createAIBar() {
         ['slb-show-mobile-entry-state', 'showMobileEntryState'],
         ['slb-show-mobile-token-summary', 'showMobileTokenSummary'],
         ['slb-show-mobile-entry-filters', 'showMobileEntryFilters'],
+        ['slb-show-bulk-edit-toolbar', 'showBulkEditToolbar'],
     ];
 
     function syncProviderUI() {
@@ -3251,6 +3311,10 @@ function createAIBar() {
         input.checked = settings[key];
         input.addEventListener('change', () => {
             settings[key] = input.checked;
+            if (key === 'showBulkEditToolbar' && !input.checked) {
+                // Never leave the hidden bulk-edit mode armed.
+                entryBulkEditor.reset(currentBookName());
+            }
             // Only the state-icon choice needs an entry pass. Collapsing
             // statistics or filters is a pure CSS visibility update.
             applyMobileDisplaySettings(key === 'showMobileEntryState');
@@ -3473,8 +3537,7 @@ function createQuickTranslationOptions() {
     });
     options.querySelector('#slb-translate-book').addEventListener('click', () => {
         if (state.bulkTranslation) {
-            state.bulkTranslation.cancelled = true;
-            updateBulkTranslationStatus('현재 번역 중단 요청됨 · 처리 중인 항목 완료 후 멈춥니다.');
+            cancelBulkTranslation();
             return;
         }
         void showLorebookTranslationPicker();
@@ -3484,20 +3547,32 @@ function createQuickTranslationOptions() {
     return options;
 }
 
+function cancelBulkTranslation({ silent = false } = {}) {
+    const job = state.bulkTranslation;
+    if (!job) return false;
+    job.cancelled = true;
+    state.bulkTranslation = null;
+    job.abortController?.abort();
+    const status = document.getElementById('slb-bulk-status');
+    if (status) status.textContent = '';
+    updateBulkTranslationStatus();
+    if (!silent) toastr.info('번역이 취소되었습니다.', '로어북 매니저', { timeOut: 2500 });
+    return true;
+}
+
 function updateBulkTranslationStatus(message = '') {
     const button = document.getElementById('slb-translate-book');
     const status = document.getElementById('slb-bulk-status');
     if (button) {
         const job = state.bulkTranslation;
         const caption = button.querySelector('span');
-        const buttonLabel = job ? (job.cancelled ? '중단 요청됨' : '번역 중단') : '로어북 일괄 번역';
+        const buttonLabel = job ? '번역 중…' : '로어북 일괄 번역';
         if (caption && caption.textContent !== buttonLabel) caption.textContent = buttonLabel;
         // The action must be explicit: another tap while busy cancels the
         // current job, it does NOT start translating another book.
-        button.disabled = Boolean(job?.cancelled);
+        button.disabled = false;
         button.title = job
-            ? (job.cancelled ? '처리 중인 항목이 끝나면 번역을 중단합니다.'
-                : '현재 진행 중인 번역 중단 요청')
+            ? '누르면 현재 진행 중인 번역을 취소합니다.'
             : '번역할 로어북을 선택해 미번역 항목 또는 전체를 번역합니다.';
         button.setAttribute('aria-label', button.title);
     }
@@ -3853,8 +3928,7 @@ async function deleteSelectedEntries(selection) {
 
 async function translateCurrentLorebook(mode = 'all', selection = null, selectedBook = null) {
     if (state.bulkTranslation) {
-        state.bulkTranslation.cancelled = true;
-        updateBulkTranslationStatus('현재 번역 중단 요청됨 · 처리 중인 항목 완료 후 멈춥니다.');
+        cancelBulkTranslation();
         return;
     }
     const book = selectedBook || currentBookName();
@@ -3873,7 +3947,11 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         return;
     }
 
-    const job = { book, mode, independent, cancelled: false, uids: selection ? new Set(selection.uids) : null };
+    const job = {
+        book, mode, independent, cancelled: false,
+        uids: selection ? new Set(selection.uids) : null,
+        abortController: new AbortController(),
+    };
     state.bulkTranslation = job;
     updateBulkTranslationStatus('로어북 항목을 불러오는 중…');
     let succeeded = 0;
@@ -3881,6 +3959,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
     let skipped = 0;
     try {
         const data = await loadWorldInfo(book);
+        if (job.cancelled || state.bulkTranslation !== job) return;
         if (!data?.entries) throw new Error('로어북 항목을 불러오지 못했습니다.');
         const entries = lorebookEntries(data)
             .filter(entry => !job.uids || job.uids.has(String(entry.uid)))
@@ -3894,14 +3973,19 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         // Each worker keeps its own UID and content snapshot. A completed result
         // can be applied immediately even while earlier requests are still pending.
         const concurrency = mode === 'selected' && getSettings().translationProvider !== 'google' ? 3 : 1;
-        const showProgress = () => updateBulkTranslationStatus(
-            `${book} · ${jobLabel} ${succeeded + failed + skipped}/${entries.length} (완료 ${succeeded}, 실패 ${failed}, 건너뜀 ${skipped})`,
-        );
+        const showProgress = () => {
+            if (job.cancelled || state.bulkTranslation !== job) return;
+            updateBulkTranslationStatus(
+                `${book} · ${jobLabel} ${succeeded + failed + skipped}/${entries.length} (완료 ${succeeded}, 실패 ${failed}, 건너뜀 ${skipped})`,
+            );
+        };
         let checkpoint = Promise.resolve();
         showProgress();
         await mapLimit(entries, concurrency, async entry => {
-            if (!independent && currentBookName() !== book) job.cancelled = true;
-            if (job.cancelled) return;
+            if (!independent && currentBookName() !== book && state.bulkTranslation === job) {
+                cancelBulkTranslation({ silent: true });
+            }
+            if (job.cancelled || state.bulkTranslation !== job) return;
             const uid = String(entry.uid);
             try {
                 if (data.entries[uid] !== entry) { skipped += 1; return; }
@@ -3924,13 +4008,18 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                         ? !(translationBefore?.trim() || previous?.language === pair.translationLanguage && previous?.text?.trim())
                         : !currentMetadataTranslation(previous?.language === pair.translationLanguage ? previous : null, field, sources[field]))
                 ));
-                if (job.cancelled || (!independent && currentBookName() !== book)) return;
-                const results = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
+                if (job.cancelled || state.bulkTranslation !== job
+                    || (!independent && currentBookName() !== book)) return;
+                const results = await awaitCancelableTranslation(
+                    () => translateLoreFieldsForEntry(sources, fields, pair.translationLanguage,
+                        { signal: job.abortController.signal }),
+                    job.abortController.signal,
+                );
                 if (fields.some(field => !results[field]?.trim())) {
                     throw new Error('선택한 번역 결과 중 비어 있는 항목이 있습니다.');
                 }
                 const translated = results.content;
-                if (job.cancelled) return;
+                if (job.cancelled || state.bulkTranslation !== job) return;
                 const latest = getSettings().translations[translationKey(book, uid)];
                 if (
                     (!independent && currentBookName() !== book) || data.entries[uid] !== entry || ui?.flags.deleted
@@ -3975,29 +4064,38 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                 if (liveEntry) syncMetadataTranslations(liveEntry);
                 if (liveUI) liveUI.status.textContent = `${jobLabel}으로 선택한 번역본을 저장했습니다.`;
                 succeeded += 1;
-                if (succeeded % 5 === 0) {
+                if (succeeded % 5 === 0 && !job.cancelled && state.bulkTranslation === job) {
                     // Serialize checkpoints; multiple workers must not save older
                     // settings snapshots over one another.
                     checkpoint = checkpoint.catch(() => undefined).then(() => saveSettings());
                     await checkpoint;
                 }
             } catch (error) {
+                if (job.cancelled || state.bulkTranslation !== job) return;
                 failed += 1;
                 console.warn('[로어북 매니저] 전체 번역 항목 실패', uid, error);
             } finally {
                 showProgress();
             }
         });
+        if (job.cancelled || state.bulkTranslation !== job) return;
         await saveSettings();
-        const summary = `${book} ${jobLabel} ${job.cancelled ? '중단' : '완료'} · 성공 ${succeeded}개, 실패 ${failed}개, 건너뜀 ${skipped}개`;
+        if (job.cancelled || state.bulkTranslation !== job) return;
+        const summary = `${book} ${jobLabel} 완료 · 성공 ${succeeded}개, 실패 ${failed}개, 건너뜀 ${skipped}개`;
         updateBulkTranslationStatus(summary);
         notify(summary, failed ? 'warning' : 'success', true);
     } catch (error) {
-        updateBulkTranslationStatus(error.message || '로어북 전체 번역에 실패했습니다.');
-        notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error', true);
+        if (!job.cancelled && state.bulkTranslation === job) {
+            updateBulkTranslationStatus(error.message || '로어북 전체 번역에 실패했습니다.');
+            notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error', true);
+        }
     } finally {
-        if (state.bulkTranslation === job) state.bulkTranslation = null;
-        updateBulkTranslationStatus();
+        // A canceled old job may finish after a new one started. It must
+        // never reset the new button, progress or saved translations.
+        if (state.bulkTranslation === job) {
+            state.bulkTranslation = null;
+            updateBulkTranslationStatus();
+        }
     }
 }
 
@@ -4080,6 +4178,10 @@ function bindEntryFilterControls(filter) {
         }
     };
     filter.addEventListener('toggle', () => {
+        if (!filter.isConnected) {
+            document.removeEventListener('pointerdown', dismiss, true);
+            return;
+        }
         filter.querySelector('.slb-filter-trigger')?.setAttribute('aria-expanded', String(filter.open));
         document.removeEventListener('pointerdown', dismiss, true);
         if (filter.open) document.addEventListener('pointerdown', dismiss, true);
@@ -4385,18 +4487,21 @@ function bindWorkspacePopupObserver(popup) {
         const tokenSection = document.getElementById('slb-token-summary-section');
         const filterSection = document.getElementById('slb-entry-filters-section');
         const selectionToolbar = document.getElementById('slb-entry-selection-toolbar');
+        const summaryBar = document.getElementById('slb-summary-toolbar');
         const workspaceMissing = !livePopup
             || !liveEntries
             || liveEntries.parentElement !== livePopup
             || !tokenSection
-            || tokenSection.parentElement !== livePopup
+            || !summaryBar
+            || summaryBar.parentElement !== livePopup
+            || tokenSection.parentElement !== summaryBar
             || !tokenSection.querySelector('#slb-token-strip')
             || !filterSection
-            || filterSection.parentElement !== livePopup
-            || !filterSection.querySelector('#slb-entry-filters')
-            || tokenSection.nextElementSibling !== filterSection
             || !selectionToolbar
-            || filterSection.nextElementSibling !== selectionToolbar
+            || selectionToolbar.parentElement !== livePopup
+            || filterSection.parentElement !== selectionToolbar
+            || !filterSection.querySelector('#slb-entry-filters')
+            || summaryBar.nextElementSibling !== selectionToolbar
             || selectionToolbar.nextElementSibling !== liveEntries
             || state.workspace?.entries !== liveEntries;
 
@@ -4429,15 +4534,16 @@ function createWorkspace() {
 
     bindEntryFilterControls(filters);
     const selectionToolbar = entryBulkEditor.ensureToolbar(popup, entries);
-    // One physical row, two independent visibility settings. Nesting the
-    // filter under the token section would hide it when only tokens are OFF.
+    // Separate rows: token totals stand alone; the small FA funnel belongs
+    // at the far right of the bulk-edit controls. Each visibility preference
+    // remains independent, including when no lorebook is currently selected.
     let summaryBar = document.getElementById('slb-summary-toolbar');
     if (!summaryBar) {
         summaryBar = createElement('div', 'slb-summary-toolbar');
         summaryBar.id = 'slb-summary-toolbar';
     }
     if (tokenSection.parentElement !== summaryBar) summaryBar.append(tokenSection);
-    if (filterSection.parentElement !== summaryBar) summaryBar.append(filterSection);
+    if (filterSection.parentElement !== selectionToolbar) selectionToolbar.append(filterSection);
     if (summaryBar.nextElementSibling !== selectionToolbar) popup.insertBefore(summaryBar, selectionToolbar);
     bindWorkspaceEntries(entries);
     bindWorkspacePopupObserver(popup);
@@ -4763,7 +4869,7 @@ function enhanceEntryHeader(entry, options = {}) {
     }, 'slb-trigger-field', '등장 확률 %');
 
     const shell = createElement('div', 'slb-entry-header-shell');
-    const toggles = createElement('div', 'slb-header-toggles');
+    const toggles = createElement('div', 'slb-header-toggles gap5px alignitemscenter');
     const fields = createElement('div', 'slb-header-grid');
     const mobileStateBadge = createElement('span', 'slb-mobile-entry-state-badge');
     const actions = createElement('div', 'slb-header-actions');
@@ -7689,7 +7795,7 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 }
 
 function beginBookSwitch(book, suppliedBoundary = null) {
-    if (state.bulkTranslation) state.bulkTranslation.cancelled = true;
+    if (state.bulkTranslation) cancelBulkTranslation({ silent: true });
     entryBulkEditor.reset(book);
     const previous = state.bookSwitch;
     if (previous?.timer) clearTimeout(previous.timer);
