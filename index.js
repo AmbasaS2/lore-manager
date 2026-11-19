@@ -19,7 +19,7 @@ import { createLorebookBulkEditor } from './bulk-edit.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.85-ambasa.1';
+const VERSION = '1.4.85-ambasa.2';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -100,6 +100,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     tokenSummaryCollapsed: false,
     entryFiltersCollapsed: false,
     showMobileEntryState: false,
+    showOnlyLinkedLorebooks: true,
     showMobileTokenSummary: true,
     showMobileEntryFilters: true,
     hideOriginalWhenTranslated: false,
@@ -177,9 +178,6 @@ const state = {
     backupRenderRunId: 0,
     extensionDataCleaning: false,
     worldSelectUserIntentUntil: 0,
-    linkedBookAllMode: false,
-    linkedBookCharacterKey: '',
-    linkedBookButton: null,
     linkedBookResultObserver: null,
     linkedBookResultContainer: null,
     responsiveMedia: null,
@@ -214,9 +212,6 @@ function ensureCriticalLayoutStyles() {
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot>.slb-filter-control,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot select,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot .select2-container,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot .select2-selection--multiple{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:100%!important;max-height:100%!important;margin:0!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot{display:flex!important;grid-area:exclude!important;position:static!important;z-index:auto!important;top:auto!important;left:auto!important;width:100%!important;height:28px!important;padding:0!important;align-items:center!important;justify-content:center!important;background:transparent!important;transform:none!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot>.slb-filter-exclude{display:inline-flex!important;position:static!important;width:max-content!important;height:24px!important;margin:0!important;padding:0!important;align-items:center!important;gap:4px!important;background:transparent!important;font-size:.8em!important;white-space:nowrap!important;transform:none!important}
-#slb-ai-tools #slb-quick-options-host>.slb-quick-options{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px 6px!important;width:100%!important;min-width:0!important;font-size:clamp(10px,2.45vw,.82em)!important}
-#slb-ai-tools #slb-quick-options-host>.slb-quick-options>label{display:inline-flex!important;min-width:0!important;align-items:center!important;gap:4px!important;white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important}
-#slb-ai-tools #slb-quick-options-host>.slb-quick-options>label:nth-of-type(3){grid-column:1/-1!important}
 #WorldInfo.slb-active .world_entry.slb-compact-entry .slb-panel[data-panel="activation"].is-active>.slb-activation-overview[data-slb-visible="true"]:not(:empty){display:grid!important;visibility:visible!important;opacity:1!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) 18px auto!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{display:inline-flex!important;box-sizing:border-box!important;grid-column:3!important;grid-row:1!important;width:18px!important;min-width:18px!important;max-width:18px!important;height:29px!important;margin:0!important;padding:0!important;align-items:center!important;justify-content:center!important;border:0!important;background:transparent!important;visibility:visible!important;opacity:1!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge:before{content:"";display:block!important;width:12px!important;height:12px!important;border-radius:50%!important;background:linear-gradient(145deg,#73eba4,#2bbd6c)!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="constant"]:before{background:linear-gradient(145deg,#72b8ff,#2563eb)!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="vectorized"]:before{content:"🔗"!important;width:auto!important;height:auto!important;border-radius:0!important;background:none!important;box-shadow:none!important}
 #slb-strategy-picker{display:flex!important;position:absolute!important;top:calc(100% + 4px)!important;right:0!important;left:auto!important;gap:4px!important;padding:5px!important;border-radius:9px!important;background:var(--SmartThemeBlurTintColor,rgba(28,28,32,.96))!important;border:1px solid var(--SmartThemeBorderColor,rgba(255,255,255,.18))!important;box-shadow:0 5px 14px rgba(0,0,0,.32)!important;z-index:9999!important}#slb-strategy-picker .slb-strategy-picker-option{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;font-size:14px!important;border-radius:7px!important;border:1px solid transparent!important;background:transparent!important;cursor:pointer!important;margin:0!important;padding:0!important}#slb-strategy-picker .slb-strategy-picker-option.is-current{border-color:var(--SmartThemeQuoteColor,#8aa)!important;background:rgba(255,255,255,.1)!important}#WorldInfo.slb-active .slb-mobile-entry-state-badge{position:relative!important;overflow:visible!important;cursor:pointer}#WorldInfo.slb-active .slb-mobile-entry-state-badge.slb-picker-open{z-index:10000!important}
@@ -2222,11 +2217,11 @@ function fillProfileSelect() {
         select.append(new Option(profile.name || profile.id, profile.id));
     }
 
-    select.value = profiles.some(profile => profile.id === settings.profileId) ? settings.profileId : '';
-    if (settings.profileId && !select.value) {
-        settings.profileId = '';
-        saveSettingsDebounced();
+    if (settings.profileId && !profiles.some(profile => profile.id === settings.profileId)) {
+        // An unavailable profile must not erase the user's saved choice.
+        select.append(new Option('저장된 프로필 · 현재 연결되지 않음', settings.profileId));
     }
+    select.value = settings.profileId || '';
 }
 
 function syncAutoControls() {
@@ -3001,16 +2996,18 @@ async function importLorebookBackupFile(file) {
 }
 
 async function renderBackupList() {
+    const section = document.querySelector('#slb-ai-tools .slb-backup-settings');
     const list = document.getElementById('slb-backup-list');
     const count = document.getElementById('slb-backup-count');
-    if (!list) return;
+    // No IndexedDB cursor reads or DOM creation for collapsed backup sections.
+    if (!list || !section?.open) return;
     const runId = ++state.backupRenderRunId;
     const openBooks = new Set(Array.from(list.querySelectorAll('.slb-backup-group[open]'))
         .map(group => group.dataset.book));
     list.replaceChildren(createElement('small', 'slb-backup-empty', '백업 목록을 불러오는 중…'));
     try {
         const records = await listLorebookBackups();
-        if (runId !== state.backupRenderRunId || !list.isConnected) return;
+        if (runId !== state.backupRenderRunId || !list.isConnected || !section.open) return;
         if (count) count.textContent = `${records.length}개`;
         list.replaceChildren();
         if (!records.length) {
@@ -3087,7 +3084,7 @@ async function renderBackupList() {
             list.append(group);
         }
     } catch (error) {
-        if (runId !== state.backupRenderRunId || !list.isConnected) return;
+        if (runId !== state.backupRenderRunId || !list.isConnected || !section.open) return;
         if (count) count.textContent = '오류';
         list.replaceChildren(createElement('small', 'slb-backup-empty', error.message || '백업 목록을 불러오지 못했습니다.'));
     }
@@ -3107,11 +3104,11 @@ function createAIBar() {
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content" style="display: none;">
-                <div class="slb-ai-title">
-                    <span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> 번역 · AI 도구</span>
-                    <span class="slb-ai-badge">메인 연결과 독립</span>
-                </div>
-                <div class="slb-ai-fields">
+                <p class="slb-settings-intro">필요한 설정만 펼쳐서 변경할 수 있습니다.</p>
+                <details class="slb-settings-card slb-translation-settings" open>
+                    <summary><span><i class="fa-solid fa-language" aria-hidden="true"></i> 번역 설정</span><small>방식 · 지시문</small></summary>
+                    <div class="slb-settings-card-body">
+                        <div class="slb-ai-fields">
                     <label class="slb-field slb-provider-field"><small>번역 방식</small><select id="slb-provider" class="text_pole">
                         <option value="profile">AI 전용 연결 프로필</option>
                         <option value="google">구글 번역 (무료)</option>
@@ -3127,24 +3124,33 @@ function createAIBar() {
                         <label><input type="checkbox" id="slb-translate-title"> 제목</label>
                         <label><input type="checkbox" id="slb-translate-keywords"> 호출 키워드</label>
                     </div>
-                    <small>기존 번역 버튼과 자동·일괄 번역에 적용됩니다. 제목·키워드 번역본은 직접 수정할 수 있으며, 실제 제목과 호출 키워드는 바뀌지 않습니다.</small>
+                    <small>번역본을 수정해도 실제 로어북의 제목과 호출 키워드는 유지됩니다.</small>
                 </fieldset>
                 <div class="slb-mobile-display-options slb-translation-display-options">
                     <label><input type="checkbox" id="slb-hide-translated-source"> 번역본이 있을 때 원문 숨기기</label>
                 </div>
                 <label class="slb-field slb-prompt-field"><small>번역 추가 지시문 · AI 프로필 모드에서만 적용</small>
-                    <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="번역 언어는 각 항목의 원문 EN/KO · 번역 KO/EN 배지를 따릅니다. 문체·존칭·용어 같은 추가 요구사항만 적어주세요. 예) 대사는 반말로, 지문은 건조한 문어체로. (구글 번역에는 적용되지 않습니다)"></textarea>
+                    <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="문체, 고유명사, 용어 통일 규칙 등 추가 번역 지시문을 입력하세요. (AI 번역 전용)"></textarea>
                     <span class="slb-prompt-meta">
-                        <small class="slb-ai-note">항목의 EN/KO 배지를 누르면 방향이 바뀝니다. AI 수정·키워드 추천은 전용 프로필을 사용하며, 구글 번역 모드의 원문 반영은 무료 구글 번역을 사용합니다.</small>
+                        <small class="slb-ai-note">언어 방향은 각 항목의 EN/KO 표시에서 변경할 수 있습니다.</small>
                         <small id="slb-ai-status">확장 탭에서 번역 방식을 설정해주세요.</small>
                     </span>
                 </label>
-                <label class="slb-field slb-options-location-field"><small>자동 번역 옵션 표시 위치</small><select id="slb-options-location" class="text_pole">
-                    <option value="lorebook">로어북 상단</option>
-                    <option value="extension">확장 탭</option>
-                </select></label>
-                <div id="slb-quick-options-host"></div>
-                <div class="slb-mobile-display-settings">
+                        <div id="slb-quick-options-host"></div>
+                    </div>
+                </details>
+                <details class="slb-settings-card slb-advanced-settings">
+                    <summary><span><i class="fa-solid fa-sliders" aria-hidden="true"></i> 화면 · 고급 설정</span><small>표시 · 연동</small></summary>
+                    <div class="slb-settings-card-body">
+                        <label class="slb-field slb-options-location-field"><small>자동 번역 옵션 표시 위치</small><select id="slb-options-location" class="text_pole">
+                            <option value="lorebook">로어북 상단</option>
+                            <option value="extension">확장 탭</option>
+                        </select></label>
+                        <div class="slb-linked-world-setting">
+                            <label><input type="checkbox" id="slb-filter-linked-lorebooks"> 캐릭터 선택 시 연결된 로어북만 표시</label>
+                            <small>캐릭터를 선택하지 않으면 전체 목록을 보여줍니다. 실제 로어북 연결이나 활성화 상태는 바뀌지 않습니다.</small>
+                        </div>
+                        <div class="slb-mobile-display-settings">
                     <small class="slb-mobile-display-title">모바일 로어북 표시</small>
                     <div class="slb-mobile-display-options">
                         <label><input type="checkbox" id="slb-show-mobile-entry-state"> Strategy(주입 방식) 제목 옆 표시</label>
@@ -3166,10 +3172,12 @@ function createAIBar() {
                         </label>
                     </div>
                     <small id="slb-manager-mode-status">기존 모드는 Foldy와 분리된 순수 로어북 매니저입니다.</small>
-                    <small>두 모드는 독립적으로 동작합니다. Foldy 감지·렌더·대기는 폴디 연동 모드를 직접 선택했을 때만 시작됩니다.</small>
+                    <small>폴디 연동은 해당 모드를 직접 선택했을 때만 실행됩니다.</small>
                 </fieldset>
-                <details class="slb-backup-settings">
-                    <summary><span><i class="fa-solid fa-box-archive" aria-hidden="true"></i> 로어북 백업</span><small id="slb-backup-count">0개</small></summary>
+                    </div>
+                </details>
+                <details class="slb-settings-card slb-backup-settings">
+                    <summary><span><i class="fa-solid fa-box-archive" aria-hidden="true"></i> 로어북 백업</span><small id="slb-backup-count">열어서 확인</small></summary>
                     <div class="slb-backup-body">
                         <div class="slb-backup-toolbar">
                             <label><input type="checkbox" id="slb-auto-backup-enabled"> 로어북 자동 백업</label>
@@ -3184,7 +3192,7 @@ function createAIBar() {
                         <div id="slb-backup-list" class="slb-backup-list"></div>
                     </div>
                 </details>
-                <details class="slb-data-settings">
+                <details class="slb-settings-card slb-data-settings">
                     <summary><span><i class="fa-solid fa-broom" aria-hidden="true"></i> 데이터 관리</span></summary>
                     <div class="slb-data-body">
                         <small>실제 로어북 원문은 건드리지 않고, 이 확장이 저장한 번역본·백업·설정만 정리합니다.</small>
@@ -3230,6 +3238,13 @@ function createAIBar() {
     const outputTokens = document.getElementById('slb-output-tokens');
     const optionsLocation = document.getElementById('slb-options-location');
     const autoBackupEnabled = document.getElementById('slb-auto-backup-enabled');
+    const linkedBookFilterControl = document.getElementById('slb-filter-linked-lorebooks');
+    linkedBookFilterControl.checked = settings.showOnlyLinkedLorebooks !== false;
+    linkedBookFilterControl.addEventListener('change', () => {
+        settings.showOnlyLinkedLorebooks = linkedBookFilterControl.checked;
+        saveSettings();
+        syncConnectedWorldOptions();
+    });
     const managerModeControls = Array.from(document.querySelectorAll('input[name="slb-manager-mode"]'));
     const managerModeStatus = document.getElementById('slb-manager-mode-status');
     const mobileDisplayControls = [
@@ -3374,7 +3389,8 @@ function createAIBar() {
         }
     });
     document.querySelector('.slb-backup-settings')?.addEventListener('toggle', event => {
-        if (event.currentTarget.open) renderBackupList();
+        if (event.currentTarget.open) void renderBackupList();
+        else state.backupRenderRunId++;
     });
     document.getElementById('slb-clear-translations')?.addEventListener('click', async event => {
         if (!confirm('이 확장이 저장한 모든 로어북 번역본을 삭제할까요? 실제 로어북 원문과 백업은 유지됩니다.')) return;
@@ -3443,7 +3459,7 @@ function createAIBar() {
     syncQuickTranslationOptionsPlacement();
     // 헤더가 아직 없는 첫 생성 단계에서는 표시 클래스만 갱신한다.
     applyMobileDisplaySettings(false);
-    renderBackupList();
+    // The backup list is created on demand when the backup card is expanded.
 }
 
 function createQuickTranslationOptions() {
@@ -7706,31 +7722,12 @@ function syncConnectedWorldOptions() {
     const select = document.getElementById('world_editor_select');
     if (!select) return;
 
-    const character = this_chid === undefined || this_chid === null ? null : characters?.[this_chid];
-    const identity = character ? String(character.avatar ?? this_chid) : '';
-    if (identity !== state.linkedBookCharacterKey) {
-        state.linkedBookCharacterKey = identity;
-        state.linkedBookAllMode = false;
-    }
-
-    const linked = character && !state.linkedBookAllMode ? currentCharacterLinkedBooks() : null;
+    // Filter the native options purely for display. Keep selected value and
+    // SillyTavern's original select / Select2 instance untouched.
+    const linked = getSettings().showOnlyLinkedLorebooks === false ? null : currentCharacterLinkedBooks();
     for (const option of select.options) {
         const visible = isVisibleWorldOption(option.value, option.textContent, world_names, linked);
         if (option.hidden !== !visible) option.hidden = !visible;
-    }
-
-    const button = state.linkedBookButton;
-    if (button) {
-        button.hidden = !character;
-        if (character) {
-            const count = currentCharacterLinkedBooks()?.size ?? 0;
-            button.querySelector('.slb-linked-world-label').textContent = state.linkedBookAllMode
-                ? '전체 보기' : '캐릭터 연결만';
-            button.title = state.linkedBookAllMode
-                ? '모든 로어북 표시 중 · 눌러서 캐릭터 연결만 보기'
-                : `연결된 로어북 ${count}개 · 눌러서 전체 보기`;
-            button.setAttribute('aria-pressed', String(!state.linkedBookAllMode));
-        }
     }
     renderConnectedWorldResults(linked);
 }
@@ -7739,22 +7736,6 @@ function bindConnectedWorldFilter() {
     const select = document.getElementById('world_editor_select');
     if (!select || select.dataset.slbLinkedBooksBound === 'true') return;
     select.dataset.slbLinkedBooksBound = 'true';
-
-    const button = document.createElement('button');
-    button.id = 'slb-connected-world-toggle';
-    button.type = 'button';
-    button.className = 'menu_button slb-connected-world-toggle';
-    button.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i> <span class="slb-linked-world-label">캐릭터 연결만</span>';
-    button.hidden = true;
-    state.linkedBookButton = button;
-    // Do not replace or reinitialize the native select / Select2 instance.
-    const select2 = select.nextElementSibling?.classList?.contains('select2-container')
-        ? select.nextElementSibling : null;
-    (select2 || select).after(button);
-    button.addEventListener('click', () => {
-        state.linkedBookAllMode = !state.linkedBookAllMode;
-        syncConnectedWorldOptions();
-    });
 
     const stopResultsObserver = () => {
         state.linkedBookResultObserver?.disconnect();
@@ -7769,7 +7750,7 @@ function bindConnectedWorldFilter() {
         state.linkedBookResultContainer = results;
         state.linkedBookResultObserver = new MutationObserver(() => {
             renderConnectedWorldResults(
-                state.linkedBookAllMode ? null : currentCharacterLinkedBooks()
+                getSettings().showOnlyLinkedLorebooks === false ? null : currentCharacterLinkedBooks()
             );
         });
         state.linkedBookResultObserver.observe(results, { childList: true, subtree: true });

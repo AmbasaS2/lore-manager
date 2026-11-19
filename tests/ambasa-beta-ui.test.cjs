@@ -34,21 +34,23 @@ test('compact Font Awesome strategy leaves the native select intact and keeps ha
     } finally { w.close(); }
 });
 
-test('character filter hides unrelated native options but never changes selection', () => {
-    const dom = new JSDOM('<div id="world_popup"><button id="slb-connected-world-toggle"><span class="slb-linked-world-label"></span></button><select id="world_editor_select"><option value="">Choose</option><option value="0">Remus</option><option value="1" selected>Other</option><option value="2">Sirius</option></select></div>', { runScripts: 'outside-only' });
+test('character filter preference lives in extension settings without an extra toolbar button', () => {
+    const dom = new JSDOM('<div id="world_popup"><select id="world_editor_select"><option value="">Choose</option><option value="0">Remus</option><option value="1" selected>Other</option><option value="2">Sirius</option></select></div>', { runScripts: 'outside-only' });
     const w = dom.window;
     w.eval(`
         const world_names = ['Remus', 'Other', 'Sirius'];
         let this_chid = 0;
         const characters = [{avatar: 'remus.png'}];
-        const state = {linkedBookCharacterKey:'',linkedBookAllMode:false,linkedBookButton:document.getElementById('slb-connected-world-toggle')};
-        const currentCharacterLinkedBooks = () => new Set(['Remus','Sirius']);
+        const settings = {showOnlyLinkedLorebooks: true};
+        const getSettings = () => settings;
+        const currentCharacterLinkedBooks = () => this_chid === undefined ? null : new Set(['Remus','Sirius']);
         const isVisibleWorldOption = (id,text,names,links) => links === null || id === '' || links.has(names[Number(id)] || text);
         const renderConnectedWorldResults = () => {};
         ${functionBody('syncConnectedWorldOptions')}
         window.syncFilter = syncConnectedWorldOptions;
         window.changeCharacter = () => {this_chid = undefined;};
-        window.showAll = () => {state.linkedBookAllMode = true;};
+        window.showAll = () => {settings.showOnlyLinkedLorebooks = false;};
+        window.showLinked = () => {settings.showOnlyLinkedLorebooks = true;};
     `);
     try {
         const select = w.document.querySelector('select');
@@ -59,10 +61,13 @@ test('character filter hides unrelated native options but never changes selectio
         assert.equal(select.options[2].hidden,true);
         assert.equal(select.options[3].hidden,false);
         w.showAll(); w.syncFilter();
-        assert.equal(select.options[2].hidden,false, 'explicit all-mode shows unrelated');
+        assert.equal(select.options[2].hidden,false, 'disabled preference shows all books');
+        w.showLinked(); w.syncFilter();
+        assert.equal(select.options[2].hidden,true, 'enabled preference restores filtering');
         w.changeCharacter(); w.syncFilter();
         assert.equal(select.options[2].hidden,false,'no character shows all');
         assert.equal(select.value,'1', 'still no selection change');
+        assert.equal(w.document.querySelectorAll('#slb-connected-world-toggle').length,0,'no toolbar button');
     } finally { w.close(); }
 });
 

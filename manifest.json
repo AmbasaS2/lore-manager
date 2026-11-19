@@ -5,8 +5,8 @@
   "optional": [],
   "js": "index.js",
   "css": "style.css",
-  "author": "Ambasa (fork; original by foreverharibo-boop)",
-  "version": "1.4.85-ambasa.1",
+  "author": "AmbasaS2 (fork; original by foreverharibo-boop)",
+  "version": "1.4.85-ambasa.2",
   "homePage": "https://github.com/AmbasaS2/lore-manager",
   "auto_update": false,
   "hooks": {

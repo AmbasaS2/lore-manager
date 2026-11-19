@@ -237,24 +237,19 @@
 #slb-ai-tools,
 #slb-ai-tools > .inline-drawer {
     box-sizing: border-box;
-    flex: 0 0 auto !important;
+    flex: 0 0 auto;
     width: 100%;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    min-width: 0;
 }
 
 #slb-ai-tools .inline-drawer-content {
     order: 1;
     display: flex;
-    flex: 0 0 auto !important;
+    flex: 0 0 auto;
     flex-direction: column;
     align-content: flex-start;
     gap: 8px;
     box-sizing: border-box;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
     margin: 8px 0 2px;
     padding: 10px;
     border: 1px solid var(--slb-border);
@@ -317,10 +312,8 @@
 }
 
 #slb-ai-tools .slb-prompt-field {
-    flex: 0 0 auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    flex: 0 0 auto;
+    min-width: 0;
 }
 
 #slb-ai-tools .slb-profile-field {
@@ -340,17 +333,12 @@
 
 #slb-ai-tools #slb-test-profile {
     display: inline-flex;
-    flex-flow: row nowrap !important;
     flex: 0 0 auto;
     align-self: flex-end;
     align-items: center;
     justify-content: center;
-    width: auto !important;
-    min-width: 132px !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-    writing-mode: horizontal-tb !important;
+    min-width: 0;
+    white-space: nowrap;
 }
 
 #slb-ai-tools .slb-field > small {
@@ -1369,16 +1357,9 @@
     #slb-ai-tools #slb-test-profile {
         grid-area: test;
         grid-column: 2;
-        display: inline-flex !important;
-        inline-size: max-content !important;
-        min-inline-size: 132px !important;
-        max-inline-size: none !important;
-        padding-inline: 10px !important;
-        flex-flow: row nowrap !important;
-        white-space: nowrap !important;
-        word-break: keep-all !important;
-        overflow-wrap: normal !important;
-        writing-mode: horizontal-tb !important;
+        display: inline-flex;
+        padding-inline: 10px;
+        white-space: nowrap;
     }
 
     #WorldInfo.slb-active .slb-keyword-head {
@@ -1766,20 +1747,16 @@
 
 /* v1.3.5 — desktop column header / compact mobile title row */
 #slb-ai-tools .slb-prompt-field {
-    display: flex !important;
-    flex: 0 0 auto !important;
+    display: flex;
+    flex: 0 0 auto;
     flex-direction: column;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
     gap: 3px;
-    margin-top: 8px !important;
-    margin-bottom: 0 !important;
+    margin: 2px 0 0;
 }
 
 #slb-ai-tools .slb-prompt-field > textarea {
     display: block;
-    margin: 0 !important;
+    margin: 0;
 }
 
 #slb-ai-tools .slb-prompt-field > .slb-prompt-meta {
@@ -1787,8 +1764,8 @@
     flex-direction: column;
     gap: 1px;
     width: 100%;
-    margin: 2px 0 0 !important;
-    padding: 0 !important;
+    margin: 2px 0 0;
+    padding: 0;
     line-height: 1.3;
 }
 
@@ -1982,7 +1959,7 @@
 
 /* v1.3.14 — movable auto options and compact collapsible summaries */
 #slb-ai-tools .slb-options-location-field {
-    flex: 0 0 auto !important;
+    flex: 0 0 auto;
     width: min(260px, 100%);
     max-width: 260px;
     margin-top: 2px;
@@ -3615,38 +3592,34 @@
 }
 
 #slb-ai-tools #slb-quick-options-host > .slb-quick-options {
-    display: grid !important;
-    box-sizing: border-box !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    column-gap: 6px !important;
-    row-gap: 5px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 2px 0 !important;
-    padding: 4px 2px !important;
-    align-items: center !important;
-    font-size: clamp(9px, 2.35vw, 0.88em) !important;
+    display: grid;
+    box-sizing: border-box;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px 6px;
+    width: 100%;
+    min-width: 0;
+    margin: 2px 0;
+    padding: 4px 2px;
+    align-items: center;
+    font-size: 0.88em;
 }
 
 #slb-ai-tools #slb-quick-options-host > .slb-quick-options > label {
-    display: inline-flex !important;
-    box-sizing: border-box !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    align-items: center !important;
-    gap: 4px !important;
-    line-height: 1.15 !important;
-    letter-spacing: -0.025em !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow-wrap: normal !important;
-    writing-mode: horizontal-tb !important;
+    display: inline-flex;
+    box-sizing: border-box;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 
 #slb-ai-tools #slb-quick-options-host > .slb-quick-options > label > input[type="checkbox"] {
-    flex: 0 0 auto !important;
-    margin: 0 !important;
+    flex: 0 0 auto;
+    margin: 0;
 }
 
 #WorldInfo.slb-active .slb-quick-options label > input[type="checkbox"] {
@@ -3654,7 +3627,7 @@
 }
 
 #slb-ai-tools #slb-quick-options-host > .slb-quick-options > label:nth-of-type(3) {
-    grid-column: 1 / -1 !important;
+    grid-column: 1 / -1;
 }
 
 #slb-ai-tools .slb-quick-options .slb-translate-book,
@@ -5003,18 +4976,229 @@
 
 /* Native and Select2 selection lists: hide only unrelated options, never
    delete options, change selected values or reinitialize Select2. */
-#WorldInfo.slb-active #slb-connected-world-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    max-width: 100%;
-    white-space: nowrap;
-    margin: 3px 0 4px 5px;
-    font-size: 0.85em;
-}
-#WorldInfo.slb-active #slb-connected-world-toggle[hidden] {
-    display: none !important;
-}
 .select2-results__option.slb-unlinked-world-option {
     display: none !important;
+}
+
+
+/* AmbasaS2 settings panel. Native controls, IDs and saved-setting keys stay intact.
+   Only the extension settings panel is restyled; the lorebook editor is unchanged. */
+#slb-ai-tools .inline-drawer-content {
+    gap: 7px;
+    margin-block: 6px 2px;
+    padding: 7px;
+    background: transparent;
+    border-color: transparent;
+}
+
+#slb-ai-tools .slb-settings-intro {
+    margin: 0 0 3px;
+    padding-inline: 4px;
+    font-size: 0.84em;
+    line-height: 1.45;
+    opacity: 0.72;
+}
+
+#slb-ai-tools .slb-settings-card {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(127, 127, 127, 0.3));
+    border-radius: 9px;
+    background: var(--SmartThemeBlurTintColor, rgba(127, 127, 127, 0.07));
+    overflow: clip;
+}
+
+#slb-ai-tools .slb-settings-card > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 37px;
+    margin: 0;
+    padding: 8px 11px;
+    border: 0;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+#slb-ai-tools .slb-settings-card > summary::marker {
+    content: '';
+}
+
+#slb-ai-tools .slb-settings-card > summary::-webkit-details-marker {
+    display: none;
+}
+
+#slb-ai-tools .slb-settings-card > summary > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+#slb-ai-tools .slb-settings-card > summary > small {
+    margin-left: auto;
+    font-size: 0.8em;
+    font-weight: 400;
+    opacity: 0.65;
+    white-space: nowrap;
+}
+
+#slb-ai-tools .slb-settings-card > summary::after {
+    content: "\f078";
+    display: inline-block;
+    flex: none;
+    font: 900 11px/1 "Font Awesome 6 Free";
+    opacity: 0.65;
+    transition: transform 150ms ease;
+}
+
+#slb-ai-tools .slb-settings-card[open] > summary::after {
+    transform: rotate(180deg);
+}
+
+#slb-ai-tools .slb-settings-card[open] > summary {
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(127, 127, 127, 0.2));
+}
+
+#slb-ai-tools .slb-settings-card-body,
+#slb-ai-tools .slb-backup-body,
+#slb-ai-tools .slb-data-body {
+    display: grid;
+    gap: 10px;
+    padding: 11px;
+    min-width: 0;
+}
+
+#slb-ai-tools .slb-settings-card-body {
+    container: slb-settings-body / inline-size;
+}
+
+#slb-ai-tools .slb-translation-settings .slb-ai-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-areas:
+        "provider provider"
+        "profile profile"
+        "tokens test";
+    align-items: end;
+    gap: 8px;
+    width: 100%;
+}
+
+#slb-ai-tools .slb-translation-settings .slb-provider-field {
+    grid-area: provider;
+}
+
+#slb-ai-tools .slb-translation-settings .slb-profile-field {
+    grid-area: profile;
+}
+
+#slb-ai-tools .slb-translation-settings .slb-output-tokens-field {
+    grid-area: tokens;
+}
+
+#slb-ai-tools .slb-translation-settings #slb-test-profile {
+    grid-area: test;
+    justify-self: start;
+}
+
+#slb-ai-tools .slb-translation-settings .slb-field {
+    min-width: 0;
+}
+
+#slb-ai-tools .slb-translation-settings .slb-provider-field,
+#slb-ai-tools .slb-translation-settings .slb-profile-field,
+#slb-ai-tools .slb-translation-settings .slb-output-tokens-field {
+    width: 100%;
+    max-width: none;
+}
+
+#slb-ai-tools .slb-translation-targets {
+    margin: 0;
+    padding: 8px 0;
+    border: 0;
+    border-block: 1px solid var(--SmartThemeBorderColor, rgba(127, 127, 127, 0.2));
+    border-radius: 0;
+}
+
+#slb-ai-tools .slb-translation-display-options {
+    margin: -2px 0 0;
+}
+
+#slb-ai-tools .slb-prompt-field {
+    margin-top: 0;
+}
+
+#slb-ai-tools .slb-advanced-settings .slb-mobile-display-settings,
+#slb-ai-tools .slb-advanced-settings .slb-manager-mode-settings {
+    margin-top: 0;
+}
+
+#slb-ai-tools .slb-settings-card > summary:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
+    outline-offset: -2px;
+}
+
+@container slb-settings-body (min-width: 690px) {
+    #slb-ai-tools .slb-translation-settings .slb-ai-fields {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(100px, 0.55fr) auto;
+        grid-template-areas: "provider profile tokens test";
+    }
+}
+
+@container slb-settings-body (max-width: 400px) {
+    #slb-ai-tools .slb-translation-settings .slb-ai-fields {
+        grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+        gap: 7px;
+    }
+}
+
+@media (max-width: 600px) {
+    #slb-ai-tools .slb-settings-card > summary {
+        padding: 8px;
+    }
+
+    #slb-ai-tools .slb-settings-card-body,
+    #slb-ai-tools .slb-backup-body,
+    #slb-ai-tools .slb-data-body {
+        padding: 9px;
+    }
+
+    #slb-ai-tools .slb-settings-card > summary > small {
+        display: none;
+    }
+}
+
+
+/* Character-book selection preference belongs to the extension settings panel,
+   never beside the native lorebook select. */
+#slb-ai-tools .slb-linked-world-setting {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    padding: 3px 0 9px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(127, 127, 127, 0.2));
+}
+
+#slb-ai-tools .slb-linked-world-setting label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+}
+
+#slb-ai-tools .slb-linked-world-setting input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+#slb-ai-tools .slb-linked-world-setting small {
+    font-size: 0.84em;
+    line-height: 1.4;
+    opacity: 0.7;
 }
