@@ -123,5 +123,5 @@ test('state buttons use ST blue green link and small EN KO controls',()=>{
     assert.match(css,/data-state="constant"[\s\S]*?color: #428bfa/);
     assert.match(css,/data-state="normal"[\s\S]*?color: #29b765/);
     assert.match(css,/#WorldInfo\.slb-active button\.slb-lang-badge\s*\{[^}]*font-size:\s*0\.75em/s);
-    assert.match(css,/slb-translation-settings \.slb-settings-card-body\s*\{[^}]*gap:\s*7px/s);
+    assert.match(css,/#slb-ai-tools \.slb-settings-card-body,[\s\S]*?gap:\s*6px/s);
 });

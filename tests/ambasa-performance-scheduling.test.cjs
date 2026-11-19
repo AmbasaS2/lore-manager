@@ -183,21 +183,22 @@ test('summary reuses hashes without altering persisted cache or token counts',()
         hashText(value){hashCalls++;return 'hash:'+String(value);}
     };
     vm.runInNewContext('const entryContentHashCache=new WeakMap();\n'+production('hashEntryContent')+
+        '\n'+production('updateTokenStatDisplay')+
         '\n'+production('renderTokenSummary')+'\nglobalThis.render=renderTokenSummary',ctx);
     try{
         ctx.render('book',data);
         assert.equal(hashCalls,100);
-        assert.equal(dom.window.document.getElementById('slb-total-tokens').textContent,'500 토큰');
+        assert.equal(dom.window.document.getElementById('slb-total-tokens').textContent,'500');
         for(let i=0;i<20;i++)ctx.render('book',data);
         assert.equal(hashCalls,100,'refreshes without text changes do not rehash 100 bodies');
         entries[37].content='changed string';
         ctx.render('book',data);
         assert.equal(hashCalls,101,'exactly one entry invalidates its content hash');
-        assert.match(dom.window.document.getElementById('slb-total-tokens').textContent,/계산 중/);
+        assert.equal(dom.window.document.getElementById('slb-total-tokens').textContent,'…');
         tokenCache.set('37',{hash:'hash:changed string',count:7});
         ctx.render('book',data);
         assert.equal(hashCalls,101);
-        assert.equal(dom.window.document.getElementById('slb-total-tokens').textContent,'502 토큰');
+        assert.equal(dom.window.document.getElementById('slb-total-tokens').textContent,'502');
     }finally{dom.window.close();}
 });
 

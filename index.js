@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.13';
+const VERSION = '1.4.85-ambasa.14';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3542,9 +3542,14 @@ function createQuickTranslationOptions() {
                 <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-language" aria-hidden="true"></i><span>로어북 번역</span></button>
                 <small class="slb-translate-book-help">번역할 로어북과 번역 범위를 선택합니다.</small>
             </div>
-            <label><input type="checkbox" id="slb-translate-missing"> 항목 열 때 자동 번역</label>
-            <label><input type="checkbox" id="slb-auto-translate"> 원문 변경 시 재번역</label>
-            <label><input type="checkbox" id="slb-auto-sync"> 번역 수정 시 원문 자동 반영</label>
+            <section class="slb-auto-options" aria-label="자동 번역 및 원문 반영 설정">
+                <strong class="slb-auto-options-title">자동 번역 · 원문 반영 설정</strong>
+                <div class="slb-auto-option-grid">
+                    <label><input type="checkbox" id="slb-translate-missing"> 항목 열 때 자동 번역</label>
+                    <label><input type="checkbox" id="slb-auto-translate"> 원문 변경 시 재번역</label>
+                    <label><input type="checkbox" id="slb-auto-sync"> 번역 수정 시 원문 자동 반영</label>
+                </div>
+            </section>
             <small class="slb-bulk-status" id="slb-bulk-status" role="status"></small>`;
     }
 
@@ -4150,11 +4155,21 @@ function createTokenStrip() {
     const tokens = createElement('div', 'slb-token-strip');
     tokens.id = 'slb-token-strip';
     tokens.innerHTML = `
-        <span>전체 항목 <strong id="slb-total-tokens">—</strong></span>
-        <span>상시 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i> <strong id="slb-constant-tokens">—</strong></span>
-        <span>선택 주입 <i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i> <strong id="slb-selective-tokens">—</strong></span>
-        <span>벡터화 <i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i> <strong id="slb-vectorized-tokens">—</strong></span>
-        <span>항목 수 <strong id="slb-entry-count">—</strong></span>`;
+        <span class="slb-token-stat" data-label="전체 토큰" title="전체 토큰" aria-label="전체 토큰">
+            <i class="fa-solid fa-coins slb-stat-icon" aria-hidden="true"></i><strong id="slb-total-tokens">—</strong>
+        </span>
+        <span class="slb-token-stat" data-label="상시 주입 토큰" title="상시 주입 토큰" aria-label="상시 주입 토큰">
+            <i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i><strong id="slb-constant-tokens">—</strong>
+        </span>
+        <span class="slb-token-stat" data-label="선택 주입 토큰" title="선택 주입 토큰" aria-label="선택 주입 토큰">
+            <i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i><strong id="slb-selective-tokens">—</strong>
+        </span>
+        <span class="slb-token-stat" data-label="벡터화 토큰" title="벡터화 토큰" aria-label="벡터화 토큰">
+            <i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i><strong id="slb-vectorized-tokens">—</strong>
+        </span>
+        <span class="slb-token-stat" data-label="항목 수" title="항목 수" aria-label="항목 수">
+            <i class="fa-solid fa-list-ul slb-stat-icon" aria-hidden="true"></i><strong id="slb-entry-count">—</strong>
+        </span>`;
     return tokens;
 }
 
@@ -7143,6 +7158,21 @@ function schedulePersistTokenCache() {
     }, 800);
 }
 
+function updateTokenStatDisplay(element, label, value, ready, total) {
+    if (!element) return;
+    const complete = ready === total;
+    const displayed = complete ? value.toLocaleString() : '…';
+    element.textContent = displayed;
+    const detail = complete
+        ? label + ': ' + displayed + ' 토큰'
+        : label + ': 계산 중 (' + ready + '/' + total + '개)';
+    const wrapper = element.closest('.slb-token-stat');
+    if (wrapper) {
+        wrapper.title = detail;
+        wrapper.setAttribute('aria-label', detail);
+    }
+}
+
 function renderTokenSummary(book, data) {
     if (!book || book !== currentBookName() || !data?.entries) return;
     const totalElement = document.getElementById('slb-total-tokens');
@@ -7197,27 +7227,19 @@ function renderTokenSummary(book, data) {
         }
     }
 
-    totalElement.textContent = readyCount === entries.length
-        ? `${total.toLocaleString()} 토큰`
-        : readyCount
-            ? `${total.toLocaleString()} 토큰 · 계산 중…`
-            : '계산 중…';
-    selectiveElement.textContent = selectiveReadyCount === selectiveCount
-        ? `${selective.toLocaleString()} 토큰`
-        : selectiveReadyCount
-            ? `${selective.toLocaleString()} 토큰 · 계산 중…`
-            : (selectiveCount ? '계산 중…' : '0 토큰');
-    constantElement.textContent = constantReadyCount === constantCount
-        ? `${constant.toLocaleString()} 토큰`
-        : constantReadyCount
-            ? `${constant.toLocaleString()} 토큰 · 계산 중…`
-            : (constantCount ? '계산 중…' : '0 토큰');
-    vectorizedElement.textContent = vectorizedReadyCount === vectorizedCount
-        ? `${vectorized.toLocaleString()} 토큰`
-        : vectorizedReadyCount
-            ? `${vectorized.toLocaleString()} 토큰 · 계산 중…`
-            : (vectorizedCount ? '계산 중…' : '0 토큰');
-    countElement.textContent = `${entries.length}개 · 활성 ${activeCount}개 · 상시 ${constantCount}개 · 선택 ${selectiveCount}개 · 벡터 ${vectorizedCount}개`;
+    updateTokenStatDisplay(totalElement, '전체', total, readyCount, entries.length);
+    updateTokenStatDisplay(constantElement, '상시 주입', constant, constantReadyCount, constantCount);
+    updateTokenStatDisplay(selectiveElement, '선택 주입', selective, selectiveReadyCount, selectiveCount);
+    updateTokenStatDisplay(vectorizedElement, '벡터화', vectorized, vectorizedReadyCount, vectorizedCount);
+    countElement.textContent = entries.length.toLocaleString();
+    const breakdown = '항목 수 ' + entries.length + '개 · 활성 ' + activeCount
+        + '개 · 상시 ' + constantCount + '개 · 선택 ' + selectiveCount
+        + '개 · 벡터 ' + vectorizedCount + '개';
+    const wrapper = countElement.closest('.slb-token-stat');
+    if (wrapper) {
+        wrapper.title = breakdown;
+        wrapper.setAttribute('aria-label', breakdown);
+    }
 }
 
 function queueTokenSummaryRender(book, data) {
@@ -7226,16 +7248,16 @@ function queueTokenSummaryRender(book, data) {
 }
 
 function setTokenSummaryPending() {
-    const totalElement = document.getElementById('slb-total-tokens');
-    const selectiveElement = document.getElementById('slb-selective-tokens');
-    const constantElement = document.getElementById('slb-constant-tokens');
-    const vectorizedElement = document.getElementById('slb-vectorized-tokens');
-    const countElement = document.getElementById('slb-entry-count');
-    if (totalElement) totalElement.textContent = '계산 중…';
-    if (selectiveElement) selectiveElement.textContent = '계산 중…';
-    if (constantElement) constantElement.textContent = '계산 중…';
-    if (vectorizedElement) vectorizedElement.textContent = '계산 중…';
-    if (countElement) countElement.textContent = '—';
+    for (const id of ['slb-total-tokens', 'slb-constant-tokens', 'slb-selective-tokens', 'slb-vectorized-tokens', 'slb-entry-count']) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+        element.textContent = id === 'slb-entry-count' ? '—' : '…';
+        const wrapper = element.closest('.slb-token-stat');
+        if (!wrapper) continue;
+        const detail = wrapper.dataset.label + ': 계산 중';
+        wrapper.title = detail;
+        wrapper.setAttribute('aria-label', detail);
+    }
 }
 
 function scheduleEntryTokenCount(book, uid, content) {
@@ -7467,10 +7489,15 @@ async function refreshTokenSummary(forcedData = null) {
         renderTokenSummary(book, data);
     } catch (error) {
         console.warn('[로어북 매니저] Failed to count tokens', error);
-        totalElement.textContent = '계산 실패';
-        selectiveElement.textContent = '계산 실패';
-        constantElement.textContent = '계산 실패';
-        vectorizedElement.textContent = '계산 실패';
+        for (const element of [totalElement, selectiveElement, constantElement, vectorizedElement]) {
+            element.textContent = '!';
+            const wrapper = element.closest('.slb-token-stat');
+            if (wrapper) {
+                const detail = wrapper.dataset.label + ': 계산 실패';
+                wrapper.title = detail;
+                wrapper.setAttribute('aria-label', detail);
+            }
+        }
     } finally {
         if (state.tokenRefreshRunId === runId) state.tokenRefreshRunId = 0;
         state.pendingBookSwitch = '';

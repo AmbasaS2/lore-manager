@@ -64,7 +64,7 @@ test('stats and filter native identifiers survive while Font Awesome colors unif
     try {
         const stats=w.buildStats(),filters=w.buildFilters();
         assert.equal(stats.querySelectorAll('strong[id]').length,5);
-        assert.equal(stats.querySelectorAll('.slb-stat-icon').length,3);
+        assert.equal(stats.querySelectorAll('.slb-stat-icon').length,5);
         assert.equal(filters.querySelectorAll('.slb-filter-button').length,4);
         assert.deepEqual(Array.from(filters.querySelectorAll('.slb-filter-button')).map(x=>x.dataset.filter),
             ['all','constant','normal','vectorized']);

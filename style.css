@@ -284,7 +284,6 @@
 
 #slb-ai-tools .slb-ai-title,
 #slb-ai-tools .slb-ai-fields,
-#WorldInfo.slb-active .slb-quick-options,
 #WorldInfo.slb-active .slb-token-strip,
 #WorldInfo.slb-active .slb-entry-editor-head,
 #WorldInfo.slb-active .slb-sync-row,
@@ -343,7 +342,7 @@
     display: flex;
     flex: 1 1 180px;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
 }
 
@@ -381,7 +380,6 @@
     opacity: 0.75;
 }
 
-#WorldInfo.slb-active .slb-quick-options label,
 #WorldInfo.slb-active .slb-sync-row label {
     display: inline-flex;
     align-items: center;
@@ -626,20 +624,6 @@
         flex: 1 1 0;
         min-width: max-content !important;
     }
-}
-
-#WorldInfo.slb-active .slb-quick-options {
-    box-sizing: border-box;
-    justify-content: flex-start;
-    gap: 6px 18px;
-    width: 100%;
-    margin: 6px 0 3px;
-    padding: 4px;
-}
-
-#WorldInfo.slb-active .slb-quick-options label {
-    white-space: nowrap;
-    word-break: keep-all;
 }
 
 #WorldInfo.slb-active .slb-workspace {
@@ -1048,20 +1032,20 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(136px, 100%), 1fr));
     align-items: end;
-    gap: 8px;
+    gap: 5px 7px;
     width: 100%;
     min-width: 0;
 }
 #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field {
     display: grid;
-    grid-template-rows: minmax(24px, auto) minmax(32px, auto);
+    grid-template-rows: minmax(20px, auto) minmax(32px, auto);
     align-items: end;
     min-width: 0;
-    gap: 3px;
+    gap: 2px;
 }
 #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field > small {
     min-width: 0;
-    min-height: 24px;
+    min-height: 20px;
     margin: 0;
     overflow: visible;
     font-size: 0.95em;
@@ -1084,21 +1068,21 @@
 #WorldInfo.slb-active .slb-group-grid {
     display: grid !important;
     grid-template-columns: minmax(190px, 2fr) repeat(4, minmax(72px, 1fr));
-    gap: 8px !important;
+    gap: 5px !important;
     align-items: stretch;
 }
 
 #WorldInfo.slb-active .slb-group-grid > .slb-group-field {
     display: grid !important;
     min-width: 0;
-    grid-template-rows: minmax(32px, auto) auto;
+    grid-template-rows: minmax(20px, auto) auto;
     align-content: end;
 }
 
 #WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child {
     box-sizing: border-box;
-    min-height: 24px;
-    margin: 0 0 3px !important;
+    min-height: 20px;
+    margin: 0 0 2px !important;
     align-items: flex-end !important;
     font-size: 0.95em;
     line-height: 1.25;
@@ -1153,10 +1137,8 @@
 #WorldInfo.slb-active .slb-entry-editor-head {
     flex-wrap: nowrap;
     box-sizing: border-box;
-    height: 38px;
-    min-height: 38px;
-    max-height: 38px;
-    margin: 0 0 5px;
+    min-height: 27px;
+    margin: 0 0 3px;
 }
 
 #WorldInfo.slb-active .slb-entry-editor-title {
@@ -1197,9 +1179,9 @@
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 6px 10px;
-    margin-top: 8px;
-    padding-top: 8px;
+    gap: 5px 8px;
+    margin-top: 5px;
+    padding-top: 5px;
     border-top: 1px solid var(--slb-border);
 }
 
@@ -1224,9 +1206,50 @@
 }
 
 #WorldInfo.slb-active .slb-entry-meta {
-    margin-top: 8px;
-    padding: 7px 0;
+    margin-top: 4px;
+    padding: 4px 0;
     border-top: 1px solid var(--slb-border);
+    font-size: inherit;
+    line-height: 1.3;
+}
+#WorldInfo.slb-active .slb-entry-meta :is(label, small, span, .checkbox, .checkbox_label) {
+    font-size: inherit;
+    line-height: 1.3;
+}
+/* SillyTavern's original four recursion controls are moved intact from
+   the native content caption. Only their compact presentation changes. */
+#WorldInfo.slb-active .slb-entry-meta > .flex-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 3px 10px;
+    width: 100%;
+    min-width: 0;
+}
+#WorldInfo.slb-active .slb-entry-meta > .flex-container > .flexFlowColumn {
+    display: grid;
+    align-content: start;
+    gap: 3px;
+    min-width: 0;
+}
+#WorldInfo.slb-active .slb-entry-meta .checkbox {
+    display: inline-flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 0;
+    min-height: 26px;
+    margin: 0;
+    padding: 0;
+    font-size: inherit;
+    line-height: 1.25;
+    white-space: normal;
+    word-break: keep-all;
+}
+#WorldInfo.slb-active .slb-entry-meta .checkbox input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
 }
 
 #WorldInfo.slb-active .slb-content-entry-meta {
@@ -1234,14 +1257,14 @@
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    margin-top: 7px;
-    padding-top: 7px;
+    margin-top: 4px;
+    padding-top: 4px;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
     flex-wrap: wrap;
     border-top: 1px solid var(--slb-border);
-    font-size: 0.85em;
+    font-size: inherit;
 }
 
 #WorldInfo.slb-active .slb-content-entry-meta > span {
@@ -1317,23 +1340,6 @@
 }
 
 @media (max-width: 760px) {
-    #WorldInfo.slb-active .slb-quick-options {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 5px 10px;
-        padding-inline: 2px;
-    }
-
-    #WorldInfo.slb-active .slb-quick-options label {
-        min-width: 0;
-        white-space: normal;
-        line-height: 1.25;
-    }
-
-    #WorldInfo.slb-active .slb-quick-options label:nth-of-type(3) {
-        grid-column: 1 / -1;
-    }
-
     #WorldInfo.slb-active .slb-workspace {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -1458,7 +1464,7 @@
 
     #WorldInfo.slb-active .slb-group-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px !important;
+        gap: 5px !important;
     }
 
     #WorldInfo.slb-active .slb-group-grid > .slb-group-field-1 {
@@ -1932,38 +1938,70 @@
 
 #slb-ai-tools .slb-quick-options,
 #WorldInfo.slb-active .slb-quick-options {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
     box-sizing: border-box;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 5px 14px;
+    min-width: 0;
     width: 100%;
+    gap: 6px;
     margin: 2px 0;
-    padding: 4px 2px;
-    font-size: 0.9em;
+    padding: 2px 0;
+    font-size: inherit;
+    line-height: 1.3;
 }
-
-#slb-ai-tools .slb-quick-options label,
-#WorldInfo.slb-active .slb-quick-options label {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin: 0;
-    white-space: nowrap !important;
-    word-break: keep-all;
-}
-
 #slb-ai-tools .slb-quick-options .slb-bulk-action,
 #WorldInfo.slb-active .slb-quick-options .slb-bulk-action {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 5px 8px;
-    flex: 1 1 100%;
-    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
     min-width: 0;
-    grid-column: 1 / -1;
+}
+#slb-ai-tools .slb-quick-options .slb-translate-book-help,
+#WorldInfo.slb-active .slb-quick-options .slb-translate-book-help {
+    font-size: 0.92em;
+    line-height: 1.3;
+    opacity: 0.72;
+}
+#slb-ai-tools .slb-auto-options,
+#WorldInfo.slb-active .slb-auto-options {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    margin: 3px 0 0;
+    padding: 7px 0 0;
+    border-top: 1px solid var(--slb-border);
+}
+#slb-ai-tools .slb-auto-options-title,
+#WorldInfo.slb-active .slb-auto-options-title {
+    font-size: inherit;
+    font-weight: 600;
+    line-height: 1.3;
+}
+#slb-ai-tools .slb-auto-option-grid,
+#WorldInfo.slb-active .slb-auto-option-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+    gap: 5px 12px;
+    min-width: 0;
+}
+#slb-ai-tools .slb-auto-option-grid > label,
+#WorldInfo.slb-active .slb-auto-option-grid > label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    line-height: 1.3;
+    font-size: inherit;
+    white-space: normal;
+    word-break: keep-all;
+}
+#slb-ai-tools .slb-auto-option-grid input[type="checkbox"],
+#WorldInfo.slb-active .slb-auto-option-grid input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
 }
 
 /* One readable, theme-following typographic scale for the collapsible
@@ -2015,10 +2053,10 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 5px 13px;
+    gap: 4px 9px;
     min-width: 0;
     margin: 0;
-    padding: 7px 8px;
+    padding: 6px 8px;
     border: 0;
     border-top: 1px solid var(--slb-border);
     font: inherit;
@@ -2026,8 +2064,8 @@
 }
 #WorldInfo.slb-active .slb-token-strip > span {
     display: inline-flex;
-    gap: 4px;
-    align-items: baseline;
+    gap: 5px;
+    align-items: center;
     white-space: nowrap;
     font: inherit;
 }
@@ -2070,26 +2108,6 @@
         max-width: 230px;
     }
 
-    #slb-ai-tools .slb-quick-options,
-    #WorldInfo.slb-active .slb-quick-options {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 5px 9px;
-        font-size: 0.88em;
-    }
-
-    #slb-ai-tools .slb-quick-options label,
-    #WorldInfo.slb-active .slb-quick-options label {
-        min-width: 0;
-        white-space: nowrap !important;
-        line-height: 1.22;
-        font-size: inherit;
-    }
-
-    #slb-ai-tools .slb-quick-options label:nth-of-type(3),
-    #WorldInfo.slb-active .slb-quick-options label:nth-of-type(3) {
-        grid-column: 1 / -1;
-    }
 
 }
 
@@ -2119,7 +2137,7 @@
 
     #WorldInfo.slb-active .slb-keyword-status {
         margin-top: 3px;
-        font-size: 0.76em;
+        font-size: 0.9em;
         line-height: 1.25;
     }
 
@@ -2188,16 +2206,16 @@
     }
 
     #WorldInfo.slb-active .slb-group-grid {
-        gap: 6px !important;
+        gap: 4px !important;
     }
 
     #WorldInfo.slb-active .slb-group-grid > .slb-group-field {
-        grid-template-rows: minmax(22px, auto) 29px;
+        grid-template-rows: minmax(20px, auto) 29px;
     }
 
     #WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child {
-        min-height: 22px;
-        margin-bottom: 2px;
+        min-height: 20px;
+        margin-bottom: 1px;
         font-size: 0.95em;
         line-height: 1.25;
         white-space: normal;
@@ -2243,7 +2261,7 @@
         gap: 2px !important;
         background: var(--SmartThemeBlurTintColor, var(--slb-surface));
         border-radius: 3px;
-        font-size: 0.66em !important;
+        font-size: 0.95em !important;
         line-height: 1 !important;
         white-space: nowrap;
     }
@@ -2297,8 +2315,8 @@
         max-height: 78px !important;
         margin: 0 !important;
         padding: 3px !important;
-        font-size: 0.74em;
-        line-height: 1.2;
+        font-size: 0.95em;
+        line-height: 1.3;
     }
 
     #WorldInfo.slb-active .slb-filter-grid .select2-container,
@@ -2313,7 +2331,7 @@
 
     #WorldInfo.slb-active .slb-filter-grid .select2-selection--multiple {
         overflow-y: auto;
-        font-size: 0.72em;
+        font-size: 0.95em;
     }
 
     #WorldInfo.slb-active .slb-panel[data-panel="filter"] > .slb-matching-sources {
@@ -2325,8 +2343,8 @@
     #WorldInfo.slb-active .slb-content-entry-meta,
     #WorldInfo.slb-active .slb-panel[data-panel="activation"] .checkbox,
     #WorldInfo.slb-active .slb-panel[data-panel="filter"] .checkbox {
-        font-size: 0.8em;
-        line-height: 1.2;
+        font-size: inherit;
+        line-height: 1.3;
     }
 
     #WorldInfo.slb-active .slb-content-entry-meta {
@@ -2436,7 +2454,7 @@
     min-width: 0 !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 5px 0 9px !important;
+    padding: 3px 0 6px !important;
     align-items: stretch !important;
     justify-items: stretch !important;
     border: 0 !important;
@@ -2455,7 +2473,7 @@
     display: grid !important;
     box-sizing: border-box !important;
     grid-area: auto !important;
-    grid-template-rows: minmax(26px, auto) 32px !important;
+    grid-template-rows: minmax(22px, auto) 32px !important;
     grid-template-columns: minmax(0, 1fr) !important;
     row-gap: 3px !important;
     flex: 0 1 auto !important;
@@ -2463,7 +2481,7 @@
     min-width: 0 !important;
     max-width: none !important;
     height: auto !important;
-    min-height: 58px !important;
+    min-height: 54px !important;
     max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -2483,13 +2501,13 @@
     width: 100% !important;
     min-width: 0 !important;
     height: auto !important;
-    min-height: 26px !important;
+    min-height: 22px !important;
     max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: clamp(12px, 0.9em, 14px) !important;
+    font-size: 0.95em !important;
     line-height: 1.2 !important;
     text-align: center !important;
     white-space: normal !important;
@@ -2936,8 +2954,8 @@
 
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title,
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title > span {
-        font-size: 0.85em !important;
-        line-height: 1.12 !important;
+        font-size: 0.95em !important;
+        line-height: 1.2 !important;
         letter-spacing: -0.025em !important;
         white-space: normal !important;
         overflow-wrap: break-word !important;
@@ -2972,45 +2990,6 @@
     min-width: 0;
 }
 
-#slb-ai-tools #slb-quick-options-host > .slb-quick-options {
-    display: grid;
-    box-sizing: border-box;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px 6px;
-    width: 100%;
-    min-width: 0;
-    margin: 2px 0;
-    padding: 4px 2px;
-    align-items: center;
-    font-size: 0.88em;
-}
-
-#slb-ai-tools #slb-quick-options-host > .slb-quick-options > label {
-    display: inline-flex;
-    box-sizing: border-box;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    align-items: center;
-    gap: 4px;
-    line-height: 1.2;
-    white-space: normal;
-    overflow-wrap: break-word;
-}
-
-#slb-ai-tools #slb-quick-options-host > .slb-quick-options > label > input[type="checkbox"] {
-    flex: 0 0 auto;
-    margin: 0;
-}
-
-#WorldInfo.slb-active .slb-quick-options label > input[type="checkbox"] {
-    flex: 0 0 auto !important;
-}
-
-#slb-ai-tools #slb-quick-options-host > .slb-quick-options > label:nth-of-type(3) {
-    grid-column: 1 / -1;
-}
-
 #slb-ai-tools .slb-quick-options .slb-translate-book,
 #WorldInfo.slb-active .slb-quick-options .slb-translate-book {
     flex: 0 0 auto;
@@ -3021,32 +3000,19 @@
 
 #slb-ai-tools .slb-quick-options .slb-bulk-status,
 #WorldInfo.slb-active .slb-quick-options .slb-bulk-status {
-    flex: 1 1 100%;
     min-width: 0;
+    line-height: 1.3;
 }
-
-#slb-ai-tools .slb-quick-options .slb-translate-book,
-#slb-ai-tools .slb-quick-options .slb-bulk-status {
-    grid-column: 1 / -1;
-}
-
-@media (max-width: 760px) {
-    #WorldInfo.slb-active .slb-quick-options .slb-translate-book,
-    #WorldInfo.slb-active .slb-quick-options .slb-bulk-status {
-        grid-column: 1 / -1;
-    }
-}
-
 /* v1.3.27 — mobile-only visibility preferences. */
 #slb-ai-tools .slb-mobile-display-settings {
     display: flex;
     box-sizing: border-box;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
     width: 100%;
     min-width: 0;
-    margin-top: 3px;
-    padding-top: 8px;
+    margin-top: 2px;
+    padding-top: 6px;
     border-top: 1px solid var(--slb-border);
 }
 
@@ -3290,9 +3256,9 @@
 .slb-manager-mode-settings {
     display: grid;
     container-type: inline-size;
-    gap: 6px;
-    margin-top: 10px;
-    padding: 10px 12px;
+    gap: 5px;
+    margin-top: 6px;
+    padding: 7px 9px;
     border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor, currentColor) 70%, transparent);
     border-radius: 8px;
     background: color-mix(in srgb, var(--SmartThemeBlurTintColor, transparent) 82%, transparent);
@@ -3317,8 +3283,8 @@
     gap: 7px;
     box-sizing: border-box;
     min-width: 0;
-    min-height: 48px;
-    padding: 7px 9px;
+    min-height: 40px;
+    padding: 5px 8px;
     border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor, currentColor) 70%, transparent);
     border-radius: 8px;
     cursor: pointer;
@@ -3900,9 +3866,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    min-height: 37px;
+    min-height: 34px;
     margin: 0;
-    padding: 8px 11px;
+    padding: 6px 9px;
     border: 0;
     cursor: pointer;
     list-style: none;
@@ -3954,8 +3920,8 @@
 #slb-ai-tools .slb-data-body {
     display: grid;
     min-width: 0;
-    gap: 8px;
-    padding: 10px;
+    gap: 6px;
+    padding: 8px;
 }
 
 #slb-ai-tools .slb-settings-card-body {
@@ -3970,7 +3936,7 @@
         "profile profile"
         "tokens test";
     align-items: end;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
 }
 
@@ -4004,7 +3970,7 @@
 
 #slb-ai-tools .slb-translation-targets {
     margin: 0;
-    padding: 8px 0;
+    padding: 6px 0;
     border: 0;
     border-block: 1px solid var(--SmartThemeBorderColor, rgba(127, 127, 127, 0.2));
     border-radius: 0;
@@ -4057,9 +4023,9 @@
    never beside the native lorebook select. */
 #slb-ai-tools .slb-linked-world-setting {
     display: grid;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
-    padding: 3px 0 9px;
+    padding: 2px 0 6px;
     border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(127, 127, 127, 0.2));
 }
 
@@ -4356,23 +4322,12 @@
 /* AmbasaS2 on-demand, plain-language examples. Collapsed by default. */
 
 /* Less unused vertical space before translation actions in settings. */
-#slb-ai-tools .slb-translation-settings .slb-settings-card-body {
-    gap: 7px;
-}
 #slb-ai-tools .slb-translation-settings .slb-prompt-meta,
 #slb-ai-tools .slb-translation-settings .slb-prompt-meta > small {
     margin-block: 0;
 }
 #slb-ai-tools #slb-quick-options-host:not(:empty) {
     margin-top: 0;
-}
-#slb-ai-tools #slb-quick-options-host > .slb-quick-options {
-    margin: 0;
-    padding-block: 0;
-    row-gap: 4px;
-}
-#slb-ai-tools .slb-translation-settings .slb-bulk-action {
-    margin: 0;
 }
 
 
@@ -4444,8 +4399,11 @@
   color: var(--SmartThemeQuoteColor, currentColor);
 }
 #WorldInfo.slb-active .slb-lore-info-icon:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
-#WorldInfo.slb-active .slb-panel { line-height: 1.4; }
-#WorldInfo.slb-active .slb-entry-editor-head { height: auto; min-height: 27px; max-height: none; margin: 0 0 3px; }
+#WorldInfo.slb-active .slb-panel { font-size: max(13px, 0.95em); line-height: 1.3; }
+#WorldInfo.slb-active .slb-panel :is(label, .checkbox, .checkbox_label) {
+    font-size: inherit;
+    line-height: 1.3;
+}
 #WorldInfo.slb-active .slb-source-pane textarea[name="content"],
 #WorldInfo.slb-active .slb-translation-text { height: auto; min-height: 145px; resize: vertical; }
 #WorldInfo.slb-active [name="contentAndCharFilterBlock"].slb-content-grid { gap: 8px; }
