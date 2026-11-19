@@ -4,19 +4,22 @@ import {
     saveSettingsDebounced,
     saveSettings,
     getRequestHeaders,
+    characters,
+    this_chid,
 } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 import { getTokenCountAsync } from '../../../tokenizers.js';
 import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, world_names, selected_world_info, world_info, world_info_position } from '../../../world-info.js';
 import { Popup, POPUP_RESULT } from '../../../popup.js';
 import { isMobile } from '../../../RossAscends-mods.js';
-import { select2ModifyOptions } from '../../../utils.js';
+import { getCharaFilename, select2ModifyOptions } from '../../../utils.js';
+import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js';
 import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.85';
+const VERSION = '1.4.85-ambasa.1';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -174,6 +177,11 @@ const state = {
     backupRenderRunId: 0,
     extensionDataCleaning: false,
     worldSelectUserIntentUntil: 0,
+    linkedBookAllMode: false,
+    linkedBookCharacterKey: '',
+    linkedBookButton: null,
+    linkedBookResultObserver: null,
+    linkedBookResultContainer: null,
     responsiveMedia: null,
     responsiveObserver: null,
     responsiveObserverTarget: null,
@@ -356,6 +364,25 @@ function refreshBadgeThemeColors(entries = renderedEntries()) {
     }
 }
 
+function syncCompactStrategyIcon(entry, value) {
+    // Keep the *original* SillyTavern select and event listeners. This is only
+    // a small visual representation, never a second input or a custom saver.
+    const field = entry?.querySelector('.slb-strategy-field');
+    const select = field?.querySelector('select');
+    if (!field || !select) return;
+    let icon = field.querySelector(':scope > .slb-strategy-icon');
+    if (!icon) {
+        icon = document.createElement('i');
+        icon.className = 'slb-strategy-icon fa-solid';
+        icon.setAttribute('aria-hidden', 'true');
+        field.append(icon);
+    }
+    const current = ['normal', 'constant', 'vectorized'].includes(value) ? value : 'normal';
+    field.dataset.slbState = current;
+    icon.className = 'slb-strategy-icon fa-solid ' + (current === 'vectorized' ? 'fa-link' : 'fa-circle');
+    select.setAttribute('aria-label', '로어북 주입 방식');
+}
+
 function syncMobileEntryStateBadge(entry, syncTheme = true) {
     if (!entry) return;
     const shell = entry.querySelector('.slb-entry-header-shell');
@@ -388,6 +415,7 @@ function syncMobileEntryStateBadge(entry, syncTheme = true) {
                 ? 'vectorized'
                 : 'normal';
     badge.dataset.state = value;
+    syncCompactStrategyIcon(entry, value);
     // The strategy picker lives inside the badge so it can stay anchored to
     // the badge without fragile viewport coordinates.  A delayed responsive
     // stabilization can run between a mobile pointerdown and click; clearing
@@ -3595,6 +3623,9 @@ function syncMetadataTranslations(entry, options = {}) {
     const language = ui?.translationLanguage ?? getEntryLanguagePair(book, uid).translationLanguage;
     const settings = getSettings();
     const record = settings.translations[translationKey(book, uid)];
+    // Most rows have no translated title/keywords. Avoid scanning several
+    // native controls for those rows on every page render or header refresh.
+    if (!record?.fields && !entry.querySelector('.slb-field-translation')) return;
     const sources = getEntryTranslationSources(entryData(uid), ui, entry);
     for (const name of ['comment', 'key', 'keysecondary']) {
         const control = name === 'comment'
@@ -7100,6 +7131,19 @@ function beginWorldDrawerOpenLoading() {
         if (!state.bookSwitch) setBookSwitchLoading(false);
         return;
     }
+    // Reopening the same, already hydrated book is not a *book switch*.
+    // One temporarily incomplete header must not hide every healthy row for
+    // up to thirty seconds whenever the user closes/reopens the drawer.
+    const book = currentBookName();
+    const existingRows = renderedEntries();
+    if (!state.bookSwitch
+        && state.currentBook === book
+        && existingRows.some(row => row.dataset.slbHeaderEnhanced)) {
+        state.worldDrawerOpening = false;
+        setBookSwitchLoading(false);
+        if (!hasCompleteVisibleEntryHeaders()) scheduleEnhance();
+        return;
+    }
     state.worldDrawerOpening = true;
     if (!hasCompleteVisibleEntryHeaders()) setBookSwitchLoading(true);
 
@@ -7405,11 +7449,12 @@ function revealCompletedEntryList(book, entries, headersVerified = false) {
     const liveEntries = renderedEntries();
     const sameRenderedPage = liveEntries.length === entries.length
         && liveEntries.every((entry, index) => entry === entries[index]);
-    if (
-        state.enhancePending
-        || !sameRenderedPage
-        || (!headersVerified && entries.some(entry => !isEntryHeaderReadyForReveal(entry)))
-    ) return false;
+    // A malformed/late native row should not hold already-completed rows
+    // hostage to the full-screen loading mask. Keep retrying that row through
+    // native DOM changes, but allow the finished part of the page to appear.
+    const hasReadyHeader = entries.some(isEntryHeaderReadyForReveal);
+    if (state.enhancePending || !sameRenderedPage
+        || (entries.length > 0 && !headersVerified && !hasReadyHeader)) return false;
 
     // 제목·주입 방식·작업 버튼까지만 완성되면 목록을 즉시 공개한다.
     // 토큰 통계, 필터 동기화, 열린 항목의 번역 UI 같은 부가 작업은 이 뒤의
@@ -7625,8 +7670,129 @@ function scheduleEnhance() {
     });
 }
 
+
+function currentCharacterLinkedBooks() {
+    if (this_chid === undefined || this_chid === null) return null;
+    const character = characters?.[this_chid];
+    if (!character) return null;
+    let fileName = '';
+    try { fileName = getCharaFilename(this_chid); } catch (error) {
+        console.warn('[로어북 매니저] 캐릭터 로어북 연결명 확인 실패', error);
+    }
+    return linkedBooksForCharacter(character, world_info, fileName);
+}
+
+function renderConnectedWorldResults(linked) {
+    const results = document.querySelector('.select2-container--open .select2-results');
+    if (!results) return;
+    for (const item of results.querySelectorAll('.select2-results__option[role="option"]')) {
+        const data = jQuery(item).data('data');
+        // Select2 stores item data internally on some SillyTavern versions,
+        // not in jQuery's .data cache. Fall back to the visible result text
+        // rather than leaving every unlinked world visible in that case.
+        const resultText = String(data?.text ?? item.textContent ?? '').trim();
+        if (!resultText) continue;
+        const visible = linked === null
+            || (data?.id !== undefined && data?.id !== null
+                ? isVisibleWorldOption(data.id, resultText, world_names, linked)
+                : linked.has(resultText));
+        item.classList.toggle('slb-unlinked-world-option', !visible);
+        if (!visible) item.setAttribute('aria-hidden', 'true');
+        else item.removeAttribute('aria-hidden');
+    }
+}
+
+function syncConnectedWorldOptions() {
+    const select = document.getElementById('world_editor_select');
+    if (!select) return;
+
+    const character = this_chid === undefined || this_chid === null ? null : characters?.[this_chid];
+    const identity = character ? String(character.avatar ?? this_chid) : '';
+    if (identity !== state.linkedBookCharacterKey) {
+        state.linkedBookCharacterKey = identity;
+        state.linkedBookAllMode = false;
+    }
+
+    const linked = character && !state.linkedBookAllMode ? currentCharacterLinkedBooks() : null;
+    for (const option of select.options) {
+        const visible = isVisibleWorldOption(option.value, option.textContent, world_names, linked);
+        if (option.hidden !== !visible) option.hidden = !visible;
+    }
+
+    const button = state.linkedBookButton;
+    if (button) {
+        button.hidden = !character;
+        if (character) {
+            const count = currentCharacterLinkedBooks()?.size ?? 0;
+            button.querySelector('.slb-linked-world-label').textContent = state.linkedBookAllMode
+                ? '전체 보기' : '캐릭터 연결만';
+            button.title = state.linkedBookAllMode
+                ? '모든 로어북 표시 중 · 눌러서 캐릭터 연결만 보기'
+                : `연결된 로어북 ${count}개 · 눌러서 전체 보기`;
+            button.setAttribute('aria-pressed', String(!state.linkedBookAllMode));
+        }
+    }
+    renderConnectedWorldResults(linked);
+}
+
+function bindConnectedWorldFilter() {
+    const select = document.getElementById('world_editor_select');
+    if (!select || select.dataset.slbLinkedBooksBound === 'true') return;
+    select.dataset.slbLinkedBooksBound = 'true';
+
+    const button = document.createElement('button');
+    button.id = 'slb-connected-world-toggle';
+    button.type = 'button';
+    button.className = 'menu_button slb-connected-world-toggle';
+    button.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i> <span class="slb-linked-world-label">캐릭터 연결만</span>';
+    button.hidden = true;
+    state.linkedBookButton = button;
+    // Do not replace or reinitialize the native select / Select2 instance.
+    const select2 = select.nextElementSibling?.classList?.contains('select2-container')
+        ? select.nextElementSibling : null;
+    (select2 || select).after(button);
+    button.addEventListener('click', () => {
+        state.linkedBookAllMode = !state.linkedBookAllMode;
+        syncConnectedWorldOptions();
+    });
+
+    const stopResultsObserver = () => {
+        state.linkedBookResultObserver?.disconnect();
+        state.linkedBookResultObserver = null;
+        state.linkedBookResultContainer = null;
+    };
+    const startResultsObserver = () => {
+        stopResultsObserver();
+        syncConnectedWorldOptions();
+        const results = document.querySelector('.select2-container--open .select2-results');
+        if (!results) return;
+        state.linkedBookResultContainer = results;
+        state.linkedBookResultObserver = new MutationObserver(() => {
+            renderConnectedWorldResults(
+                state.linkedBookAllMode ? null : currentCharacterLinkedBooks()
+            );
+        });
+        state.linkedBookResultObserver.observe(results, { childList: true, subtree: true });
+    };
+
+    select.addEventListener('pointerdown', syncConnectedWorldOptions, { passive: true });
+    select.addEventListener('focus', syncConnectedWorldOptions);
+    jQuery(select).on('select2:opening.slbConnectedWorlds', syncConnectedWorldOptions);
+    jQuery(select).on('select2:open.slbConnectedWorlds', startResultsObserver);
+    jQuery(select).on('select2:close.slbConnectedWorlds', stopResultsObserver);
+    new MutationObserver(syncConnectedWorldOptions).observe(select, { childList: true });
+    for (const name of ['CHAT_CHANGED', 'CHARACTER_SELECTED', 'CHARACTER_EDITED', 'CHARACTER_DELETED', 'WORLDINFO_SETTINGS_UPDATED']) {
+        if (event_types[name]) eventSource.on(event_types[name], () => {
+            // ST updates this_chid/character data first in its own event flow.
+            queueMicrotask(syncConnectedWorldOptions);
+        });
+    }
+    syncConnectedWorldOptions();
+}
+
 function bindEvents() {
     const worldSelect = document.getElementById('world_editor_select');
+    bindConnectedWorldFilter();
     const worldInfoDrawerToggle = document.querySelector('#WI-SP-button > .drawer-toggle');
     window.addEventListener('pointerdown', primeFoldyFolderDeleteDrawerGuard, true);
     window.addEventListener('touchstart', primeFoldyFolderDeleteDrawerGuard, { capture: true, passive: true });
@@ -7822,6 +7988,8 @@ function init() {
     enhanceAll();
     scheduleInitialTokenSummary();
     state.liveSyncTimer = setInterval(() => {
+        // No visible lore editor means no per-second DOM walk is necessary.
+        if (!isWorldInfoDrawerOpen()) return;
         enforceActivationOverviewIntegrity();
         refreshBadgeThemeColors();
         syncLiveEditorTokens();

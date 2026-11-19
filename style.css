@@ -4903,3 +4903,118 @@
         margin-top: 22px !important;
     }
 }
+
+
+/* Ambasa beta: a compact Font Awesome state glyph. The original select remains
+   present, focusable, clickable and bound to SillyTavern's native save handler. */
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid > .slb-strategy-field.slb-header-field {
+    display: flex !important;
+    position: relative;
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 32px !important;
+    padding: 0 !important;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid > .slb-strategy-field .slb-header-label {
+    display: none !important;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid > .slb-strategy-field > select {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 2;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    cursor: pointer;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid > .slb-strategy-field:focus-within {
+    outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
+    outline-offset: 1px;
+    border-radius: 4px;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-strategy-icon {
+    display: none;
+    pointer-events: none;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid > .slb-strategy-field .slb-strategy-icon {
+    display: inline-flex !important;
+    font-size: 14px;
+    line-height: 1;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-strategy-field[data-slb-state="normal"] .slb-strategy-icon {
+    color: #35ad68;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-strategy-field[data-slb-state="constant"] .slb-strategy-icon {
+    color: #438fea;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-strategy-field[data-slb-state="vectorized"] .slb-strategy-icon {
+    color: var(--SmartThemeBodyColor, currentColor);
+}
+@media (min-width: 761px) {
+    #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-entry-header-shell > .slb-header-grid:not(.slb-header-title-only) {
+        grid-template-columns: minmax(140px, 1fr) 30px 118px 38px 50px 68px !important;
+    }
+}
+
+/* Mobile header: preserve the existing clickable state-picker listener, but
+   replace the large checkbox-like badge with a small Font Awesome symbol. */
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
+    grid-template-columns: auto minmax(0, 1fr) 22px auto !important;
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+    height: 29px !important;
+    min-height: 29px !important;
+    max-height: 29px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge::before {
+    content: "\f111" !important;
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    font: 900 13px/1 "Font Awesome 6 Free" !important;
+    color: #35ad68 !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="constant"]::before {
+    color: #438fea !important;
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="vectorized"]::before {
+    content: "\f0c1" !important;
+    color: var(--SmartThemeBodyColor, currentColor) !important;
+}
+
+/* Native and Select2 selection lists: hide only unrelated options, never
+   delete options, change selected values or reinitialize Select2. */
+#WorldInfo.slb-active #slb-connected-world-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    white-space: nowrap;
+    margin: 3px 0 4px 5px;
+    font-size: 0.85em;
+}
+#WorldInfo.slb-active #slb-connected-world-toggle[hidden] {
+    display: none !important;
+}
+.select2-results__option.slb-unlinked-world-option {
+    display: none !important;
+}
