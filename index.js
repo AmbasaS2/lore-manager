@@ -22,7 +22,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.8';
+const VERSION = '1.4.85-ambasa.9';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -334,7 +334,13 @@ function syncMobileEntryStateBadge(entry, _syncTheme = true) {
     if (!shell) return;
     const existingBadges = Array.from(entry.querySelectorAll('.slb-mobile-entry-state-badge'));
     let badge = existingBadges.shift();
-    if (!badge) badge = createElement('span', 'slb-mobile-entry-state-badge');
+    if (!badge) badge = createElement('button', 'menu_button slb-mobile-entry-state-badge');
+    if (badge.tagName !== 'BUTTON') {
+        const replacement = createElement('button', 'menu_button slb-mobile-entry-state-badge');
+        badge.replaceWith(replacement);
+        badge = replacement;
+    }
+    badge.type = 'button';
     existingBadges.forEach(duplicate => duplicate.remove());
     if (badge.parentElement !== shell) {
         const actions = shell.querySelector(':scope > .slb-header-actions');
@@ -369,7 +375,7 @@ function syncMobileEntryStateBadge(entry, _syncTheme = true) {
         symbol.setAttribute('aria-hidden', 'true');
         badge.prepend(symbol);
     }
-    const glyph = value === 'vectorized' ? 'fa-link' : value === 'constant' ? 'fa-circle-dot' : 'fa-circle';
+    const glyph = value === 'vectorized' ? 'fa-link' : 'fa-circle';
     if (!symbol.classList.contains(glyph)) {
         symbol.classList.remove('fa-link', 'fa-circle', 'fa-circle-dot');
         symbol.classList.add(glyph);
@@ -386,10 +392,10 @@ function syncMobileEntryStateBadge(entry, _syncTheme = true) {
         child.remove();
     }
     const tooltip = (value === 'constant'
-        ? '상시 주입'
+        ? '상시 주입 (파랑)'
         : value === 'vectorized'
-            ? '벡터화'
-            : '선택 주입') + ' · 탭하여 변경';
+            ? '비슷한 내용 찾기로 사용 (링크)'
+            : '키워드가 맞을 때 사용 (초록)') + ' · 눌러서 변경';
     if (badge.title !== tooltip) badge.title = tooltip;
     if (badge.getAttribute('aria-label') !== tooltip) badge.setAttribute('aria-label', tooltip);
     if (badge.getAttribute('role') !== 'button') badge.setAttribute('role', 'button');
@@ -464,9 +470,9 @@ function openStrategyPicker(entry, badge) {
         if (document.getElementById('slb-strategy-picker') === picker) closeStrategyPicker();
     };
     for (const [value, glyph, title] of [
-        ['constant', 'fa-circle-dot', '상시 주입'],
-        ['normal', 'fa-circle', '선택 주입'],
-        ['vectorized', 'fa-link', '벡터화'],
+        ['constant', 'fa-circle', '상시 주입 (파랑)'],
+        ['normal', 'fa-circle', '키워드가 맞을 때 사용 (초록)'],
+        ['vectorized', 'fa-link', '비슷한 내용 찾기로 사용 (링크)'],
     ]) {
         // Keep the existing selection/save handlers; use themed native buttons
         // and icon-only labels instead of separate colored emoji tiles.
@@ -897,11 +903,11 @@ function applyManagerMode(requestedMode, {
     }));
     if (announce) {
         if (unavailable) {
-            notify('Foldy 로어북 기능을 찾지 못해 기존 로어북 매니저를 유지했습니다.', 'warning');
+            notify('Foldy 로어북 기능을 찾지 못해 기본 화면를 유지했습니다.', 'warning');
         } else if (mode === MANAGER_MODE_FOLDY) {
-            notify('폴디 연동 로어북 매니저를 켰습니다. Foldy 원본 폴더 기능을 그대로 연결합니다.', 'success');
+            notify('폴디 연동 화면를 켰습니다. Foldy 원본 폴더 기능을 그대로 연결합니다.', 'success');
         } else {
-            notify('기존 로어북 매니저로 전환했습니다. Foldy 연동을 완전히 종료했습니다.', 'success');
+            notify('기본 화면로 전환했습니다. Foldy 연동을 완전히 종료했습니다.', 'success');
         }
     }
     if (!initial) scheduleEnhance();
@@ -3104,15 +3110,15 @@ function createAIBar() {
                         <label><input type="checkbox" id="slb-translate-title"> 제목</label>
                         <label><input type="checkbox" id="slb-translate-keywords"> 호출 키워드</label>
                     </div>
-                    <small>번역본을 수정해도 실제 로어북의 제목과 호출 키워드는 유지됩니다.</small>
+                    <small>제목·키워드는 읽기용으로 번역되며 실제 발동 설정은 바뀌지 않습니다.</small>
                 </fieldset>
                 <div class="slb-mobile-display-options slb-translation-display-options">
-                    <label><input type="checkbox" id="slb-hide-translated-source"> 번역본이 있을 때 원문 숨기기</label>
+                    <label><input type="checkbox" id="slb-hide-translated-source"> 본문 번역본만 보기</label>
                 </div>
-                <label class="slb-field slb-prompt-field"><small>번역 추가 지시문 · AI 프로필 모드에서만 적용</small>
+                <label class="slb-field slb-prompt-field"><small>AI 번역 추가 지시 (선택)</small>
                     <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="문체, 고유명사, 용어 통일 규칙 등 추가 번역 지시문을 입력하세요. (AI 번역 전용)"></textarea>
                     <span class="slb-prompt-meta">
-                        <small class="slb-ai-note">언어 방향은 각 항목의 EN/KO 표시에서 변경할 수 있습니다.</small>
+                        <small class="slb-ai-note">언어 방향은 항목의 EN/KO 버튼에서 변경합니다.</small>
                         <small id="slb-ai-status">확장 탭에서 번역 방식을 설정해주세요.</small>
                     </span>
                 </label>
@@ -3127,32 +3133,32 @@ function createAIBar() {
                             <option value="extension">확장 탭</option>
                         </select></label>
                         <div class="slb-linked-world-setting">
-                            <label><input type="checkbox" id="slb-filter-linked-lorebooks"> 캐릭터 선택 시 연결된 로어북만 표시</label>
-                            <small>캐릭터를 선택하지 않으면 전체 목록을 보여줍니다. 실제 로어북 연결이나 활성화 상태는 바뀌지 않습니다.</small>
+                            <label><input type="checkbox" id="slb-filter-linked-lorebooks"> 선택 캐릭터의 로어북만 표시</label>
+                            <small>캐릭터 미선택 시 전체 목록. 로어북 연결은 변경되지 않습니다.</small>
                         </div>
                         <div class="slb-mobile-display-settings">
                     <small class="slb-mobile-display-title">모바일 로어북 표시</small>
                     <div class="slb-mobile-display-options">
-                        <label><input type="checkbox" id="slb-show-mobile-entry-state"> Strategy(주입 방식) 제목 옆 표시</label>
+                        <label><input type="checkbox" id="slb-show-mobile-entry-state"> 제목 옆 발동 방식 아이콘</label>
                         <label><input type="checkbox" id="slb-show-mobile-token-summary"> 토큰 통계 표시</label>
                         <label><input type="checkbox" id="slb-show-mobile-entry-filters"> 항목 필터 표시</label>
                     </div>
                     <small class="slb-mobile-display-note">이 세 설정은 모바일 화면에만 적용됩니다.</small>
                 </div>
                 <fieldset class="slb-manager-mode-settings">
-                    <legend>로어북 매니저 방식</legend>
+                    <legend>화면 표시 방식</legend>
                     <div class="slb-manager-mode-options">
                         <label class="slb-manager-mode-choice">
                             <input type="radio" name="slb-manager-mode" value="standard">
-                            <span>기존 로어북 매니저</span>
+                            <span>기본 화면</span>
                         </label>
                         <label class="slb-manager-mode-choice">
                             <input type="radio" name="slb-manager-mode" value="foldy">
-                            <span>폴디 연동 로어북 매니저</span>
+                            <span>폴디 연동 화면</span>
                         </label>
                     </div>
                     <small id="slb-manager-mode-status">기존 모드는 Foldy와 분리된 순수 로어북 매니저입니다.</small>
-                    <small>폴디 연동은 해당 모드를 직접 선택했을 때만 실행됩니다.</small>
+                    <small>폴디를 사용하지 않으면 기본 화면을 선택하세요.</small>
                 </fieldset>
                     </div>
                 </details>
@@ -3457,12 +3463,12 @@ function createQuickTranslationOptions() {
         options.id = 'slb-quick-options';
         options.innerHTML = `
             <div class="slb-bulk-action">
-                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book">현재 로어북 전체 번역</button>
-                <button type="button" class="menu_button slb-translate-book" id="slb-translate-missing-book">미번역 전체 번역</button>
+                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book">이 로어북 전체 번역</button>
+                <button type="button" class="menu_button slb-translate-book" id="slb-translate-missing-book">번역 안 된 항목만 번역</button>
             </div>
-            <label><input type="checkbox" id="slb-translate-missing"> 개별 항목 자동번역</label>
-            <label><input type="checkbox" id="slb-auto-translate"> 원문 변경시 자동번역</label>
-            <label><input type="checkbox" id="slb-auto-sync"> 번역 변경시 자동번역</label>
+            <label><input type="checkbox" id="slb-translate-missing"> 항목 열 때 자동 번역</label>
+            <label><input type="checkbox" id="slb-auto-translate"> 원문 변경 시 재번역</label>
+            <label><input type="checkbox" id="slb-auto-sync"> 번역 수정 시 원문 자동 반영</label>
             <small class="slb-bulk-status" id="slb-bulk-status" role="status"></small>`;
     }
 
@@ -3501,11 +3507,11 @@ function updateBulkTranslationStatus(message = '') {
     const status = document.getElementById('slb-bulk-status');
     const job = state.bulkTranslation;
     if (allButton) {
-        allButton.textContent = job?.mode === 'all' ? '전체 번역 취소' : '현재 로어북 전체 번역';
+        allButton.textContent = job?.mode === 'all' ? '전체 번역 취소' : '이 로어북 전체 번역';
         allButton.disabled = Boolean(job && job.mode !== 'all');
     }
     if (missingButton) {
-        missingButton.textContent = job?.mode === 'missing' ? '미번역 번역 취소' : '미번역 전체 번역';
+        missingButton.textContent = job?.mode === 'missing' ? '미번역 번역 취소' : '번역 안 된 항목만 번역';
         missingButton.disabled = Boolean(job && job.mode !== 'missing');
     }
     if (status && message) status.textContent = message;
@@ -3824,7 +3830,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
             .filter(entry => !job.uids || job.uids.has(String(entry.uid)))
             .filter(entry => selectedTranslationFields().some(field => getEntryTranslationSources(entry)[field].trim()))
             .filter(entry => mode !== 'missing' || !hasEntryTranslation(book, entry));
-        const jobLabel = mode === 'selected' ? '선택 항목 번역' : mode === 'missing' ? '미번역 전체 번역' : '전체 번역';
+        const jobLabel = mode === 'selected' ? '선택 항목 번역' : mode === 'missing' ? '번역 안 된 항목만 번역' : '전체 번역';
         if (!entries.length) {
             updateBulkTranslationStatus(mode === 'missing' ? '번역할 미번역 항목이 없습니다.' : '번역할 항목이 없습니다.');
             return;
@@ -6120,6 +6126,115 @@ function useNativeConnectionFilterLists(root) {
     });
 }
 
+// Change only visible captions and help text. Keep native inputs, names,
+// values, event handlers and original lorebook storage intact.
+function setLoreCaption(label, caption, help = '') {
+    if (!label) return;
+    const leaves = Array.from(label.querySelectorAll('[data-i18n]'))
+        .filter(node => !node.querySelector('[data-i18n]') && !node.matches('i'));
+    const target = leaves[0] || label;
+    if (target !== label || !label.children.length) {
+        target.textContent = caption;
+    } else {
+        const textNode = Array.from(label.childNodes).find(node => node.nodeType === 3 && node.textContent.trim());
+        if (textNode) textNode.textContent = caption;
+        else label.insertBefore(document.createTextNode(caption + ' '), label.firstChild);
+    }
+    target.removeAttribute?.('data-i18n');
+    label.removeAttribute('data-i18n');
+    if (help) label.title = help;
+}
+
+// On-demand examples explain native SillyTavern settings without changing
+// actual storage values. Nothing opens automatically when creating a new entry.
+function addLoreEntryHelp(panel, paragraphs) {
+    if (!panel || panel.querySelector(':scope > .slb-entry-help')) return;
+    const help = createElement('details', 'slb-entry-help');
+    const summary = createElement('summary', 'slb-entry-help-toggle');
+    summary.append(createElement('i', 'fa-regular fa-circle-question'));
+    summary.append(document.createTextNode(' 예시로 이해하기'));
+    help.append(summary);
+    for (const [term, example] of paragraphs) {
+        const line = createElement('p', 'slb-entry-help-line');
+        line.append(createElement('strong', '', term + ': '));
+        line.append(document.createTextNode(example));
+        help.append(line);
+    }
+    panel.prepend(help);
+}
+
+function localizeLoreEntryControls(panels) {
+    addLoreEntryHelp(panels.activation, [
+        ['파랑 · 항상 사용', '대화에 키워드가 없어도 이 항목을 AI에게 전달합니다.'],
+        ['초록 · 키워드로 사용', '대화에 지정한 단어가 있을 때만 내용을 불러옵니다.'],
+        ['링크 · 비슷한 내용 찾기', '벡터 검색을 설정했을 때 비슷한 주제의 항목을 찾아 불러옵니다.'],
+        ['AI에게 넣을 위치', '불러온 내용을 AI에게 전달할 프롬프트의 위치를 정합니다. 모르겠다면 기본값을 유지해도 됩니다.'],
+        ['연쇄 호출', '한 항목의 내용에 다른 항목의 키워드가 등장하면 다음 항목까지 불러오는 기능입니다.'],
+    ]);
+    addLoreEntryHelp(panels.group, [
+        ['같은 묶음에서 하나 선택', '예: 맑음과 비에 같은 묶음 이름을 넣으면 둘 다 조건이 맞아도 하나만 선택합니다.'],
+        ['뽑힐 비중', '맑음 100, 비 50이면 맑음이 더 잘 선택되지만 100% 확정은 아닙니다.'],
+        ['발동 후 유지', '3이면 한 번 발동한 뒤 3개 메시지 동안 계속 사용합니다.'],
+        ['재발동 대기', '3이면 발동 후 3개 메시지 동안 새로 발동하지 않습니다.'],
+        ['발동 지연', '3이면 대화가 최소 3개 메시지 진행된 뒤 발동할 수 있습니다.'],
+    ]);
+    addLoreEntryHelp(panels.filter, [
+        ['사용할 캐릭터·태그', '특정 캐릭터나 태그에만 쓰고 싶을 때 선택합니다.'],
+        ['선택 대상 제외', '체크하면 선택한 캐릭터·태그에서는 반대로 사용하지 않습니다.'],
+        ['사용할 응답 상황', '보통 답변, 다시 생성 등 특정 상황에서만 사용하게 제한합니다.'],
+        ['추가로 키워드를 찾을 곳', '대화 외에 캐릭터 소개·성격·시나리오에서도 키워드를 찾게 할 수 있습니다.'],
+    ]);
+    const group = [
+        ['group','같은 묶음 이름','같은 이름을 넣은 항목들이 동시에 조건에 맞으면 그중 하나만 고릅니다.'],
+        ['groupWeight','뽑힐 비중','같은 묶음의 다른 항목과 비교하는 숫자입니다. 100은 100%를 뜻하지 않습니다.'],
+        ['sticky','몇 메시지 동안 유지?','발동 후 이 숫자만큼 메시지 동안 계속 사용합니다.'],
+        ['cooldown','몇 메시지 쉬고 다시?','발동 후 이 숫자만큼 메시지 동안 다시 발동하지 않습니다.'],
+        ['delay','몇 메시지 뒤부터?','대화가 이 숫자만큼 진행된 뒤 발동할 수 있습니다.'],
+    ];
+    for (const [name, caption, help] of group) {
+        const field = panels.group.querySelector('[name="' + name + '"]')?.closest('.slb-group-field');
+        const label = field?.querySelector('small[for="' + name + '"],label[for="' + name + '"],small[data-i18n],small');
+        setLoreCaption(label,caption,help);
+    }
+    setLoreCaption(panels.group.querySelector('[name="groupOverride"]')?.closest('label'),
+        '이 항목 먼저 고르기','같은 묶음에서 우선 선택합니다. 여러 항목에 켜면 순서값이 높은 항목이 선택됩니다.');
+    for (const [selector,caption,help] of [
+        ['.slb-filter-title-slot-1','사용할 캐릭터·태그','선택한 캐릭터나 태그에서만 이 항목을 발동합니다.'],
+        ['.slb-filter-title-slot-2','어떤 답변에서 쓸까?','일반 답변·답변 재생성 등 적용할 상황을 선택합니다.'],
+    ]) {
+        const slot=panels.filter.querySelector(selector);
+        setLoreCaption(slot?.querySelector('small,label,.slb-filter-title'),caption,help);
+        if(slot)slot.title=help;
+    }
+    setLoreCaption(panels.filter.querySelector('[name="character_exclusion"]')?.closest('label'),
+        '선택 대상 제외','켜면 선택한 캐릭터와 태그에서는 사용하지 않습니다.');
+    setLoreCaption(panels.filter.querySelector('.slb-matching-sources .inline-drawer-toggle strong'),
+        '추가로 키워드를 찾을 곳','대화 외에 캐릭터 설정에서도 호출 키워드를 찾습니다.');
+    const options = { normal:'일반 답변',continue:'이어쓰기',impersonate:'사용자 대신 작성',
+        swipe:'다른 답변',regenerate:'다시 생성',quiet:'조용히 생성' };
+    for(const option of panels.filter.querySelectorAll('select[name="triggers"] option')){
+        if(!options[option.value])continue;
+        option.textContent=options[option.value];
+        option.removeAttribute('data-i18n');
+    }
+    for(const [name,caption,help] of [
+        ['scanDepth','최근 몇 메시지에서 찾을까?','대화의 최근 메시지 몇 개에서 호출 키워드를 찾을지 정합니다.'],
+        ['delayUntilRecursionLevel','연쇄 호출 몇 단계부터?','다른 로어북의 내용에서 키워드를 다시 발견할 때 몇 단계부터 적용할지 정합니다.'],
+        ['automationId','자동 실행 ID','빠른 답변 등 연결 기능에 쓰는 식별자입니다.'],
+    ]){
+        const field=panels.activation.querySelector('[name="'+name+'"]')?.closest('.slb-override-field,.slb-header-field');
+        setLoreCaption(field?.querySelector('small,.slb-header-label'),caption,help);
+    }
+    for(const [name,caption,help] of [
+        ['excludeRecursion','연쇄 호출로 발동 안 함','다른 항목이 이 키워드를 불러도 연쇄 발동하지 않습니다.'],
+        ['preventRecursion','다른 항목 연쇄 호출 안 함','이 항목 내용으로 다른 항목을 연달아 호출하지 않습니다.'],
+        ['delay_until_recursion','연쇄 호출 때만 발동','일반 검색에서는 제외하고 연쇄 호출에서만 발동합니다.'],
+        ['ignoreBudget','토큰 한도보다 우선 사용','다른 조건을 만족하면 로어북 토큰 한도를 넘어도 포함합니다.'],
+    ]){
+        setLoreCaption(panels.activation.querySelector('[name="'+name+'"]')?.closest('label'),caption,help);
+    }
+}
+
 function enhanceEntry(entry) {
     if (!entry) return;
     const edit = queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]']);
@@ -6285,9 +6400,9 @@ function enhanceEntry(entry) {
     const tabbar = createElement('div', 'slb-tabbar');
     const tabs = [
         createTab('content', '원문 · 번역'),
-        createTab('activation', '호출 조건'),
-        createTab('group', '그룹 · 반복'),
-        createTab('filter', '연결 필터'),
+        createTab('activation', '발동 조건'),
+        createTab('group', '그룹 · 발동 시간'),
+        createTab('filter', '사용 대상'),
     ];
     tabbar.append(...tabs);
 
@@ -6303,7 +6418,7 @@ function enhanceEntry(entry) {
     keywordTitle.innerHTML = '<i class="fa-solid fa-key" aria-hidden="true"></i><strong>AI 키워드 추천</strong>';
     const recommendButton = createMenuButton('fa-solid fa-wand-magic-sparkles', '키워드 추천', '원문을 읽고 호출 키워드 추천');
     keywordHead.append(keywordTitle, recommendButton);
-    const keywordHelp = createElement('small', 'slb-keyword-help', '추천 결과를 확인한 뒤에만 기본 키워드에 추가됩니다. 추천 결과는 직접 고칠 수도 있습니다.');
+    const keywordHelp = createElement('small', 'slb-keyword-help', '추천 키워드는 확인 후 직접 추가할 수 있습니다.');
     const keywordResults = createElement('div', 'slb-keyword-results');
     keywordResults.hidden = true;
     const keywordTextarea = createElement('textarea', 'text_pole slb-keyword-textarea');
@@ -6314,7 +6429,7 @@ function enhanceEntry(entry) {
     const insertKeywordsButton = createMenuButton('fa-solid fa-plus', '기본 키워드에 추가', '검토한 후보를 기본 키워드에 추가');
     refineKeywordsButton.disabled = true;
     insertKeywordsButton.disabled = true;
-    const keywordStatus = createElement('small', 'slb-keyword-status', '아직 로어북에는 반영되지 않았습니다.');
+    const keywordStatus = createElement('small', 'slb-keyword-status', '아직 적용되지 않음');
     keywordActions.append(refineKeywordsButton, insertKeywordsButton);
     keywordResults.append(keywordTextarea, keywordActions, keywordStatus);
     keywordAssistant.append(keywordHead, keywordHelp, keywordResults);
@@ -6478,6 +6593,7 @@ function enhanceEntry(entry) {
     }
 
     edit.replaceChildren(tabbar, panels.content, panels.activation, panels.group, panels.filter);
+    localizeLoreEntryControls(panels);
     syncMemoryBooksRegenerationButton(entry);
     placeResponsiveHeaderFields(entry);
 
@@ -7504,6 +7620,7 @@ function enhanceAll() {
         return;
     }
     ensureCriticalLayoutStyles();
+    bindCombinedEntryToggle();
     initGlobalLorebookSelection();
     createAIBar();
     createBulkLorebookExportControls();
@@ -7850,7 +7967,51 @@ function bindNativeSortingHelp() {
     });
 }
 
+function bindCombinedEntryToggle() {
+    // The native controls retain their IDs, event handlers and behavior.
+    // Only one compact themed button is visible in the editor toolbar.
+    const open = document.getElementById('OpenAllWIEntries');
+    const close = document.getElementById('CloseAllWIEntries');
+    const world = document.getElementById('WorldInfo');
+    if (!open || !close || !world) return;
+    let button = document.getElementById('slb-toggle-all-entries');
+    if (button?.dataset.slbBound === 'true') return;
+    if (!button) {
+        button = createElement('button', 'menu_button slb-toggle-all-entries');
+        button.id = 'slb-toggle-all-entries';
+        button.type = 'button';
+        button.innerHTML = '<i class="fa-solid fa-compress" aria-hidden="true"></i>';
+        open.before(button);
+    }
+    const icon = button.querySelector('i');
+    const nextAction = action => {
+        button.dataset.slbAction = action;
+        const isClose = action === 'close';
+        const label = isClose ? '모든 항목 닫기' : '모든 항목 열기';
+        const iconName = isClose ? 'fa-compress' : 'fa-expand';
+        if (!icon.classList.contains(iconName)) icon.className = 'fa-solid ' + iconName;
+        button.title = label;
+        button.setAttribute('aria-label', label);
+    };
+    nextAction('close');
+    button.dataset.slbBound = 'true';
+    button.addEventListener('click', event => {
+        event.stopPropagation();
+        (button.dataset.slbAction === 'open' ? open : close).click();
+    });
+    // Native callbacks are never replaced or cancelled.
+    open.addEventListener('click', () => nextAction('close'));
+    close.addEventListener('click', () => nextAction('open'));
+    const reset = () => nextAction('close');
+    document.getElementById('world_editor_select')?.addEventListener('change', reset);
+    document.getElementById('world_refresh')?.addEventListener('click', reset);
+    document.getElementById('world_info_pagination')?.addEventListener('click', reset);
+    document.getElementById('world_info_pagination')?.addEventListener('change', reset);
+    world.classList.add('slb-combined-entry-toggle');
+}
+
 function bindEvents() {
+    bindCombinedEntryToggle();
     bindNativeSortingHelp();
     const worldSelect = document.getElementById('world_editor_select');
     bindConnectedWorldFilter();

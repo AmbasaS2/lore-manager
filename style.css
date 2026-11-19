@@ -277,8 +277,7 @@
     font-weight: 600;
 }
 
-#slb-ai-tools .slb-ai-badge,
-#WorldInfo.slb-active .slb-lang-badge {
+#slb-ai-tools .slb-ai-badge {
     display: inline-flex;
     align-items: center;
     padding: 2px 7px;
@@ -289,18 +288,32 @@
     white-space: nowrap;
 }
 
+/* EN/KO is a tiny language switch, not another large action button. */
 #WorldInfo.slb-active button.slb-lang-badge {
     appearance: none;
-    border: 1px solid color-mix(in srgb, var(--slb-accent) 38%, transparent);
-    font: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 1px 5px;
+    border-radius: 5px;
+    border: 1px solid var(--SmartThemeBorderColor, currentColor);
+    background: transparent;
+    color: var(--SmartThemeBodyColor, inherit);
+    font-family: inherit;
+    font-size: 0.75em;
+    font-weight: 600;
     line-height: 1.2;
+    white-space: nowrap;
     cursor: pointer;
 }
 
 #WorldInfo.slb-active button.slb-lang-badge:hover,
 #WorldInfo.slb-active button.slb-lang-badge:focus-visible {
-    background: color-mix(in srgb, var(--slb-accent) 28%, transparent);
-    outline: none;
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 12%, transparent);
+    outline: 1px solid var(--SmartThemeQuoteColor, currentColor);
 }
 
 #slb-ai-tools .slb-field {
@@ -1692,28 +1705,6 @@
         align-items: stretch;
     }
 
-    #WorldInfo.slb-active .slb-filter-grid > .slb-filter-column {
-        display: grid !important;
-        grid-template-rows: 52px auto;
-        flex: 0 0 auto !important;
-        min-width: 0 !important;
-        width: 100% !important;
-        height: max-content !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        margin: 0 !important;
-        align-content: start !important;
-        align-items: stretch;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid > .slb-filter-column > :first-child {
-        box-sizing: border-box;
-        min-height: 52px;
-        margin: 0 !important;
-        align-content: start !important;
-        align-items: flex-start !important;
-    }
-
     #WorldInfo.slb-active .slb-filter-grid .range-block-range,
     #WorldInfo.slb-active .slb-filter-grid .select2-container {
         box-sizing: border-box;
@@ -2116,7 +2107,7 @@
         min-width: 0;
         white-space: nowrap !important;
         line-height: 1.22;
-        font-size: clamp(10px, 2.6vw, 13px) !important;
+        font-size: inherit;
     }
 
     #slb-ai-tools .slb-quick-options label:nth-of-type(3),
@@ -2450,9 +2441,11 @@
 
     #WorldInfo.slb-active .slb-overrides-grid > [data-slb-field="delayUntilRecursionLevel"] > small {
         overflow: visible;
-        font-size: 0.64em;
+        font-size: 0.83em;
+        line-height: 1.25;
         text-overflow: clip;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: break-word;
     }
 
     #WorldInfo.slb-active .slb-group-grid {
@@ -2465,9 +2458,11 @@
 
     #WorldInfo.slb-active .slb-group-grid > .slb-group-field > :first-child {
         min-height: 22px;
-        margin-bottom: 2px !important;
-        font-size: 0.76em;
-        line-height: 1.05;
+        margin-bottom: 2px;
+        font-size: 0.86em;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: break-word;
     }
 
     #WorldInfo.slb-active .slb-group-grid input[name="group"],
@@ -2489,46 +2484,6 @@
         column-gap: 12px !important;
         row-gap: 0 !important;
         align-items: start !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid > .slb-filter-column {
-        display: grid !important;
-        grid-template-rows: auto auto;
-        gap: 4px;
-        align-content: start !important;
-        align-items: start !important;
-        overflow: hidden !important;
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header {
-        display: flex !important;
-        position: static !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-sizing: border-box;
-        width: 100% !important;
-        height: 18px !important;
-        min-height: 18px !important;
-        max-height: 18px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        font-size: 0.56em;
-        line-height: 1;
-        text-align: center;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small {
-        display: block;
-        width: 100%;
-        min-width: 0;
-        margin: 0 !important;
-        overflow: visible;
-        line-height: 1;
-        text-align: center;
-        white-space: nowrap;
     }
 
     #WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude {
@@ -2748,54 +2703,10 @@
     overflow: hidden !important;
 }
 
-#WorldInfo.slb-active .slb-filter-grid > .slb-filter-column {
-    display: grid !important;
-    grid-template-rows: auto 160px !important;
-    row-gap: 4px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-}
-
 /* 헤더: 제목·Exclude 같은 줄, 제목 크기는 다른 칸 제목과 동일(0.8em) */
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header,
-#WorldInfo.slb-active .slb-filter-grid > .slb-filter-column > .flex-container:first-child {
-    display: flex !important;
-    flex-flow: row nowrap !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    gap: 6px !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    position: static !important;
-}
-
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small,
-#WorldInfo.slb-active .slb-filter-grid > .slb-filter-column > .flex-container:first-child > small {
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    font-size: 0.8em !important;
-    line-height: 1.25 !important;
-    text-align: left !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
 
 /* Exclude: 제목과 같은 줄 오른쪽에 고정 (부양 금지) */
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header .checkbox_label,
-#WorldInfo.slb-active .slb-filter-grid > .slb-filter-column > .flex-container:first-child .checkbox_label {
+#WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude {
     display: inline-flex !important;
     position: static !important;
     top: auto !important;
@@ -2998,53 +2909,6 @@
     overflow: visible !important;
 }
 
-#WorldInfo.slb-active .slb-filter-grid > .slb-filter-column,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header {
-    display: contents !important;
-}
-
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > small,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > .world_entry_form_label,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > [data-role="filter-label"],
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-}
-
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > small,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > .world_entry_form_label,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > [data-role="filter-label"],
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-    grid-column: 3 !important;
-    grid-row: 1 !important;
-}
-
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > .world_entry_form_label,
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > [data-role="filter-label"],
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-    display: flex !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 22px !important;
-    min-height: 22px !important;
-    max-height: 22px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    align-self: stretch !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: clamp(8px, 2.25vw, 11px) !important;
-    line-height: 1 !important;
-    letter-spacing: -0.01em;
-    text-align: center !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-}
-
 #WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude {
     display: inline-flex !important;
     box-sizing: border-box !important;
@@ -3094,16 +2958,6 @@
 
 #WorldInfo.slb-active .slb-filter-grid .slb-filter-placeholder {
     display: none !important;
-}
-
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-control {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-}
-
-#WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-control {
-    grid-column: 3 !important;
-    grid-row: 2 !important;
 }
 
 #WorldInfo.slb-active .slb-filter-grid .slb-filter-control,
@@ -3168,50 +3022,6 @@
     }
 
     /* 이전 모바일 규칙의 .56em 상속을 끊어 다른 탭 제목과 같은 크기로 맞춘다. */
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header {
-        display: contents !important;
-        font-size: 1em !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > small,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > .world_entry_form_label,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > [data-role="filter-label"],
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > small,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > .world_entry_form_label,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > [data-role="filter-label"],
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-        grid-column: 2 !important;
-        grid-row: 1 !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > .world_entry_form_label,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > [data-role="filter-label"],
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-        display: flex !important;
-        box-sizing: border-box !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 24px !important;
-        min-height: 24px !important;
-        max-height: 24px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 0.76em !important;
-        line-height: 1 !important;
-        letter-spacing: -0.02em !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-    }
 
     #WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude {
         display: inline-flex !important;
@@ -3235,16 +3045,6 @@
         line-height: 1 !important;
         white-space: nowrap !important;
         transform: translateX(-50%) !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-1 > .slb-filter-control {
-        grid-column: 1 !important;
-        grid-row: 2 !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-2 > .slb-filter-control {
-        grid-column: 2 !important;
-        grid-row: 2 !important;
     }
 }
 
@@ -3273,70 +3073,6 @@
         overflow: visible !important;
     }
 
-    #WorldInfo.slb-active .slb-panel[data-panel="filter"] > .slb-filter-grid > .slb-filter-column {
-        display: grid !important;
-        box-sizing: border-box !important;
-        grid-template-columns: minmax(0, 1fr) !important;
-        grid-template-rows: 22px var(--slb-filter-box-height) !important;
-        row-gap: 5px !important;
-        position: static !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header {
-        display: flex !important;
-        box-sizing: border-box !important;
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-        position: static !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 22px !important;
-        min-height: 22px !important;
-        max-height: 22px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: visible !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > .world_entry_form_label,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > [data-role="filter-label"],
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-        display: flex !important;
-        box-sizing: border-box !important;
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 22px !important;
-        min-height: 22px !important;
-        max-height: 22px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 0.8em !important;
-        line-height: 1 !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small > span {
-        display: block !important;
-        width: 100% !important;
-        text-align: center !important;
-    }
-
     #WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude {
         display: inline-flex !important;
         box-sizing: border-box !important;
@@ -3362,15 +3098,6 @@
         white-space: nowrap !important;
         transform: translateX(-50%) !important;
         overflow: visible !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid > .slb-filter-column > .slb-filter-control {
-        display: block !important;
-        grid-column: 1 !important;
-        grid-row: 2 !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
     }
 }
 
@@ -3554,7 +3281,7 @@
 
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title,
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title > span {
-        font-size: clamp(10px, 2.45vw, 0.76em) !important;
+        font-size: 0.85em !important;
         line-height: 1.12 !important;
         letter-spacing: -0.025em !important;
         white-space: normal !important;
@@ -3760,74 +3487,6 @@
         overflow: visible !important;
     }
 
-    #WorldInfo.slb-active .slb-panel[data-panel="filter"] > .slb-filter-grid > .slb-filter-column {
-        display: grid !important;
-        box-sizing: border-box !important;
-        grid-template-columns: minmax(0, 1fr) !important;
-        grid-template-rows: 34px var(--slb-filter-box-height) !important;
-        row-gap: 5px !important;
-        position: static !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header {
-        display: flex !important;
-        box-sizing: border-box !important;
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-        position: static !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 34px !important;
-        min-height: 34px !important;
-        max-height: 34px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: visible !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > .world_entry_form_label,
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > [data-role="filter-label"],
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > label:not(.slb-filter-exclude):not(.slb-filter-placeholder) {
-        display: flex !important;
-        box-sizing: border-box !important;
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 34px !important;
-        min-height: 34px !important;
-        max-height: 34px !important;
-        margin: 0 !important;
-        padding: 0 2px !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: clamp(10px, 2.45vw, 0.76em) !important;
-        line-height: 1.15 !important;
-        letter-spacing: -0.02em !important;
-        text-align: center !important;
-        white-space: normal !important;
-        word-break: keep-all !important;
-        overflow-wrap: break-word !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid .slb-filter-column-header > small > span {
-        display: block !important;
-        width: 100% !important;
-        white-space: inherit !important;
-        text-align: center !important;
-    }
-
     #WorldInfo.slb-active .slb-filter-grid .slb-filter-exclude {
         display: inline-flex !important;
         box-sizing: border-box !important;
@@ -3854,15 +3513,6 @@
         white-space: nowrap !important;
         transform: translateX(-50%) !important;
         overflow: visible !important;
-    }
-
-    #WorldInfo.slb-active .slb-filter-grid > .slb-filter-column > .slb-filter-control {
-        display: block !important;
-        grid-column: 1 !important;
-        grid-row: 2 !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
     }
 }
 
@@ -5019,17 +4669,17 @@
     color: var(--SmartThemeBodyColor, inherit);
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 26px auto !important;
+    grid-template-columns: auto minmax(0, 1fr) 28px auto !important;
     align-items: center;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
     display: inline-flex !important;
     grid-column: 3;
     grid-row: 1;
-    width: 26px;
-    min-width: 26px;
-    max-width: 26px;
-    height: 32px;
+    width: 28px;
+    min-width: 28px;
+    max-width: 28px;
+    height: 28px;
     align-items: center;
     justify-content: center;
     justify-self: center;
@@ -5052,11 +4702,11 @@
 }
 #WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="normal"] .slb-state-symbol,
 #slb-strategy-picker .slb-strategy-picker-option[data-strategy="normal"] .slb-picker-glyph {
-    color: var(--SmartThemeEmColor, var(--SmartThemeQuoteColor, currentColor));
+    color: #29b765;
 }
 #WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="constant"] .slb-state-symbol,
 #slb-strategy-picker .slb-strategy-picker-option[data-strategy="constant"] .slb-picker-glyph {
-    color: var(--SmartThemeQuoteColor, currentColor);
+    color: #428bfa;
 }
 #WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="vectorized"] .slb-state-symbol,
 #slb-strategy-picker .slb-strategy-picker-option[data-strategy="vectorized"] .slb-picker-glyph {
@@ -5098,8 +4748,8 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     min-width: 0;
     margin: 0;
     padding: 0;
@@ -5164,22 +4814,102 @@
 }
 
 
-/* AmbasaS2 stable lorebook pagination toolbar.
-   ST's navigator changes width when the visible range grows from 1 to 2+
-   digits. Do not let the adjacent search/sort flex item consume the whole
-   remaining line on narrow screens. Keep original controls and callbacks. */
+/* On narrow screens, search takes the real available viewport width.
+   Pagination gets its own stable line, so changing pages does not change
+   the layout when its range label gains another digit. */
 @media (max-width: 600px) {
     #WorldInfo.slb-active #world_popup > .flex-container:has(#world_info_pagination) {
-        column-gap: 3px;
+        column-gap: 5px;
     }
     #WorldInfo.slb-active #slb-search-sort {
-        flex: 0 1 82px;
-        width: 82px;
-        max-width: 82px;
-        min-width: 45px;
-        gap: 3px;
+        flex: 1 1 100%;
+        width: auto;
+        max-width: none;
+        min-width: 0;
+        gap: 5px;
     }
     #WorldInfo.slb-active #world_info_pagination {
-        flex: 0 0 auto;
+        flex: 1 0 100%;
+        min-width: 0;
     }
+}
+
+
+/* AmbasaS2 on-demand, plain-language examples. Collapsed by default. */
+#WorldInfo.slb-active .slb-panel > .slb-entry-help {
+    box-sizing: border-box;
+    margin: 0 0 9px;
+    padding: 0;
+    border: 1px solid var(--SmartThemeBorderColor, currentColor);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, inherit);
+}
+#WorldInfo.slb-active .slb-entry-help > summary {
+    padding: 6px 9px;
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: 500;
+    line-height: 1.35;
+}
+#WorldInfo.slb-active .slb-entry-help > summary:hover,
+#WorldInfo.slb-active .slb-entry-help > summary:focus-visible {
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 9%, transparent);
+}
+#WorldInfo.slb-active .slb-entry-help > summary > i {
+    margin-right: 4px;
+}
+#WorldInfo.slb-active .slb-entry-help[open] > summary {
+    border-bottom: 1px solid var(--SmartThemeBorderColor, currentColor);
+}
+#WorldInfo.slb-active .slb-entry-help-line {
+    margin: 0;
+    padding: 5px 9px;
+    font-size: 0.86em;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+#WorldInfo.slb-active .slb-entry-help-line + .slb-entry-help-line {
+    border-top: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor, currentColor) 40%, transparent);
+}
+
+/* Less unused vertical space before translation actions in settings. */
+#slb-ai-tools .slb-translation-settings .slb-settings-card-body {
+    gap: 7px;
+}
+#slb-ai-tools .slb-translation-settings .slb-prompt-meta,
+#slb-ai-tools .slb-translation-settings .slb-prompt-meta > small {
+    margin-block: 0;
+}
+#slb-ai-tools #slb-quick-options-host:not(:empty) {
+    margin-top: 0;
+}
+#slb-ai-tools #slb-quick-options-host > .slb-quick-options {
+    margin: 0;
+    padding-block: 0;
+    row-gap: 4px;
+}
+#slb-ai-tools .slb-translation-settings .slb-bulk-action {
+    margin: 0;
+}
+
+
+/* One toggle replaces the two visible native expand/collapse buttons.
+   Their actual nodes and SillyTavern handlers remain mounted and callable. */
+#WorldInfo.slb-active.slb-combined-entry-toggle #OpenAllWIEntries,
+#WorldInfo.slb-active.slb-combined-entry-toggle #CloseAllWIEntries {
+    display: none !important;
+}
+#WorldInfo.slb-active #slb-toggle-all-entries {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    margin: 0;
+    color: var(--SmartThemeBodyColor, inherit);
+}
+#WorldInfo.slb-active #slb-toggle-all-entries:hover,
+#WorldInfo.slb-active #slb-toggle-all-entries:focus-visible {
+    color: var(--SmartThemeQuoteColor, currentColor);
 }

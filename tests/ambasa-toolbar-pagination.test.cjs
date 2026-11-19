@@ -6,8 +6,8 @@ const css=readFileSync(join(__dirname,'../style.css'),'utf8');
 test('pagination row does not grow its search control when page label expands',()=>{
  assert.match(css, /@media \(max-width: 600px\)/);
  assert.match(css, /#WorldInfo\.slb-active #world_popup > \.flex-container:has\(#world_info_pagination\)/);
- assert.match(css, /#WorldInfo\.slb-active #slb-search-sort\s*\{[^}]*flex:\s*0 1 82px/s);
- assert.match(css, /#WorldInfo\.slb-active #world_info_pagination\s*\{[^}]*flex:\s*0 0 auto/s);
+ assert.match(css, /#WorldInfo\.slb-active #slb-search-sort\s*\{[^}]*flex:\s*1 1 100%/s);
+ assert.match(css, /#WorldInfo\.slb-active #world_info_pagination\s*\{[^}]*flex:\s*1 0 100%/s);
 });
 test('normal and narrow views preserve native sort/search/pagination nodes and bindings',()=>{
  const src=readFileSync(join(__dirname,'../native-controls.js'),'utf8');

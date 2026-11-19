@@ -49,6 +49,8 @@ test('status badge uses one Font Awesome icon, preserves picker callbacks and ke
         w.sync(entry);
         const badge = entry.querySelector('.slb-mobile-entry-state-badge');
         assert.ok(badge);
+        assert.equal(badge.tagName,'BUTTON');
+        assert.ok(badge.classList.contains('menu_button'));
         assert.equal(badge.querySelectorAll('.slb-state-symbol').length, 1);
         assert.ok(badge.querySelector('.slb-state-symbol').classList.contains('fa-circle'));
         assert.equal(badge.getAttribute('tabindex'), '0');
@@ -62,8 +64,8 @@ test('status badge uses one Font Awesome icon, preserves picker callbacks and ke
         assert.equal(picker.querySelectorAll('.slb-picker-glyph.fa-solid').length, 3);
         assert.equal(picker.textContent.trim(), '', 'no emoji/text-only tiles');
         const option = picker.querySelector('button[data-strategy="constant"]');
-        assert.equal(option.getAttribute('aria-label'), '상시 주입');
-        assert.ok(option.querySelector('.fa-circle-dot'));
+        assert.equal(option.getAttribute('aria-label'), '상시 주입 (파랑)');
+        assert.ok(option.querySelector('.fa-circle'));
         option.dispatchEvent(new w.MouseEvent('click', { bubbles:true, cancelable:true }));
         assert.equal(w.writes(),1,'original state handler invoked exactly once');
         assert.equal(originalSelect.value,'constant');
@@ -71,7 +73,7 @@ test('status badge uses one Font Awesome icon, preserves picker callbacks and ke
         assert.equal(entry.querySelector('select'),originalSelect,'native select is not replaced');
         w.sync(entry);
         assert.equal(badge.querySelectorAll('.slb-state-symbol').length,1);
-        assert.ok(badge.querySelector('.slb-state-symbol').classList.contains('fa-circle-dot'));
+        assert.ok(badge.querySelector('.slb-state-symbol').classList.contains('fa-circle'));
     } finally { w.close(); }
 });
 
