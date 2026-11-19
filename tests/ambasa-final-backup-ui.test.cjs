@@ -149,3 +149,13 @@ test('native advanced settings labels gain one accessible hint without changing 
        }
     } finally { w.close(); }
 });
+
+test('mobile override labels do not clip focus/hover help and avoid tiny forced fonts',()=>{
+    const label = css.match(/#WorldInfo\.slb-active \.slb-overrides-grid > \.slb-override-field > small \{([^}]+)\}/);
+    assert.ok(label);
+    assert.match(label[1], /overflow:\s*visible/);
+    assert.match(label[1], /white-space:\s*normal/);
+    assert.doesNotMatch(label[1], /font-size:\s*0\.61em/);
+    assert.match(css,/grid-auto-rows:\s*minmax\(48px, auto\)/);
+    assert.match(css, /\.slb-lore-info-icon:is\(:hover, :focus\)::after/);
+});

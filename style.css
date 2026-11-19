@@ -2238,12 +2238,12 @@
     }
 
     #WorldInfo.slb-active .slb-keyword-grid > .slb-keyword-core-field > small {
-        height: 16px;
-        min-height: 16px;
+        min-height: 19px;
         margin: 0 !important;
-        font-size: 0.68em;
-        line-height: 1;
+        font-size: 0.85em;
+        line-height: 1.2;
         text-align: center;
+        overflow-wrap: anywhere;
     }
 
     #WorldInfo.slb-active .slb-keyword-grid select[name="entryLogicType"] {
@@ -2281,7 +2281,7 @@
     #WorldInfo.slb-active .slb-overrides-grid {
         display: grid !important;
         grid-template-columns: 50px repeat(3, minmax(0, 1fr)) 66px;
-        grid-auto-rows: 42px;
+        grid-auto-rows: minmax(48px, auto);
         gap: 4px !important;
         align-items: end !important;
         width: 100% !important;
@@ -2290,7 +2290,7 @@
     #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field {
         display: grid;
         box-sizing: border-box;
-        grid-template-rows: 15px 27px;
+        grid-template-rows: minmax(19px, auto) 27px;
         min-width: 0 !important;
         width: 100% !important;
         margin: 0 !important;
@@ -2300,14 +2300,14 @@
     #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field > small {
         box-sizing: border-box;
         min-width: 0;
-        min-height: 15px;
+        min-height: 19px;
         margin: 0 !important;
-        overflow: hidden;
-        font-size: 0.61em;
-        line-height: 1;
+        overflow: visible;
+        font-size: 0.8em;
+        line-height: 1.2;
         text-align: center;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     #WorldInfo.slb-active .slb-overrides-grid > .slb-override-field input,
@@ -2321,7 +2321,7 @@
         margin: 0 !important;
         padding: 1px 5px !important;
         overflow: hidden;
-        font-size: 0.7em;
+        font-size: 0.84em;
         text-overflow: ellipsis;
     }
 
