@@ -35,8 +35,8 @@ test('source field names preserved and title labels are native, hints require ho
     assert.match(source,/function attachLoreEntryHelp\(panels\)/);
     assert.doesNotMatch(source,/function localizeLoreEntryControls\(/);
     assert.doesNotMatch(source,/function addLoreEntryHelp\(/);
-    assert.match(css,/#WorldInfo\.slb-active \.slb-lore-info-icon:is\(:hover, :focus-visible\)::after/);
+    assert.match(css,/#WorldInfo\.slb-active \.slb-lore-info-icon:is\(:hover, :focus\)::after/);
     assert.match(css,/\.slb-lore-info-icon/);
-    assert.match(css,/grid-template-columns:\s*auto minmax\(0, 1fr\) 25px auto/);
-    assert.match(css,/\.slb-mobile-entry-state-badge\s*\{[^}]*width:\s*25px/s);
+    assert.match(css,/grid-template-columns:\s*auto minmax\(0, 1fr\) 32px auto/);
+    assert.match(css,/\.slb-mobile-entry-state-badge\s*\{[^}]*width:\s*32px/s);
 });

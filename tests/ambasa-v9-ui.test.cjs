@@ -73,7 +73,8 @@ test('original ST labels remain intact and help icons explain on hover or focus'
         assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('Filter to Characters or Tags'),true);
         const info=panels.group.querySelector('[for="group"] .slb-lore-info-icon');
         assert.ok(info);
-        assert.match(info.title,/같은 그룹/);
+        assert.match(info.dataset.slbHelp,/같은 그룹/);
+        assert.equal(info.hasAttribute('title'),false,'only one tooltip source may exist');
         assert.equal(info.tabIndex,0);
         assert.equal(w.document.querySelectorAll('.slb-entry-help').length,0);
         const excluded=panels.filter.querySelector('[name="character_exclusion"]');

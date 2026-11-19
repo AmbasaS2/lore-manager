@@ -109,7 +109,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     showMobileEntryFilters: true,
     hideOriginalWhenTranslated: false,
     managerMode: MANAGER_MODE_STANDARD,
-    autoBackupEnabled: true,
+    autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
     autoSyncToSource: true,
@@ -178,6 +178,8 @@ const state = {
     backupTimers: new Map(),
     backupOpenPromises: new Map(),
     backupOpenSchedules: new Map(),
+    backupTasks: new Set(),
+    backupClearInProgress: false,
     backupRestoreInProgress: false,
     backupRenderRunId: 0,
     extensionDataCleaning: false,
@@ -2358,14 +2360,24 @@ async function deleteLorebookBackup(id) {
 }
 
 async function clearAllLorebookBackups() {
-    if (!globalThis.indexedDB) return;
-    const database = await openBackupDatabase();
+    if (state.backupClearInProgress) return;
+    state.backupClearInProgress = true;
     try {
-        const transaction = database.transaction(BACKUP_STORE_NAME, 'readwrite');
-        transaction.objectStore(BACKUP_STORE_NAME).clear();
-        await backupTransactionDone(transaction);
+        // Wait for in-flight snapshots before clearing so they cannot
+        // repopulate the backup store immediately after a user-requested reset.
+        await Promise.allSettled(Array.from(state.backupTasks));
+        if (globalThis.indexedDB) {
+            const database = await openBackupDatabase();
+            try {
+                const transaction = database.transaction(BACKUP_STORE_NAME, 'readwrite');
+                transaction.objectStore(BACKUP_STORE_NAME).clear();
+                await backupTransactionDone(transaction);
+            } finally {
+                database.close();
+            }
+        }
     } finally {
-        database.close();
+        state.backupClearInProgress = false;
     }
     state.backupRenderRunId += 1;
     const count = document.getElementById('slb-backup-count');
@@ -2507,7 +2519,20 @@ async function pruneLorebookBackups() {
     for (const record of expired) await deleteLorebookBackup(record.id);
 }
 
-async function createLorebookBackup(book, { reason = 'manual', force = false, data = null } = {}) {
+function createLorebookBackup(book, options = {}) {
+    if (state.backupClearInProgress) return Promise.resolve({ status: 'clearing' });
+    const task = createLorebookBackupInternal(book, options);
+    state.backupTasks.add(task);
+    // The rejection belongs to the original caller; do not introduce an
+    // unhandled rejection from the bookkeeping branch.
+    void task.then(
+        () => state.backupTasks.delete(task),
+        () => state.backupTasks.delete(task),
+    );
+    return task;
+}
+
+async function createLorebookBackupInternal(book, { reason = 'manual', force = false, data = null } = {}) {
     if (!book) throw new Error('백업할 로어북을 먼저 선택해주세요.');
     const lorebook = structuredClone(data || await loadWorldInfo(book));
     if (!lorebook?.entries) throw new Error('로어북 데이터를 불러오지 못했습니다.');
@@ -3011,20 +3036,81 @@ async function importLorebookBackupFile(file) {
     return imported;
 }
 
+function createBackupRecordRow(record) {
+    const row = createElement('div', 'slb-backup-row');
+    const info = createElement('div', 'slb-backup-info');
+    info.append(
+        createElement('strong', 'slb-backup-book', backupReasonLabel(record.reason)),
+        createElement('small', 'slb-backup-meta',
+            new Date(record.createdAt).toLocaleString() + ' · ' + Number(record.entryCount || 0).toLocaleString() + '개 항목'),
+    );
+    const actions = createElement('div', 'slb-backup-actions');
+    const currentButton = createElement('button', 'menu_button', '현재 로어북에 복원');
+    const copyButton = createElement('button', 'menu_button', '새 로어북으로 복원');
+    const exportButton = createElement('button', 'menu_button', '내보내기');
+    const deleteButton = createElement('button', 'menu_button', '백업 삭제');
+    currentButton.addEventListener('click', async () => {
+        currentButton.disabled = true;
+        try { await restoreLorebookBackup(record.id, 'current'); }
+        catch (error) { notify(error.message || '백업 복원에 실패했습니다.', 'error'); }
+        finally { currentButton.disabled = false; }
+    });
+    copyButton.addEventListener('click', async () => {
+        copyButton.disabled = true;
+        try { await restoreLorebookBackup(record.id, 'copy'); }
+        catch (error) { notify(error.message || '새 로어북 복원에 실패했습니다.', 'error'); }
+        finally { copyButton.disabled = false; }
+    });
+    exportButton.addEventListener('click', async () => {
+        exportButton.disabled = true;
+        try {
+            // List items are metadata-only for performance. Fetch the complete
+            // snapshot on demand so exported JSON can actually be restored.
+            const fullRecord = await getLorebookBackup(record.id);
+            if (!fullRecord?.lorebook?.entries) throw new Error('백업 원문을 읽을 수 없습니다.');
+            const date = new Date(record.createdAt);
+            const stamp = (Number.isNaN(date.getTime()) ? new Date() : date).toISOString().replace(/[:.]/g, '-');
+            downloadJsonFile(safeBackupFilename(record.book) + '-' + stamp + '.json',
+                backupExportEnvelope([fullRecord]));
+        } catch (error) {
+            notify(error.message || '개별 백업 내보내기에 실패했습니다.', 'error');
+        } finally {
+            exportButton.disabled = false;
+        }
+    });
+    deleteButton.addEventListener('click', async () => {
+        if (!window.confirm('“' + record.book + '”의 ' + backupReasonLabel(record.reason)
+            + ' 1개를 이 브라우저의 백업 저장소에서 삭제할까요? 실제 로어북 원본은 유지됩니다.')) return;
+        deleteButton.disabled = true;
+        try {
+            await deleteLorebookBackup(record.id);
+            await renderBackupList();
+        } catch (error) {
+            notify(error.message || '백업 삭제에 실패했습니다.', 'error');
+        } finally {
+            deleteButton.disabled = false;
+        }
+    });
+    actions.append(currentButton, copyButton, exportButton, deleteButton);
+    row.append(info, actions);
+    return row;
+}
+
 async function renderBackupList() {
     const section = document.querySelector('#slb-ai-tools .slb-backup-settings');
     const list = document.getElementById('slb-backup-list');
     const count = document.getElementById('slb-backup-count');
-    // No IndexedDB cursor reads or DOM creation for collapsed backup sections.
+    // Collapsed section: no IndexedDB read, no DOM build.
     if (!list || !section?.open) return;
     const runId = ++state.backupRenderRunId;
+    const scrollTop = list.scrollTop;
     const openBooks = new Set(Array.from(list.querySelectorAll('.slb-backup-group[open]'))
         .map(group => group.dataset.book));
     list.replaceChildren(createElement('small', 'slb-backup-empty', '백업 목록을 불러오는 중…'));
     try {
         const records = await listLorebookBackups();
         if (runId !== state.backupRenderRunId || !list.isConnected || !section.open) return;
-        if (count) count.textContent = `${records.length}개`;
+        if (count) count.textContent = records.length + '개';
         list.replaceChildren();
         if (!records.length) {
             list.append(createElement('small', 'slb-backup-empty', '아직 저장된 로어북 백업이 없습니다.'));
@@ -3036,69 +3122,33 @@ async function renderBackupList() {
             if (!grouped.has(book)) grouped.set(book, []);
             grouped.get(book).push(record);
         }
+        const fragment = document.createDocumentFragment();
         for (const [book, bookRecords] of grouped) {
             const group = createElement('details', 'slb-backup-group');
             group.dataset.book = book;
-            group.open = openBooks.has(book);
             const summary = createElement('summary', 'slb-backup-group-summary');
             const title = createElement('strong', 'slb-backup-group-title', book);
             const toggle = createElement('span', 'slb-backup-group-toggle');
-            toggle.title = '백업 목록 펼치기';
             toggle.setAttribute('aria-hidden', 'true');
             toggle.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
             summary.append(title, toggle);
-            group.addEventListener('toggle', () => {
-                toggle.title = group.open ? '백업 목록 접기' : '백업 목록 펼치기';
-            });
             const groupBody = createElement('div', 'slb-backup-group-body');
-
-            for (const record of bookRecords) {
-                const row = createElement('div', 'slb-backup-row');
-                const info = createElement('div', 'slb-backup-info');
-                info.append(
-                    createElement('strong', 'slb-backup-book', backupReasonLabel(record.reason)),
-                    createElement('small', 'slb-backup-meta', `${new Date(record.createdAt).toLocaleString()} · ${Number(record.entryCount || 0).toLocaleString()}개 항목`),
-                );
-                const actions = createElement('div', 'slb-backup-actions');
-                const currentButton = createElement('button', 'menu_button', '현재에 복원');
-                const copyButton = createElement('button', 'menu_button', '새 로어북');
-                const exportButton = createElement('button', 'menu_button', '내보내기');
-                const deleteButton = createElement('button', 'menu_button', '삭제');
-                currentButton.addEventListener('click', async () => {
-                    currentButton.disabled = true;
-                    try { await restoreLorebookBackup(record.id, 'current'); }
-                    catch (error) { notify(error.message || '백업 복원에 실패했습니다.', 'error'); }
-                    finally { currentButton.disabled = false; }
-                });
-                copyButton.addEventListener('click', async () => {
-                    copyButton.disabled = true;
-                    try { await restoreLorebookBackup(record.id, 'copy'); }
-                    catch (error) { notify(error.message || '새 로어북 복원에 실패했습니다.', 'error'); }
-                    finally { copyButton.disabled = false; }
-                });
-                exportButton.addEventListener('click', () => {
-                    const timestamp = new Date(record.createdAt).toISOString().replace(/[:.]/g, '-');
-                    downloadJsonFile(`${safeBackupFilename(record.book)}-${timestamp}.json`, backupExportEnvelope([record]));
-                });
-                deleteButton.addEventListener('click', async () => {
-                    if (!window.confirm(`“${record.book}” 백업을 삭제할까요?`)) return;
-                    deleteButton.disabled = true;
-                    try {
-                        await deleteLorebookBackup(record.id);
-                        await renderBackupList();
-                    } catch (error) {
-                        notify(error.message || '백업 삭제에 실패했습니다.', 'error');
-                    } finally {
-                        deleteButton.disabled = false;
-                    }
-                });
-                actions.append(currentButton, copyButton, exportButton, deleteButton);
-                row.append(info, actions);
-                groupBody.append(row);
-            }
+            // Only the expanded book gets action buttons/listeners.
+            const fillRows = () => {
+                if (group.open && !groupBody.childElementCount) {
+                    groupBody.append(...bookRecords.map(createBackupRecordRow));
+                } else if (!group.open && groupBody.childElementCount) {
+                    groupBody.replaceChildren();
+                }
+            };
             group.append(summary, groupBody);
-            list.append(group);
+            group.addEventListener('toggle', fillRows);
+            group.open = openBooks.has(book);
+            fillRows();
+            fragment.append(group);
         }
+        list.append(fragment);
+        list.scrollTop = scrollTop;
     } catch (error) {
         if (runId !== state.backupRenderRunId || !list.isConnected || !section.open) return;
         if (count) count.textContent = '오류';
@@ -3203,7 +3253,8 @@ function createAIBar() {
                                 <input type="file" id="slb-backup-import-file" accept="application/json,.json" hidden>
                             </div>
                         </div>
-                        <small class="slb-backup-note">API를 사용하지 않습니다. 로어북을 열 때 기준본을 저장하고, 마지막 수정 3분 후 또는 계속 수정 중이면 30분마다 변경본을 저장합니다. 모든 로어북을 합쳐 최근 20개를 보관합니다.</small>
+                        <small class="slb-backup-note">백업은 이 브라우저에만 저장됩니다. 자동 백업을 켜면 로어북 열기·수정 시 백업하며, 모든 로어북을 합쳐 최근 20개를 보관합니다.</small>
+                        <button type="button" id="slb-backup-clear" class="menu_button slb-backup-clear"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> 저장된 백업 모두 삭제</button>
                         <div id="slb-backup-list" class="slb-backup-list"></div>
                         <section class="slb-lorebook-export-section">
                             <strong>로어북 원본 파일 내보내기</strong>
@@ -3218,7 +3269,7 @@ function createAIBar() {
                 <details class="slb-settings-card slb-data-settings">
                     <summary><span><i class="fa-solid fa-broom" aria-hidden="true"></i> 데이터 관리</span></summary>
                     <div class="slb-data-body">
-                        <small>실제 로어북 원문은 건드리지 않고, 이 확장이 저장한 번역본·백업·설정만 정리합니다.</small>
+                        <small>번역본 초기화는 읽기용 번역 기록만, 백업 초기화는 이 브라우저의 보관본만 삭제합니다. 전체 데이터 초기화는 확장 설정·번역·백업·캐시를 삭제합니다. 실제 로어북은 유지합니다.</small>
                         <div class="slb-data-actions">
                             <button type="button" id="slb-clear-translations" class="menu_button"><i class="fa-solid fa-language"></i> 번역본 초기화</button>
                             <button type="button" id="slb-clear-backups" class="menu_button"><i class="fa-solid fa-box-archive"></i> 백업 초기화</button>
@@ -3428,21 +3479,35 @@ function createAIBar() {
             button.disabled = false;
         }
     });
-    document.getElementById('slb-clear-backups')?.addEventListener('click', async event => {
-        if (!confirm('이 브라우저에 저장된 로어북 백업을 모두 삭제할까요? 번역본과 실제 로어북은 유지됩니다.')) return;
-        const button = event.currentTarget;
-        button.disabled = true;
+    const clearBackupsHandler = async () => {
+        if (state.backupClearRequestInProgress) return;
+        state.backupClearRequestInProgress = true;
+        const buttons = ['slb-clear-backups', 'slb-backup-clear'].map(id => document.getElementById(id)).filter(Boolean);
+        buttons.forEach(button => { button.disabled = true; });
         try {
+            const existing = await listLorebookBackups();
+            if (!existing.length) {
+                notify('삭제할 로어북 백업이 없습니다.');
+                return;
+            }
+            const warning = '이 브라우저의 로어북 매니저 백업 ' + existing.length
+                + '개를 모두 삭제할까요?\n실제 로어북·번역 기록·확장 설정은 유지됩니다.'
+                + (getSettings().autoBackupEnabled ? '\n자동 백업이 켜져 있어 이후 새로운 백업은 다시 생성될 수 있습니다.' : '');
+            if (!window.confirm(warning)) return;
             clearAllAutomaticBackupSchedules();
             await clearAllLorebookBackups();
             await renderBackupList();
-            notify('로어북 백업을 모두 초기화했습니다.', 'success');
+            notify(existing.length + '개 로어북 백업을 삭제했습니다.', 'success');
         } catch (error) {
             notify(error.message || '백업 초기화에 실패했습니다.', 'error');
         } finally {
-            button.disabled = false;
+            state.backupClearRequestInProgress = false;
+            buttons.forEach(button => { button.disabled = false; });
         }
-    });
+    };
+    for (const id of ['slb-clear-backups', 'slb-backup-clear']) {
+        document.getElementById(id)?.addEventListener('click', clearBackupsHandler);
+    }
     document.getElementById('slb-reset-extension')?.addEventListener('click', async event => {
         if (!confirm('로어북 매니저가 저장한 번역본, 백업, 연결 프로필 선택, 표시 설정과 캐시를 모두 삭제할까요? 실제 로어북 원문은 삭제되지 않습니다.')) return;
         const button = event.currentTarget;
@@ -3493,6 +3558,7 @@ function createQuickTranslationOptions() {
         options.innerHTML = `
             <div class="slb-bulk-action">
                 <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-language" aria-hidden="true"></i><span>로어북 번역</span></button>
+                <small class="slb-translate-book-help">번역할 로어북과 번역 범위를 선택합니다.</small>
             </div>
             <label><input type="checkbox" id="slb-translate-missing"> 항목 열 때 자동 번역</label>
             <label><input type="checkbox" id="slb-auto-translate"> 원문 변경 시 재번역</label>
@@ -3557,7 +3623,6 @@ async function showLorebookTranslationPicker() {
     const linkedBooks = currentCharacterLinkedBooks();
     const current = currentBookName();
     const form = createElement('div', 'slb-translation-picker');
-    const title = createElement('strong', 'slb-translation-picker-title', '로어북 번역');
     const fieldLabel = createElement('label', 'slb-translation-picker-label', '로어북 선택');
     fieldLabel.htmlFor = 'slb-translate-world-select';
     const select = createElement('select', 'text_pole textarea_compact');
@@ -3590,7 +3655,7 @@ async function showLorebookTranslationPicker() {
     };
     showAll.addEventListener('change', updateOptions);
     updateOptions();
-    form.append(title, fieldLabel, select, showAllLabel, status);
+    form.append(fieldLabel, select, showAllLabel, status);
 
     const popup = new Popup(form, POPUP_TYPE.CONFIRM, '', {
         okButton: false,
@@ -6303,19 +6368,24 @@ function addLoreInfoIcon(label, help) {
             icon.focus();
         });
     }
-    icon.title = help;
+    // Do not combine browser title and CSS help on the same label/icon.
+    // The matching hint still has an accessible name for assistive technology.
+    label.removeAttribute('title');
+    icon.removeAttribute('title');
+    icon.setAttribute('aria-label', help);
     icon.dataset.slbHelp = help;
     icon.removeAttribute('data-i18n');
 }
 
 function attachLoreEntryHelp(panels) {
     const groupHelp = [
-        ['group','같은 그룹 이름을 넣은 항목이 여러 개 발동하면 그중 하나만 고릅니다. 예: 맑음과 비를 같은 그룹으로 지정.'],
+        ['group','같은 그룹 이름을 넣은 항목이 동시에 발동하면 하나만 선택합니다. 예: ‘맑음’과 ‘비’를 weather 그룹으로 묶으면 둘 중 하나가 사용됩니다.'],
         ['groupOverride','같은 그룹에서 이 항목을 우선 선택합니다. 여러 항목에 켜졌으면 순서(Order)가 높은 항목을 선택합니다.'],
-        ['groupWeight','같은 그룹에서 뽑힐 상대적 비중입니다. 100은 100%라는 뜻이 아닙니다.'],
+        ['groupWeight','같은 그룹에서 여러 항목이 발동했을 때 추첨 비중입니다. 200은 100보다 두 배의 가중치이지, 200% 확률이 아닙니다.'],
         ['sticky','한 번 발동하면 지정한 메시지 수 동안 계속 사용합니다. 3이면 이후 3개 메시지 동안 유지합니다.'],
         ['cooldown','한 번 발동한 후 이 숫자만큼 메시지 동안 다시 발동하지 않습니다.'],
-        ['delay','대화 메시지가 이 숫자만큼 쌓이기 전까지는 발동하지 않습니다.'],
+        ['delay','대화에 메시지가 지정한 개수만큼 쌓이기 전에는 발동하지 않습니다. 예: 2이면 0~1개 메시지일 때는 발동하지 않습니다.'],
+        ['useGroupScoring','같은 그룹에서 더 많은 호출 키워드가 맞은 항목을 우선 남깁니다. 예: ‘노래’만 맞는 항목보다 ‘노래·유령’ 둘 다 맞는 항목이 우선입니다. 남은 항목끼리는 가중치·우선 선택 규칙을 적용합니다.'],
     ];
     for (const [name, help] of groupHelp) {
         const control = panels.group.querySelector('[name="' + name + '"]');
@@ -6324,9 +6394,26 @@ function attachLoreEntryHelp(panels) {
             : field?.querySelector('small[for="' + name + '"],label[for="' + name + '"],small');
         addLoreInfoIcon(label,help);
     }
+    // SillyTavern owns all select/input handlers and saves. Only append hints
+    // to the native captions that exist in the current ST release.
+    const settingHelp = [
+        ['entryLogicType','기본 키워드가 맞은 뒤 보조 키워드의 조건을 적용합니다. AND ANY는 보조 키워드 중 하나, AND ALL은 전부 일치해야 합니다. NOT ANY는 어느 것도 일치하면 안 되고, NOT ALL은 전부 일치하면 안 됩니다.'],
+        ['matchWholeWords','단어 전체가 일치할 때만 호출합니다. 예: king이 liking 안에서 감지되지 않게 합니다. 한·중·일어처럼 띄어쓰기가 다른 언어에서는 결과가 달라질 수 있습니다.'],
+        ['caseSensitive','영문 대소문자를 구분합니다. 예: Rose와 rose를 다른 단어로 검사합니다.'],
+        ['useGroupScoring','같은 그룹에서 키워드가 더 많이 맞는 항목을 우선합니다. 예: song과 Ghosts까지 맞는 항목을 song만 맞는 항목보다 우선합니다.'],
+        ['probability','항목이 조건에 맞아도 실제 주입될 확률입니다. 100은 항상, 50은 절반, 0은 주입하지 않습니다. 예: 랜덤 사건을 드물게 발생시킬 때 씁니다.'],
+    ];
+    for (const [name, help] of settingHelp) {
+        const control = panels.activation.querySelector('[name="' + name + '"]')
+            || panels.group.querySelector('[name="' + name + '"]');
+        const label = control?.closest('label')
+            || control?.closest('.slb-override-field, .slb-keyword-core-field, .slb-group-field, .slb-header-field')
+                ?.querySelector(':scope > small, :scope > label, :scope > .slb-header-label, :scope > .world_entry_form_label');
+        addLoreInfoIcon(label, help);
+    }
     for (const [selector, help] of [
         ['.slb-filter-title-slot-1','이 항목을 사용할 캐릭터와 태그를 지정합니다. 아무것도 선택하지 않으면 제한하지 않습니다.'],
-        ['.slb-filter-title-slot-2','일반 답변, 답변 다시 생성 등 어떤 상황에서 사용할지 지정합니다.'],
+        ['.slb-filter-title-slot-2','이 로어를 사용할 생성 상황을 고릅니다. 예: Swipe만 선택하면 답변을 스와이프할 때만 발동합니다. 아무것도 고르지 않으면 모든 생성 유형에서 사용할 수 있습니다.'],
     ]) {
         const label=panels.filter.querySelector(selector+' > .slb-filter-title');
         addLoreInfoIcon(label,help);
@@ -6345,7 +6432,7 @@ function attachLoreEntryHelp(panels) {
     for (const [name,help] of [
         ['scanDepth','최근 대화 몇 개에서 키워드를 찾을지 지정합니다. 비어 있으면 전체 설정을 따릅니다.'],
         ['delayUntilRecursionLevel','연쇄 호출이 몇 단계 진행됐을 때부터 이 항목이 발동할지 정합니다.'],
-        ['automationId','빠른 답변 같은 자동화 기능에서 사용할 ID입니다.'],
+        ['automationId','빠른 답변(Quick Replies)의 STscript 자동화 ID와 이 항목의 ID가 같으면, 이 항목이 발동할 때 해당 스크립트가 실행됩니다. 예: 같은 ID를 7로 지정.'],
     ]) {
         const input=panels.activation.querySelector('[name="' + name + '"]');
         addLoreInfoIcon(input?.closest('.slb-override-field')?.querySelector('small'),help);
