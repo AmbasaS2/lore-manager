@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.12';
+const VERSION = '1.4.85-ambasa.13';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -77,6 +77,9 @@ const GOOGLE_TRANSLATE_RETRY_DELAYS = Object.freeze([650, 1600]);
 const DEFAULT_AI_OUTPUT_TOKENS = 8192;
 const MIN_AI_OUTPUT_TOKENS = 512;
 const MAX_AI_OUTPUT_TOKENS = 65536;
+// Event handlers keep interactive edits immediate. A low-frequency fallback
+// only catches external scripts that replace values without firing events.
+const LIVE_SYNC_FALLBACK_INTERVAL_MS = 4000;
 const BACKUP_DB_NAME = 'simple-lorebook-backups';
 const BACKUP_DB_VERSION = 1;
 const BACKUP_STORE_NAME = 'lorebook-backups';
@@ -191,6 +194,9 @@ const state = {
     responsiveObserverTarget: null,
     responsiveObservedWidth: 0,
     responsiveRaf: 0,
+    responsivePendingDisplaySync: false,
+    responsiveViewportWidth: 0,
+    responsiveBreakpoint: false,
     foldyLinkedActivationTimer: null,
     foldyFolderDeleteDrawerGuard: null,
     foldyFolderDeleteDrawerGuardTimer: null,
@@ -203,7 +209,7 @@ function ensureCriticalLayoutStyles() {
     // Do not inject a second copy of obsolete 13px / 0.76em / 42px rules
     // after it: those late !important rules kept undoing every UI correction.
     // Keep only the native mobile activation-control visibility safeguard.
-    const styleId = 'slb-critical-layout-1-4-85-ambasa-12';
+    const styleId = 'slb-critical-layout-native-activation';
     if (document.getElementById(styleId)) return;
     document.querySelectorAll('style[data-slb-critical-layout]').forEach(node => node.remove());
 
@@ -4942,7 +4948,7 @@ function syncEntryInjectionState(entry) {
     scheduleEntryInjectionStateStabilization(entry, selectorValue);
     clearTimeout(state.entryFilterRefreshTimer);
     state.entryFilterRefreshTimer = setTimeout(refreshEntryStateFilterIfIdle, 150);
-    enforceActivationOverviewIntegrity();
+    enforceActivationOverviewIntegrity([entry]);
     // 상태 변경 중에는 호출 조건 5개 필드의 부모를 절대 바꾸지 않는다.
     // ST 1.18의 네이티브 핸들러는 값만 저장하므로 DOM 복귀 작업도 불필요하다.
     if (previousValue === selectorValue) return;
@@ -5315,10 +5321,16 @@ function syncResponsiveEntryLayouts() {
     });
 }
 
-function scheduleResponsiveEntryLayouts() {
-    if (state.responsiveRaf) cancelAnimationFrame(state.responsiveRaf);
+function scheduleResponsiveEntryLayouts(syncDisplay = false) {
+    // Width observer and window/media change can fire in one frame. Do one
+    // batch layout and one badge sync, rather than restarting the RAF each time.
+    if (syncDisplay === true) state.responsivePendingDisplaySync = true;
+    if (state.responsiveRaf) return;
     state.responsiveRaf = requestAnimationFrame(() => {
         state.responsiveRaf = 0;
+        const syncBadges = state.responsivePendingDisplaySync;
+        state.responsivePendingDisplaySync = false;
+        if (syncBadges) applyMobileDisplaySettings();
         syncResponsiveEntryLayouts();
     });
 }
@@ -7069,6 +7081,21 @@ function lorebookEntries(data) {
     return Object.values(data?.entries ?? {}).filter(entry => entry && typeof entry.content === 'string');
 }
 
+// Reading an unchanged entry must not rehash its entire body every time a
+// token summary or native settings event is rendered. Entries are real ST
+// objects; WeakMap does not keep a previous book alive after it is replaced.
+const entryContentHashCache = new WeakMap();
+
+function hashEntryContent(entry) {
+    if (!entry || typeof entry.content !== 'string') return hashText(entry?.content);
+    const text = entry.content;
+    const previous = entryContentHashCache.get(entry);
+    if (previous && previous.text === text) return previous.hash;
+    const hash = hashText(text);
+    entryContentHashCache.set(entry, { text, hash });
+    return hash;
+}
+
 function getBookTokenCache(book) {
     if (!state.tokenCache.has(book)) state.tokenCache.set(book, new Map());
     state.tokenCacheTouched.set(book, Date.now());
@@ -7141,7 +7168,7 @@ function renderTokenSummary(book, data) {
     let vectorizedReadyCount = 0;
     for (const entry of entries) {
         const cached = cache.get(String(entry.uid));
-        const isReady = cached?.hash === hashText(entry.content);
+        const isReady = cached?.hash === hashEntryContent(entry);
         if (isReady) {
             total += cached.count;
             readyCount++;
@@ -7225,7 +7252,9 @@ function scheduleEntryTokenCount(book, uid, content) {
     const entry = data?.entries?.[uid] ?? data?.entries?.[Number(uid)];
     if (entry) {
         entry.content = content;
-        renderTokenSummary(book, data);
+        // Content changes immediately; the visual totals are batched into
+        // one near-frame render rather than rehashing all entries per keystroke.
+        queueTokenSummaryRender(book, data);
     }
     clearTimeout(state.entryTokenTimers.get(timerKey));
     let timer = null;
@@ -7252,9 +7281,11 @@ function scheduleEntryTokenCount(book, uid, content) {
     state.entryTokenTimers.set(timerKey, timer);
 }
 
-function enforceActivationOverviewIntegrity() {
+function enforceActivationOverviewIntegrity(targetEntries = null) {
     if (state.sorting) return;
-    for (const entry of renderedEntries()) {
+    // A single native state switch must never walk every open lorebook card.
+    // The low-frequency external-change fallback still checks the whole page.
+    for (const entry of targetEntries ?? renderedEntries()) {
         if (state.closingEntryDrawers.has(entry)) continue;
         const overview = entry.querySelector('.slb-activation-overview');
         if (!overview) continue;
@@ -7326,9 +7357,11 @@ function syncLiveEditorTokens() {
             }
         }
 
-        // 입력/change 이벤트가 실제 편집은 즉시 처리한다. 이 폴링은 이벤트를
-        // 거치지 않은 프로그램적 변경만 보완하므로 열린 항목만 검사한다.
-        // 접힌 모든 원문을 매번 해시하면 긴 로어북에서 모바일 UI가 멎는다.
+        // ST doesn't build edit controls until a drawer is opened in typical
+        // views. Avoid layout-reading getClientRects() for collapsed rows.
+        // Still verify visibility for entries with real editors (Foldy/ST
+        // may keep an editor node hidden while its drawer is closed).
+        if (!entryElement.querySelector('.world_entry_edit, .world-entry-edit, [data-role="entry-editor"]')) continue;
         if (!isEntryEditorRendered(entryElement)) continue;
         const source = entryElement.querySelector('textarea[name="content"]');
         if (!source) continue;
@@ -7343,7 +7376,7 @@ function syncLiveEditorTokens() {
         }
     }
 
-    if (activeChanged) renderTokenSummary(book, data);
+    if (activeChanged) queueTokenSummaryRender(book, data);
 }
 
 function loadCurrentBookDataOnce(book) {
@@ -7408,7 +7441,7 @@ async function refreshTokenSummary(forcedData = null) {
             if (!liveUids.has(uid)) cache.delete(uid);
         }
 
-        const staleEntries = entries.filter(entry => cache.get(String(entry.uid))?.hash !== hashText(entry.content));
+        const staleEntries = entries.filter(entry => cache.get(String(entry.uid))?.hash !== hashEntryContent(entry));
         renderTokenSummary(book, data);
         state.tokenRefreshRunId = runId;
         // 모바일 WebView에서 토크나이저 8개 동시 실행은 메인 스레드를 오래
@@ -7420,11 +7453,11 @@ async function refreshTokenSummary(forcedData = null) {
             // 메인 스레드를 돌려준다. 계산 결과와 캐시 형식은 바뀌지 않는다.
             if (index > 0) await new Promise(resolve => setTimeout(resolve, 0));
             if (runId !== state.tokenRunId || currentBookName() !== book) return;
-            const contentHash = hashText(entry.content);
+            const contentHash = hashEntryContent(entry);
             const count = Number(await getTokenCountAsync(entry.content)) || 0;
             if (runId !== state.tokenRunId || currentBookName() !== book) return;
             const latest = data.entries?.[entry.uid] ?? data.entries?.[Number(entry.uid)];
-            if (latest && hashText(latest.content) === contentHash) {
+            if (latest && hashEntryContent(latest) === contentHash) {
                 cache.set(String(entry.uid), { hash: contentHash, count });
                 if (runId === state.tokenRunId) queueTokenSummaryRender(book, data);
             }
@@ -8396,16 +8429,18 @@ function bindEvents() {
             state.currentBookData = data;
             entryBulkEditor.prune(data);
             scheduleAutomaticLorebookBackup(name);
-            renderTokenSummary(name, data);
+            queueTokenSummaryRender(name, data);
             const cache = getBookTokenCache(name);
             const contentChanged = lorebookEntries(data)
-                .some(entry => cache.get(String(entry.uid))?.hash !== hashText(entry.content));
+                .some(entry => cache.get(String(entry.uid))?.hash !== hashEntryContent(entry));
             if (contentChanged && !state.tokenRefreshRunId) scheduleTokenSummary(data, 80);
             // 일부 ST/확장 조합이 저장 뒤 같은 editor 노드의 내용만 교체해도
             // stale marker 때문에 탭 재구성을 건너뛰지 않도록 제한적으로 확인한다.
             const brokenOpenEditor = renderedEntries().some(entry => {
-                if (!isEntryEditorRendered(entry)) return false;
+                // Closed rows normally have no editor at all. Check structure
+                // before layout-sensitive visibility, as in the fallback scan.
                 const edit = queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]']);
+                if (!edit || !isEntryEditorRendered(entry)) return false;
                 return getResponsiveHeaderFields(entry).length !== 5
                     || (edit?.dataset.slbEnhanced === VERSION && !hasCompleteEnhancedEditor(edit));
             });
@@ -8444,9 +8479,17 @@ function init() {
     createWorkspace();
     bindEvents();
     state.responsiveMedia = window.matchMedia('(max-width: 760px)');
+    state.responsiveViewportWidth = window.innerWidth;
+    state.responsiveBreakpoint = state.responsiveMedia.matches;
     const responsiveListener = () => {
-        applyMobileDisplaySettings();
-        if (state.responsiveMedia?.matches) {
+        const width = window.innerWidth;
+        const narrow = state.responsiveMedia?.matches === true;
+        // A mobile software keyboard can fire many height-only resize events.
+        // Width is unchanged, so this does not require any row re-layout.
+        if (width === state.responsiveViewportWidth && narrow === state.responsiveBreakpoint) return;
+        state.responsiveViewportWidth = width;
+        state.responsiveBreakpoint = narrow;
+        if (narrow) {
             // 모바일 레이아웃은 폭 임계값으로 고정된다. 각 항목의 크기 변화를
             // 다시 관찰하면 탭/상태 변경마다 전체 목록 배치가 반복된다.
             state.responsiveObserver?.disconnect();
@@ -8456,7 +8499,7 @@ function init() {
             const firstEntry = renderedEntries()[0];
             if (firstEntry) observeResponsiveHeader(firstEntry);
         }
-        scheduleResponsiveEntryLayouts();
+        scheduleResponsiveEntryLayouts(true);
     };
     if (typeof state.responsiveMedia.addEventListener === 'function') {
         state.responsiveMedia.addEventListener('change', responsiveListener);
@@ -8492,11 +8535,13 @@ function init() {
     enhanceAll();
     scheduleInitialTokenSummary();
     state.liveSyncTimer = setInterval(() => {
-        // No visible lore editor means no per-second DOM walk is necessary.
-        if (!isWorldInfoDrawerOpen()) return;
+        // Native change, drawer, and tab events handle interactive changes
+        // immediately. This is only a last-resort repair for extensions that
+        // mutate values without an event, not the primary UI rendering loop.
+        if (document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen()) return;
         enforceActivationOverviewIntegrity();
         syncLiveEditorTokens();
-    }, 1000);
+    }, LIVE_SYNC_FALLBACK_INTERVAL_MS);
     console.info(`[로어북 매니저] v${VERSION} initialized`);
 }
 
