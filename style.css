@@ -5162,3 +5162,24 @@
     line-height: 1.2;
     white-space: normal;
 }
+
+
+/* AmbasaS2 stable lorebook pagination toolbar.
+   ST's navigator changes width when the visible range grows from 1 to 2+
+   digits. Do not let the adjacent search/sort flex item consume the whole
+   remaining line on narrow screens. Keep original controls and callbacks. */
+@media (max-width: 600px) {
+    #WorldInfo.slb-active #world_popup > .flex-container:has(#world_info_pagination) {
+        column-gap: 3px;
+    }
+    #WorldInfo.slb-active #slb-search-sort {
+        flex: 0 1 82px;
+        width: 82px;
+        max-width: 82px;
+        min-width: 45px;
+        gap: 3px;
+    }
+    #WorldInfo.slb-active #world_info_pagination {
+        flex: 0 0 auto;
+    }
+}

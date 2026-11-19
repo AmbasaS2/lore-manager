@@ -17,11 +17,12 @@ import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js
 import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
 import { createTranslationFallbackLookup } from './translation-lookup.js';
+import { translateLoreWithValidation } from './lore-translation.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.7';
+const VERSION = '1.4.85-ambasa.8';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -1713,25 +1714,32 @@ function googleTranslateToLanguage(text, lang, onProgress = null) {
     return job;
 }
 
-async function translateText(source, targetLanguage, onProgress = null) {
+async function translateText(source, targetLanguage, onProgress = null, options = {}) {
     const settings = getSettings();
     const language = normalizeEntryLanguage(targetLanguage) || ENTRY_LANGUAGE_KOREAN;
+    // Google Translate keeps its independent queue, macro masking and fallback.
     if (settings.translationProvider === 'google') {
         return googleTranslate(source, language, onProgress);
     }
-    const customPrompt = settings.translationPrompt?.trim();
-    const prompt = [
-        `Translate the lorebook entry below into ${language}.`,
-        'Translate naturally and fluently to fit the context, tone, relationships, and speaking style. Avoid stiff word-for-word translation.',
-        // 사용자 추가 지시문 — 번역 언어는 위 기본 지시가 자동으로 지정하므로
-        // 여기에는 문체·존칭·용어 같은 요구사항만 들어간다.
-        customPrompt || null,
-        protectedTextRules(),
-        '',
-        '=== SOURCE ===',
+    return translateLoreWithValidation({
         source,
-    ].filter(part => part !== null).join('\n');
-    return requestWithProfile(prompt);
+        targetLanguage: language,
+        field: options.field || 'content',
+        reference: options.reference || '',
+        additionalInstructions: settings.translationPrompt || '',
+        // The new translation prompt already preserves machine syntax and
+        // readable headings without the legacy editing prompt's ambiguity.
+        protectedRules: '',
+        // Only substantial lorebook bodies are divided, on paragraph
+        // boundaries; normal short entries remain one literary request.
+        maxChars: Math.max(5000, Math.min(12500, Math.floor((settings.aiOutputTokens || 8192) * 1.3))),
+        request: prompt => requestWithProfile(prompt),
+        onProgress,
+        onWarning: ({ field, issues }) => {
+            console.warn('[로어북 매니저] AI 번역 구조 점검 필요', field, issues);
+            notify('AI 번역 결과는 표시하지만 일부 원문 형식·숫자를 확인해야 합니다. 원문에 반영하기 전 비교해주세요.', 'warning');
+        },
+    });
 }
 
 function splitReflectionDocument(value) {
@@ -3856,7 +3864,10 @@ async function translateCurrentLorebook(mode = 'all', selection = null) {
                 const results = {};
                 for (const field of fields) {
                     if (job.cancelled || currentBookName() !== book) return;
-                    results[field] = await translateText(sources[field], pair.translationLanguage);
+                    results[field] = await translateText(
+                        sources[field], pair.translationLanguage, null,
+                        { field, reference: field === 'content' ? '' : sources.content },
+                    );
                     if (!results[field]?.trim()) throw new Error('번역 결과가 비어 있습니다.');
                 }
                 const translated = results.content;
@@ -5628,7 +5639,10 @@ async function translateEntrySource(ui, force = false, background = false) {
         const results = {};
         for (const field of fields) {
             if (ui.flags.deleted || currentBookName() !== ui.book) return;
-            results[field] = await translateText(sources[field], pair.translationLanguage);
+            results[field] = await translateText(
+                sources[field], pair.translationLanguage, null,
+                { field, reference: field === 'content' ? '' : sources.content },
+            );
             if (!results[field]?.trim()) throw new Error('번역 결과가 비어 있습니다.');
         }
         const liveEntry = renderedEntries().find(row => getUid(row) === String(ui.uid)) || ui.entry;
