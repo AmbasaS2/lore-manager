@@ -101,7 +101,7 @@ test('wide and mobile headers contain only the original title; five controls rem
  }finally{dom.window.close();}
 });
 
-test('native recursion checkboxes keep handlers while captions become Korean',()=>{
+test('native recursion checkboxes keep handlers and the original labels',()=>{
  const dom=new JSDOM('<label class="checkbox flexNoGap"><input type="checkbox" name="excludeRecursion"><span data-i18n="Non-recursable">Non-recursable</span></label>',{runScripts:'outside-only'});
  const w=dom.window;
  w.eval(fn('addLoreInfoIcon')+'\nwindow.add=addLoreInfoIcon;');
@@ -109,8 +109,8 @@ test('native recursion checkboxes keep handlers while captions become Korean',()
   const label=w.document.querySelector('label'),input=label.querySelector('input');
   let changes=0;input.addEventListener('change',()=>changes++);
   w.add(label,'추가 검색에 포함하지 않습니다.','연쇄 발동 제외');
-  assert.match(label.textContent,/연쇄 발동 제외/);
-  assert.equal(label.querySelector('span').hasAttribute('data-i18n'),false);
+  assert.equal(label.querySelector('span').textContent,'Non-recursable');
+  assert.equal(label.querySelector('span').getAttribute('data-i18n'),'Non-recursable');
   assert.equal(label.querySelectorAll('.slb-lore-info-icon').length,1);
   input.click();
   assert.equal(changes,1);

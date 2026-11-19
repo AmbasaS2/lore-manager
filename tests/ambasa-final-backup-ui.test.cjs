@@ -45,7 +45,7 @@ test('backup section reads nothing while closed and renders buttons only on grou
         group.open = true;
         group.dispatchEvent(new w.Event('toggle'));
         assert.equal(w.document.querySelectorAll('.slb-backup-row').length, 1);
-        assert.match(w.document.querySelector('.slb-backup-row').textContent, /현재 로어북에 복원/);
+        assert.match(w.document.querySelector('.slb-backup-row').textContent, /현재 로어북 복원/);
         group.open = false;
         group.dispatchEvent(new w.Event('toggle'));
         assert.equal(w.document.querySelectorAll('.slb-backup-row').length, 0, 'collapsing releases action nodes');
@@ -75,7 +75,7 @@ test('single-backup export reads the complete record, not the header; deleting t
         const row = w.makeRow({id:'abc',book:'Remus',createdAt:1234567890,entryCount:1,reason:'manual'});
         w.document.body.append(row);
         const buttons = Array.from(row.querySelectorAll('button'));
-        buttons.find(b => b.textContent === '내보내기').click();
+        buttons.find(b => b.textContent === 'JSON 내보내기').click();
         await new Promise(resolve => setTimeout(resolve, 1));
         assert.match(w.result().saved.name,/Remus/);
         assert.equal(w.result().saved.data.backups[0].lorebook.entries[0].content,'precious original');

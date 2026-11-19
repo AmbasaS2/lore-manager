@@ -90,9 +90,9 @@ test('readable Korean captions preserve ST native controls and focusable help', 
     try{
         w.run(panels);
         assert.equal(groupInput.value,'weather');
-        assert.equal(panels.group.querySelector('[for="group"]').textContent.includes('그룹 이름'),true);
-        assert.equal(panels.group.querySelector('[for="groupWeight"]').textContent.includes('선택 가중치'),true);
-        assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('캐릭터·태그'),true);
+        assert.equal(panels.group.querySelector('[for="group"]').textContent.includes('Inclusion Group'),true);
+        assert.equal(panels.group.querySelector('[for="groupWeight"]').textContent.includes('Group Weight'),true);
+        assert.equal(panels.filter.querySelector('.slb-filter-title').textContent.includes('Filter to Characters or Tags'),true);
         const info=panels.group.querySelector('[for="group"] .slb-lore-info-icon');
         assert.ok(info);
         assert.match(info.dataset.slbHelp,/같은 그룹 이름/);

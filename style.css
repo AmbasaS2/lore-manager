@@ -65,21 +65,26 @@
     font-weight: 400;
 }
 
+/* Expand backups to their natural content height. An inner 50vh scroller
+   used to clip action buttons and stretch sparse backup records. */
 #slb-ai-tools .slb-backup-list {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
     min-height: 0;
-    max-height: min(420px, 50vh);
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
     gap: 6px;
+    overflow: visible;
 }
 
 #slb-ai-tools .slb-backup-group {
+    box-sizing: border-box;
+    flex: 0 0 auto;
     min-width: 0;
+    width: 100%;
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 6px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 #slb-ai-tools .slb-backup-group > summary {
@@ -128,7 +133,9 @@
 }
 
 #slb-ai-tools .slb-backup-group-body {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     gap: 5px;
     padding: 6px;
     border-top: 1px solid var(--SmartThemeBorderColor);
@@ -139,37 +146,39 @@
 }
 
 #slb-ai-tools .slb-backup-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    box-sizing: border-box;
+    gap: 5px;
+    min-width: 0;
     padding: 7px;
-    align-items: center;
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 6px;
 }
 
 #slb-ai-tools .slb-backup-info {
-    display: grid;
-    flex: 1 1 145px;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: baseline;
     min-width: 0;
-    gap: 2px;
+    gap: 2px 10px;
 }
 
 #slb-ai-tools .slb-backup-book,
 #slb-ai-tools .slb-backup-meta {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 #slb-ai-tools .slb-backup-actions {
-    display: flex;
-    flex: 1 1 265px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
     min-width: 0;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
+    width: 100%;
+    gap: 5px;
 }
 
 #slb-ai-tools .slb-backup-actions .menu_button,
@@ -187,7 +196,17 @@
     word-break: keep-all;
 }
 #slb-ai-tools .slb-backup-actions .menu_button {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    height: auto;
+    padding: 5px 7px;
     white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-align: center;
 }
 #slb-ai-tools .slb-backup-toolbar-actions .menu_button,
 #slb-ai-tools .slb-data-actions .menu_button,
@@ -203,19 +222,8 @@
         gap: 6px;
     }
 
-    #slb-ai-tools .slb-backup-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
     #slb-ai-tools .slb-backup-actions {
-        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    #slb-ai-tools .slb-backup-actions .menu_button {
-        width: 100%;
-        min-width: 0;
     }
 }
 
@@ -1038,10 +1046,18 @@
     max-width: 100%;
     font-size: 1em;
     line-height: 1.3;
-    white-space: nowrap;
+    white-space: normal;
     overflow: visible;
-    overflow-wrap: normal;
+    overflow-wrap: anywhere;
     text-align: center;
+}
+/* Keep original ST caption text (including translated labels) intact. Long
+   native labels may wrap while the information icon stays beside them. */
+#WorldInfo.slb-active .slb-lore-field-caption > span:not(.slb-lore-info-icon) {
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 #WorldInfo.slb-active .slb-lore-field-caption > :is(a, i, svg),
 #WorldInfo.slb-active .slb-lore-field-caption .slb-lore-info-icon {
@@ -1902,6 +1918,11 @@
     gap: 3px;
     min-width: 0;
 }
+#slb-ai-tools .slb-quick-options .slb-bulk-action-title {
+    font-size: inherit;
+    line-height: 1.3;
+    font-weight: 600;
+}
 #slb-ai-tools .slb-quick-options .slb-translate-book-help {
     font-size: 0.92em;
     line-height: 1.3;
@@ -1955,7 +1976,8 @@
     width: 100%;
     min-width: 0;
     margin: 1px 0;
-    padding: 2px 0;
+    min-height: 29px;
+    padding: 0;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -1994,14 +2016,32 @@
 #WorldInfo.slb-active .slb-summary-section .slb-token-strip::-webkit-scrollbar {
     display: none;
 }
-#WorldInfo.slb-active .slb-summary-section .slb-entry-filters {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+/* No second label or four oversized buttons: the filter is one native
+   selection field. Compact like the token statistics directly above it. */
+#WorldInfo.slb-active .slb-summary-filter-select {
+    display: flex;
     align-items: center;
-    justify-self: start;
-    width: min(100%, 296px);
-    gap: 4px;
+    min-height: 27px;
+    padding: 1px 0;
+}
+#WorldInfo.slb-active .slb-summary-row > select.slb-entry-filter-select {
+    display: block;
+    box-sizing: border-box;
+    flex: 0 1 auto;
+    width: min(195px, 100%);
+    min-width: 0;
+    min-height: 27px;
+    height: 27px;
+    padding: 2px 24px 2px 8px;
+    margin: 0;
+    border: 1px solid var(--SmartThemeBorderColor, var(--slb-border));
+    border-radius: 6px;
+    background-color: var(--SmartThemeBlurTintColor, transparent);
+    color: var(--SmartThemeBodyColor, inherit);
     font: inherit;
+    line-height: 1.25;
+    text-align: left;
+    text-align-last: left;
 }
 
 #WorldInfo.slb-active .slb-token-strip > span {
@@ -2022,28 +2062,6 @@
 }
 #WorldInfo.slb-active .slb-stat-constant { color: #428bfa; }
 #WorldInfo.slb-active .slb-stat-normal { color: #29b765; }
-#WorldInfo.slb-active .slb-summary-section .slb-filter-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 0;
-    min-height: 26px;
-    margin: 0;
-    padding: 2px 3px;
-    font: inherit;
-    line-height: 1.2;
-    white-space: nowrap;
-}
-#WorldInfo.slb-active .slb-entry-filters .slb-stat-icon {
-    font-size: 1em;
-}
-#WorldInfo.slb-active .slb-filter-button.is-active {
-    border-color: var(--slb-accent);
-    background: color-mix(in srgb, var(--slb-accent) 13%, transparent);
-}
-
 /* v1.3.18 — evenly distributed compact activation controls and readable exclude */
 @media (max-width: 760px) {
     #WorldInfo.slb-active #world_popup_entries_list > .world_entry {
@@ -2719,7 +2737,7 @@
     grid-template-areas:
         "title-left title-right"
         "control-left control-right" !important;
-    grid-template-rows: 24px var(--slb-filter-slot-height) !important;
+    grid-template-rows: auto var(--slb-filter-slot-height) !important;
     column-gap: 24px !important;
     row-gap: 5px !important;
     position: relative !important;
@@ -2757,11 +2775,11 @@
     position: static !important;
     width: 100% !important;
     min-width: 0 !important;
-    height: 24px !important;
-    min-height: 24px !important;
-    max-height: 24px !important;
+    height: auto !important;
+    min-height: 30px !important;
+    max-height: none !important;
     margin: 0 !important;
-    padding: 0 4px !important;
+    padding: 2px 4px !important;
     align-items: center !important;
     justify-content: center !important;
     overflow: visible !important;
@@ -2769,10 +2787,10 @@
 
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title,
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title > span {
-    display: block !important;
+    display: inline-flex !important;
     box-sizing: border-box !important;
     position: static !important;
-    width: 100% !important;
+    width: auto !important;
     min-width: 0 !important;
     height: auto !important;
     min-height: 0 !important;
@@ -2780,11 +2798,15 @@
     margin: 0 !important;
     padding: 0 !important;
     font-size: 1em !important;
-    line-height: 1.05 !important;
+    line-height: 1.25 !important;
     letter-spacing: -0.01em !important;
     text-align: center !important;
-    white-space: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    white-space: normal !important;
     word-break: keep-all !important;
+    overflow-wrap: anywhere !important;
     overflow: visible !important;
     text-overflow: clip !important;
 }
@@ -2872,26 +2894,26 @@
             "title-left title-right"
             "control-left control-right"
             "exclude exclude" !important;
-        grid-template-rows: 24px var(--slb-filter-slot-height) 28px !important;
+        grid-template-rows: auto var(--slb-filter-slot-height) 28px !important;
         column-gap: 12px !important;
         row-gap: 5px !important;
         padding: 0 !important;
     }
 
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot {
-        height: 24px !important;
-        min-height: 24px !important;
-        max-height: 24px !important;
-        padding: 0 2px !important;
+        height: auto !important;
+        min-height: 30px !important;
+        max-height: none !important;
+        padding: 2px !important;
     }
 
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title,
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-title-slot > .slb-filter-title > span {
-        font-size: 0.95em !important;
-        line-height: 1.2 !important;
-        letter-spacing: -0.025em !important;
+        font-size: 1em !important;
+        line-height: 1.25 !important;
+        letter-spacing: normal !important;
         white-space: normal !important;
-        overflow-wrap: break-word !important;
+        overflow-wrap: anywhere !important;
     }
 
     #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-exclude-slot {
@@ -2923,12 +2945,6 @@
     min-width: 0;
 }
 
-#slb-ai-tools .slb-quick-options .slb-translate-book {
-    flex: 0 0 auto;
-    width: max-content;
-    max-width: 100%;
-    margin: 2px 0;
-}
 
 #slb-ai-tools .slb-quick-options .slb-bulk-status {
     min-width: 0;
@@ -3259,7 +3275,7 @@
         "title-left title-right"
         "control-left control-right"
         "exclude exclude" !important;
-    grid-template-rows: 24px var(--slb-filter-slot-height) 28px !important;
+    grid-template-rows: auto var(--slb-filter-slot-height) 28px !important;
 }
 
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] > .slb-filter-exclude-slot {
@@ -3291,7 +3307,7 @@
 
 @media (max-width: 760px) {
     #WorldInfo.slb-active .slb-panel[data-panel="filter"] > .slb-filter-grid[data-slb-filter-layout="slots-v1"] {
-        grid-template-rows: 24px var(--slb-filter-slot-height) 28px !important;
+        grid-template-rows: auto var(--slb-filter-slot-height) 28px !important;
     }
 }
 
@@ -3391,8 +3407,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 12px;
-    margin: 6px 0;
+    gap: 5px 8px;
+    margin: 2px 0 4px;
     color: var(--SmartThemeBodyColor);
 }
 
@@ -3400,16 +3416,18 @@
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
-    gap: 6px;
-    min-height: 30px;
+    gap: 5px;
+    box-sizing: border-box;
+    min-height: 27px;
     margin: 0;
-    padding: 4px 8px;
+    padding: 2px 8px;
     border: 1px solid var(--SmartThemeBorderColor, currentColor);
     border-radius: 6px;
     background: transparent;
     color: var(--SmartThemeBodyColor, inherit);
     font: inherit;
-    line-height: 1.2;
+    font-size: 1em;
+    line-height: 1.25;
     cursor: pointer;
     white-space: nowrap;
 }
@@ -3451,10 +3469,11 @@
 #WorldInfo.slb-active .slb-bulk-selection-tools .menu_button {
     box-sizing: border-box;
     width: auto;
+    min-height: 27px;
     margin: 0;
-    padding: 3px 8px;
+    padding: 2px 8px;
     font: inherit;
-    line-height: 1.13;
+    line-height: 1.25;
     white-space: nowrap;
 }
 
@@ -3595,11 +3614,6 @@
     display: none !important;
 }
 
-/* v1.4.84: match the compact automatic-translation options. */
-#WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
-    gap: 6px;
-    line-height: 1.2;
-}
 #slb-ai-tools .slb-translation-display-options { margin: 0 0 8px; }
 #slb-ai-tools .slb-translation-targets > .slb-mobile-display-options { width: 100%; }
 /* Mobile header: preserve the existing clickable state-picker listener, but
@@ -3904,16 +3918,17 @@
     cursor: pointer;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 20px max-content !important;
+    grid-template-columns: auto minmax(0, 1fr) 18px max-content !important;
+    column-gap: 2px;
     align-items: center;
 }
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
     display: inline-flex;
     grid-column: 3;
     grid-row: 1;
-    width: 20px;
-    min-width: 20px;
-    max-width: 20px;
+    width: 18px;
+    min-width: 18px;
+    max-width: 18px;
     height: 30px;
     align-items: center;
     justify-content: center;
@@ -4135,10 +4150,14 @@
   background: transparent;
 }
 #WorldInfo.slb-active .slb-lore-info-icon {
-  display: inline-block;
-  margin-inline-start: 5px;
-  font-size: 0.85em;
-  opacity: 0.7;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: 2px;
+  font-size: 0.9em;
+  line-height: 1;
+  opacity: 0.75;
   cursor: help;
   vertical-align: middle;
 }
@@ -4245,10 +4264,11 @@
 #slb-ai-tools .slb-quick-options .slb-translate-book {
     display: inline-flex;
     flex: 0 0 auto;
-    width: auto;
-    min-width: 0;
+    width: max-content;
+    max-width: 100%;
+    min-width: min(180px, 100%);
     min-height: 32px;
-    padding: 5px 8px;
+    padding: 5px 12px;
     align-items: center;
     justify-content: center;
     gap: 6px;
