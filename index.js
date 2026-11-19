@@ -16,10 +16,12 @@ import { getCharaFilename, select2ModifyOptions } from '../../../utils.js';
 import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js';
 import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
+import { createTranslationFallbackLookup } from './translation-lookup.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.85-ambasa.4';
+const translationFallbackLookup = createTranslationFallbackLookup();
+const VERSION = '1.4.85-ambasa.5';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -1207,7 +1209,12 @@ function saveEntryLanguagePair(book, uid, sourceLanguage, translationLanguage) {
     const pair = source === translation
         ? { sourceLanguage: source, translationLanguage: oppositeEntryLanguage(source) }
         : { sourceLanguage: source, translationLanguage: translation };
-    getSettings().entryLanguagePairs[translationKey(book, uid)] = pair;
+    const settings = getSettings();
+    const key = translationKey(book, uid);
+    const previous = settings.entryLanguagePairs[key];
+    if (previous?.sourceLanguage === pair.sourceLanguage
+        && previous?.translationLanguage === pair.translationLanguage) return pair;
+    settings.entryLanguagePairs[key] = pair;
     saveSettingsDebounced();
     return pair;
 }
@@ -1271,15 +1278,16 @@ function findTranslationRecord(book, uid, source, translationLanguage) {
     if (exact && exact.language === translationLanguage) return exact;
 
     const sourceHash = hashText(source);
-    const fallback = Object.values(settings.translations).find(record => (
-        record
-        && String(record.uid) === String(uid)
-        && record.sourceHash === sourceHash
-        && record.language === translationLanguage
-    ));
+    // A missing exact key used to scan every stored translation on each
+    // lookup. Cache that read-only index until the store is changed; no
+    // serialized settings or on-disk records are modified by the cache.
+    const fallback = translationFallbackLookup.find(
+        settings.translations, uid, sourceHash, translationLanguage,
+    );
 
     if (fallback) {
         settings.translations[exactKey] = { ...fallback, book };
+        translationFallbackLookup.invalidate(settings.translations);
         saveSettingsDebounced();
         return settings.translations[exactKey];
     }
@@ -1302,6 +1310,15 @@ function getTranslationReflectionBaseline(record, source, translationLanguage) {
     return record.sourceHash === sourceHash
         ? { text: String(record.text ?? ''), sourceHash, sourceText }
         : { text: '', sourceHash: '', sourceText };
+}
+
+function hasSamePersistedTranslationPayload(previous, next) {
+    if (!previous) return false;
+    // Compare the actual persisted properties except its change timestamp.
+    // Missing or legacy fields should still follow the normal save path.
+    const nextKeys = new Set(Object.keys(next));
+    if (Object.keys(previous).some(key => key !== 'updatedAt' && !nextKeys.has(key))) return false;
+    return Object.entries(next).every(([key, value]) => key === 'updatedAt' || previous[key] === value);
 }
 
 function saveTranslationRecord(book, uid, source, translation, options = {}) {
@@ -1331,8 +1348,14 @@ function saveTranslationRecord(book, uid, source, translation, options = {}) {
         record.syncedText = String(baseline?.text ?? '');
         record.syncedSourceHash = String(baseline?.sourceHash ?? '');
     }
+    const pair = settings.entryLanguagePairs[key];
+    if (hasSamePersistedTranslationPayload(previous, record)
+        && pair?.sourceLanguage === sourceLanguage && pair?.translationLanguage === translationLanguage) {
+        return; // Re-rendering or identical AI output must not rewrite 600KB+ settings.
+    }
     settings.translations[key] = record;
     settings.entryLanguagePairs[key] = { sourceLanguage, translationLanguage };
+    translationFallbackLookup.invalidate(settings.translations);
     saveSettingsDebounced();
     scheduleAutomaticLorebookBackup(book);
 }
@@ -2457,6 +2480,7 @@ function replaceLorebookTranslations(book, records) {
             settings.entryLanguagePairs[key] = { sourceLanguage, translationLanguage };
         }
     }
+    translationFallbackLookup.invalidate(settings.translations);
     saveSettingsDebounced();
 }
 
@@ -3564,6 +3588,16 @@ function saveMetadataTranslations(book, uid, pair, sources, results) {
     const settings = getSettings();
     const key = translationKey(book, uid);
     const previous = settings.translations[key];
+    const savedPair = settings.entryLanguagePairs[key];
+    if (previous?.book === book && String(previous.uid) === String(uid)
+        && previous.sourceLanguage === pair.sourceLanguage
+        && previous.language === pair.translationLanguage
+        && savedPair?.sourceLanguage === pair.sourceLanguage
+        && savedPair?.translationLanguage === pair.translationLanguage
+        && fields.every(field => previous.fields?.[field]?.source === sources[field]
+            && previous.fields?.[field]?.text === results[field])) {
+        return; // No new translation data, so no timestamp, save, or backup.
+    }
     const record = previous?.language === pair.translationLanguage ? { ...previous } : {
         book, uid: String(uid), sourceLanguage: pair.sourceLanguage,
         language: pair.translationLanguage, text: '', sourceHash: '',
@@ -3573,6 +3607,7 @@ function saveMetadataTranslations(book, uid, pair, sources, results) {
     record.updatedAt = Date.now();
     settings.translations[key] = record;
     settings.entryLanguagePairs[key] = { ...pair };
+    translationFallbackLookup.invalidate(settings.translations);
     saveSettingsDebounced();
     scheduleAutomaticLorebookBackup(book);
 }
@@ -3779,6 +3814,7 @@ async function deleteSelectedEntries(selection) {
         delete settings.translations[key];
         delete settings.entryLanguagePairs[key];
     }
+    translationFallbackLookup.invalidate(settings.translations);
     saveSettingsDebounced();
     if (currentBookName() === selection.book) {
         state.currentBookData = data;

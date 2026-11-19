@@ -17,6 +17,7 @@ function fixture() {
     const events = [], requests = [], rows = [];
     let translate = async source => `translated ${source}`;
     let save = async () => { events.push('save'); };
+    let debounceCalls = 0, backupCalls = 0;
     const context = vm.createContext({
         console: { warn() {} }, clearTimeout, document: dom.window.document,
         state: { sourceTimers: new Map(), translationTimers: new Map(), bulkTranslation: null },
@@ -26,14 +27,21 @@ function fixture() {
         loadWorldInfo: async () => data, currentBookName: () => book, getSettings: () => settings,
         saveWorldInfo: (...args) => save(...args),
         deleteWIOriginalDataValue: (data, uid) => { data.originalData.entries = data.originalData.entries.filter(e => String(e.uid) !== uid); },
-        saveSettingsDebounced: () => {}, saveSettings: async () => {},
+        saveSettingsDebounced: () => { debounceCalls++; }, saveSettings: async () => {},
+        translationFallbackLookup: {
+            find: (records, uid, hash, language) => Object.values(records).find(record =>
+                record && String(record.uid) === String(uid) &&
+                record.sourceHash === hash && record.language === language) ?? null,
+            invalidate() {},
+        },
         renderedEntries: () => rows, getUid: row => row.dataset.uid,
         worldInfoFilter: { onDataChanged: () => events.push('redraw') }, renderTokenSummary() {},
         notify: (...args) => events.push(args), updateBulkTranslationStatus() {},
         translationKey: key, canTranslate: () => true, entryLanguageBadge: language => language,
         jQuery: makeJQuery(dom.window), setTimeout, getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
         entryData: uid => data.entries[uid],
-        updateNavigatorEntry() {}, scheduleSourceTranslation() {}, scheduleAutomaticLorebookBackup() {},
+        updateNavigatorEntry() {}, scheduleSourceTranslation() {},
+        scheduleAutomaticLorebookBackup() { backupCalls++; },
         hashText: text => text, normalizeEntryLanguage: value => value,
         oppositeEntryLanguage: () => 'ko', ENTRY_LANGUAGE_ENGLISH: 'en',
         createElement: (tag, className, text) => { const el = dom.window.document.createElement(tag); el.className = className; el.textContent = text || ''; return el; },
@@ -41,7 +49,7 @@ function fixture() {
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
 
     });
-    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'saveTranslationRecord', 'findTranslationRecord', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'deleteSelectedEntries', 'translateCurrentLorebook', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
@@ -53,7 +61,9 @@ function fixture() {
     }
     return { context, data, settings, events, requests, ui, selection: { book: 'A', uids: ['0', '2', '3'] },
         confirm: handler => { confirm = handler; }, translate: handler => { translate = handler; },
-        save: handler => { save = handler; }, invalidate: () => { current = false; }, switchBook: () => { book = 'B'; }, close: () => dom.window.close() };
+        save: handler => { save = handler; }, invalidate: () => { current = false; }, switchBook: () => { book = 'B'; },
+        counters: () => ({ debounceCalls, backupCalls }),
+        close: () => dom.window.close() };
 }
 
 test('delete requires explicit confirmation and aborts if selection changes during confirmation', async () => {
@@ -579,4 +589,79 @@ test('translated titles never mirror pixel heights or subscribe to resize observ
         assert.equal(source.value, 'Long title wrapping on several lines');
         assert.equal(view.value, '길고 긴 번역 제목');
     } finally { f.close(); }
+});
+
+test('identical body translations do not reschedule full settings saves or backups', () => {
+    const f=fixture();
+    try {
+        const options={markSynced:true,sourceLanguage:'en',translationLanguage:'ko'};
+        f.context.saveTranslationRecord('A',0,'Original paragraph','Translated paragraph',options);
+        const first=f.settings.translations['A:0'];
+        assert.equal(first.text,'Translated paragraph');
+        assert.deepEqual(f.counters(),{debounceCalls:1,backupCalls:1});
+        f.context.saveTranslationRecord('A',0,'Original paragraph','Translated paragraph',options);
+        assert.equal(f.settings.translations['A:0'],first,'exact record remains stable');
+        assert.deepEqual(f.counters(),{debounceCalls:1,backupCalls:1});
+        assert.equal(f.settings.translations['A:0'].syncedSourceText,'Original paragraph');
+        f.context.saveTranslationRecord('A',0,'Original paragraph','Changed translation',options);
+        assert.notEqual(f.settings.translations['A:0'],first);
+        assert.deepEqual(f.counters(),{debounceCalls:2,backupCalls:2});
+        assert.equal(f.settings.translations['A:0'].text,'Changed translation');
+    } finally { f.close(); }
+});
+
+test('identical metadata translations preserve the record and avoid full settings saves', () => {
+    const f=fixture();
+    try {
+        const pair={sourceLanguage:'en',translationLanguage:'ko'};
+        const sources={comment:'Original Title',key:'Some Keyword',keysecondary:'Other'};
+        const results={comment:'번역 제목',key:'번역 키워드'};
+        f.context.saveMetadataTranslations('A',0,pair,sources,results);
+        const first=f.settings.translations['A:0'];
+        assert.equal(first.fields.comment.text,'번역 제목');
+        assert.deepEqual(f.counters(),{debounceCalls:1,backupCalls:1});
+        f.context.saveMetadataTranslations('A',0,pair,sources,results);
+        assert.equal(f.settings.translations['A:0'],first);
+        assert.deepEqual(f.counters(),{debounceCalls:1,backupCalls:1});
+        f.context.saveMetadataTranslations('A',0,pair,sources,{comment:'수정된 제목'});
+        assert.equal(f.settings.translations['A:0'].fields.comment.text,'수정된 제목');
+        assert.equal(f.settings.translations['A:0'].fields.key.text,'번역 키워드');
+        assert.deepEqual(f.counters(),{debounceCalls:2,backupCalls:2});
+    } finally { f.close(); }
+});
+
+test('unsynced and synced translation baselines remain distinct despite no-op detection', () => {
+    const f=fixture();
+    try {
+        const opt={markSynced:true,sourceLanguage:'en',translationLanguage:'ko'};
+        f.context.saveTranslationRecord('A',0,'Source','Korean',opt);
+        const synced=f.settings.translations['A:0'];
+        f.context.saveTranslationRecord('A',0,'Source','Korean',{
+            baseline:{text:'',sourceHash:'',sourceText:'Source'},
+            sourceLanguage:'en',translationLanguage:'ko',
+        });
+        const unsynced=f.settings.translations['A:0'];
+        assert.notEqual(unsynced,synced,'sync state was persisted');
+        assert.equal(unsynced.syncedText,'');
+        assert.equal(unsynced.syncedSourceHash,'');
+        assert.deepEqual(f.counters(),{debounceCalls:2,backupCalls:2});
+    } finally { f.close(); }
+});
+
+
+test('reselecting an unchanged language direction never queues another full settings save', () => {
+    const f=fixture();
+    try {
+        assert.equal(f.counters().debounceCalls,0);
+        f.context.saveEntryLanguagePair('A',0,'en','ko');
+        assert.equal(f.settings.entryLanguagePairs['A:0'].sourceLanguage,'en');
+        assert.equal(f.settings.entryLanguagePairs['A:0'].translationLanguage,'ko');
+        assert.equal(f.counters().debounceCalls,1);
+        f.context.saveEntryLanguagePair('A',0,'en','ko');
+        assert.equal(f.counters().debounceCalls,1,'same direction should not re-save');
+        f.context.saveEntryLanguagePair('A',0,'ko','en');
+        assert.equal(f.settings.entryLanguagePairs['A:0'].sourceLanguage,'ko');
+        assert.equal(f.settings.entryLanguagePairs['A:0'].translationLanguage,'en');
+        assert.equal(f.counters().debounceCalls,2);
+    } finally {f.close();}
 });
