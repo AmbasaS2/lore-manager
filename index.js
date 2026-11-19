@@ -12,7 +12,7 @@ import { getTokenCountAsync } from '../../../tokenizers.js';
 import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, world_names, selected_world_info, world_info, world_info_position } from '../../../world-info.js';
 import { Popup, POPUP_TYPE, POPUP_RESULT } from '../../../popup.js';
 import { isMobile } from '../../../RossAscends-mods.js';
-import { getCharaFilename, select2ModifyOptions } from '../../../utils.js';
+import { getCharaFilename, select2ModifyOptions, toggleDrawer } from '../../../utils.js';
 import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js';
 import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
@@ -8170,8 +8170,9 @@ function bindNativeSortingHelp() {
 }
 
 function bindCombinedEntryToggle() {
-    // The native controls retain their IDs, event handlers and behavior.
-    // Only one compact themed button is visible in the editor toolbar.
+    // Use the same exported SillyTavern drawer utility as its native buttons,
+    // without ST's per-drawer delay(0) queues. The original buttons and their
+    // listeners remain mounted for other extensions.
     const open = document.getElementById('OpenAllWIEntries');
     const close = document.getElementById('CloseAllWIEntries');
     const world = document.getElementById('WorldInfo');
@@ -8186,6 +8187,9 @@ function bindCombinedEntryToggle() {
         open.before(button);
     }
     const icon = button.querySelector('i');
+    const drawers = () => document.querySelectorAll('#world_popup_entries_list .inline-drawer');
+    const isExpanded = drawer => drawer.querySelector(':scope > .inline-drawer-header .inline-drawer-icon')
+        ?.classList.contains('up') === true;
     const nextAction = action => {
         button.dataset.slbAction = action;
         const isClose = action === 'close';
@@ -8195,16 +8199,31 @@ function bindCombinedEntryToggle() {
         button.title = label;
         button.setAttribute('aria-label', label);
     };
-    nextAction('close');
+    const syncAction = () => {
+        const expanded = Array.from(drawers()).some(isExpanded);
+        nextAction(expanded ? 'close' : 'open');
+    };
+    syncAction();
     button.dataset.slbBound = 'true';
     button.addEventListener('click', event => {
         event.stopPropagation();
-        (button.dataset.slbAction === 'open' ? open : close).click();
+        const expand = button.dataset.slbAction === 'open';
+        for (const drawer of drawers()) {
+            // An already-correct drawer need not fire another toggle lifecycle.
+            if (isExpanded(drawer) === expand) continue;
+            toggleDrawer(drawer, expand);
+        }
+        nextAction(expand ? 'close' : 'open');
     });
-    // Native callbacks are never replaced or cancelled.
+    // Native buttons are not replaced, so ST and other extensions can still
+    // trigger them. Their original callbacks update the combined action too.
     open.addEventListener('click', () => nextAction('close'));
     close.addEventListener('click', () => nextAction('open'));
-    const reset = () => nextAction('close');
+    const reset = () => {
+        // ST may replace a page's entry DOM after its change handler returns.
+        // A single animation-frame read avoids observing detached old rows.
+        requestAnimationFrame(syncAction);
+    };
     document.getElementById('world_editor_select')?.addEventListener('change', reset);
     document.getElementById('world_refresh')?.addEventListener('click', reset);
     document.getElementById('world_info_pagination')?.addEventListener('click', reset);
