@@ -21,7 +21,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.5';
+const VERSION = '1.4.85-ambasa.6';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -214,40 +214,26 @@ function ensureCriticalLayoutStyles() {
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot>.slb-filter-control,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot select,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot .select2-container,#WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-control-slot .select2-selection--multiple{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:100%!important;max-height:100%!important;margin:0!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot{display:flex!important;grid-area:exclude!important;position:static!important;z-index:auto!important;top:auto!important;left:auto!important;width:100%!important;height:28px!important;padding:0!important;align-items:center!important;justify-content:center!important;background:transparent!important;transform:none!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-exclude-slot>.slb-filter-exclude{display:inline-flex!important;position:static!important;width:max-content!important;height:24px!important;margin:0!important;padding:0!important;align-items:center!important;gap:4px!important;background:transparent!important;font-size:.8em!important;white-space:nowrap!important;transform:none!important}
-#WorldInfo.slb-active .world_entry.slb-compact-entry .slb-panel[data-panel="activation"].is-active>.slb-activation-overview[data-slb-visible="true"]:not(:empty){display:grid!important;visibility:visible!important;opacity:1!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) 18px auto!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{display:inline-flex!important;box-sizing:border-box!important;grid-column:3!important;grid-row:1!important;width:18px!important;min-width:18px!important;max-width:18px!important;height:29px!important;margin:0!important;padding:0!important;align-items:center!important;justify-content:center!important;border:0!important;background:transparent!important;visibility:visible!important;opacity:1!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge:before{content:"";display:block!important;width:12px!important;height:12px!important;border-radius:50%!important;background:linear-gradient(145deg,#73eba4,#2bbd6c)!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="constant"]:before{background:linear-gradient(145deg,#72b8ff,#2563eb)!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="vectorized"]:before{content:"🔗"!important;width:auto!important;height:auto!important;border-radius:0!important;background:none!important;box-shadow:none!important}
-#slb-strategy-picker{display:flex!important;position:absolute!important;top:calc(100% + 4px)!important;right:0!important;left:auto!important;gap:4px!important;padding:5px!important;border-radius:9px!important;background:var(--SmartThemeBlurTintColor,rgba(28,28,32,.96))!important;border:1px solid var(--SmartThemeBorderColor,rgba(255,255,255,.18))!important;box-shadow:0 5px 14px rgba(0,0,0,.32)!important;z-index:9999!important}#slb-strategy-picker .slb-strategy-picker-option{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;font-size:14px!important;border-radius:7px!important;border:1px solid transparent!important;background:transparent!important;cursor:pointer!important;margin:0!important;padding:0!important}#slb-strategy-picker .slb-strategy-picker-option.is-current{border-color:var(--SmartThemeQuoteColor,#8aa)!important;background:rgba(255,255,255,.1)!important}#WorldInfo.slb-active .slb-mobile-entry-state-badge{position:relative!important;overflow:visible!important;cursor:pointer}#WorldInfo.slb-active .slb-mobile-entry-state-badge.slb-picker-open{z-index:10000!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) 28px auto!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{width:28px!important;min-width:28px!important;max-width:28px!important;height:29px!important;align-self:center!important}#WorldInfo.slb-active .slb-mobile-entry-state-badge{position:relative}#WorldInfo.slb-active .slb-mobile-entry-state-badge:after{content:"";position:absolute;inset:3px 1px;border:1px solid var(--SmartThemeBorderColor,rgba(128,128,128,.55));border-radius:7px;pointer-events:none}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) 38px auto!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{width:38px!important;min-width:38px!important;max-width:38px!important;height:29px!important;min-height:29px!important;max-height:29px!important;align-self:center!important;background:#fff!important;border:1px solid var(--SmartThemeBorderColor,rgba(128,96,96,.6))!important;border-radius:9px!important}#WorldInfo.slb-active .slb-mobile-entry-state-badge:after{content:none!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge:before{width:14px!important;height:14px!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="vectorized"]:before{width:auto!important;height:auto!important;font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{text-align:center!important;text-align-last:center!important;font-size:19px!important;line-height:1!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:16px!important;text-align:center!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{background:transparent!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:14px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:14px!important;text-align:center!important;padding:0 2px!important;line-height:normal!important}
+#WorldInfo.slb-active .world_entry.slb-compact-entry .slb-panel[data-panel="activation"].is-active>.slb-activation-overview[data-slb-visible="true"]:not(:empty){display:grid!important;visibility:visible!important;opacity:1!important}#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{text-align:center!important;text-align-last:center!important;font-size:19px!important;line-height:1!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:16px!important;text-align:center!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:15px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:14px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:14px!important;text-align:center!important;padding:0 2px!important;line-height:normal!important}
 #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:13px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:13px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{-webkit-appearance:textfield!important;appearance:textfield!important;-moz-appearance:textfield!important;text-align:center!important;padding:0!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input::-webkit-inner-spin-button{-webkit-appearance:none!important;appearance:none!important;margin:0!important}
 #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field select,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-header-field input{box-sizing:border-box!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:0!important;margin:0!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select{font-size:13px!important;text-align:center!important;text-align-last:center!important;line-height:normal!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-position-field select{font-size:13px!important;padding:0 4px!important}#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-depth-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-order-field input,#WorldInfo.slb-active .world_entry .slb-activation-overview .slb-trigger-field input{font-size:13px!important;line-height:42px!important;text-align:center!important}
 @media(min-width:761px){
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell,#WorldInfo.slb-active .world_entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) max-content!important;justify-content:start!important;column-gap:4px!important;padding-right:4px!important;overflow:visible!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-toggles,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-toggles,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-toggles{grid-column:1!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-grid,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-grid,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-grid{grid-column:2!important;grid-template-columns:minmax(140px,1fr) 54px 118px 38px 50px 68px!important;column-gap:4px!important;justify-content:start!important;width:100%!important;min-width:0!important;max-width:100%!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{display:none!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-actions,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-actions{grid-column:3!important;grid-row:1!important;display:flex!important;flex:0 0 max-content!important;width:max-content!important;min-width:max-content!important;max-width:none!important;justify-self:end!important;align-self:end!important;gap:3px!important;padding:0!important;overflow:visible!important}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions,#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-actions,#WorldInfo.slb-active .world_entry .slb-entry-header-shell>.slb-header-actions{grid-column:3!important;grid-row:1!important;display:flex!important;flex:0 0 max-content!important;width:max-content!important;min-width:max-content!important;max-width:none!important;justify-self:end!important;align-self:center!important;gap:3px!important;padding:0!important;overflow:visible!important}
 #WorldInfo.slb-active .world_entry .slb-header-grid>.slb-header-field>.slb-header-label{width:100%!important;text-align:center!important}
 #WorldInfo.slb-active .world_entry .slb-header-grid>.slb-strategy-field>select,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-position-field>select{text-align:center!important;text-align-last:center!important;padding-inline:4px!important}
 #WorldInfo.slb-active .world_entry .slb-header-grid>.slb-depth-field>input,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-order-field>input,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-trigger-field>input{-webkit-appearance:textfield!important;-moz-appearance:textfield!important;appearance:textfield!important;text-align:center!important;text-align-last:center!important;text-indent:0!important;padding:0!important}
 #WorldInfo.slb-active .world_entry .slb-header-grid>.slb-depth-field>input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-depth-field>input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-order-field>input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-order-field>input::-webkit-inner-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-trigger-field>input::-webkit-outer-spin-button,#WorldInfo.slb-active .world_entry .slb-header-grid>.slb-trigger-field>input::-webkit-inner-spin-button{-webkit-appearance:none!important;appearance:none!important;margin:0!important}
 }
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) 38px auto!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{display:inline-flex!important;box-sizing:border-box!important;grid-column:3!important;grid-row:1!important;width:38px!important;min-width:38px!important;max-width:38px!important;height:29px!important;min-height:29px!important;max-height:29px!important;margin:0!important;padding:0!important;align-items:center!important;justify-content:center!important;visibility:visible!important;opacity:1!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}
-#slb-strategy-picker.slb-picker-up{top:auto!important;bottom:calc(100% + 4px)!important}
 @media(max-width:760px){
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell{grid-template-columns:auto minmax(0,1fr) 18px auto!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid{display:grid!important;box-sizing:border-box!important;grid-column:2!important;grid-row:1!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:29px!important;gap:0!important;align-items:stretch!important;width:100%!important;min-width:0!important}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid{display:grid!important;box-sizing:border-box!important;grid-column:2!important;grid-row:1!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto!important;gap:0!important;align-items:stretch!important;width:100%!important;min-width:0!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid>.slb-title-field{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid>.slb-title-field>.slb-header-label{display:none!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-header-grid>.slb-title-field>textarea{display:block!important;box-sizing:border-box!important;width:100%!important;height:29px!important;min-height:29px!important;max-height:29px!important;margin:0!important;overflow:hidden!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge{display:inline-flex!important;box-sizing:border-box!important;grid-column:3!important;grid-row:1!important;width:18px!important;min-width:18px!important;max-width:18px!important;height:29px!important;margin:0!important;padding:0!important;align-items:center!important;justify-content:center!important;border:0!important;background:transparent!important;visibility:visible!important;opacity:1!important}
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-header-actions{grid-column:4!important;grid-row:1!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge:before{content:"";display:block!important;width:12px!important;height:12px!important;border-radius:50%!important;background:linear-gradient(145deg,#73eba4,#2bbd6c)!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="constant"]:before{background:linear-gradient(145deg,#72b8ff,#2563eb)!important}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell>.slb-mobile-entry-state-badge[data-state="vectorized"]:before{content:"🔗"!important;width:auto!important;height:auto!important;border-radius:0!important;background:none!important;box-shadow:none!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]{grid-template-areas:"title-left title-right" "control-left control-right" "exclude exclude"!important;grid-template-rows:24px var(--slb-slot-h) 28px!important;column-gap:12px!important;padding:0!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"]>.slb-filter-title-slot{height:24px!important;padding:0 2px!important}
 #WorldInfo.slb-active .slb-filter-grid[data-slb-filter-layout="slots-v1"] .slb-filter-title{font-size:clamp(10px,2.45vw,.76em)!important;line-height:1.12!important;white-space:normal!important;overflow-wrap:break-word!important}
@@ -321,46 +307,6 @@ function isFoldyLinkedMode() {
 // 제목 입력창의 실제 배경·테두리 색을 배지에 복사한다.
 // 다크테마 등 테마 CSS가 늦게 적용되거나 무드등으로 실시간 변경되는 경우가
 // 있으므로, 1초 루프에서 반복 호출해 스냅샷이 아닌 라이브 추종으로 만든다.
-function readBadgeThemeColor(entry) {
-    const titleInput = entry.querySelector('.slb-title-field textarea, textarea[name="comment"]');
-    if (!titleInput) return null;
-    const titleStyle = getComputedStyle(titleInput);
-    return {
-        backgroundColor: titleStyle.backgroundColor || '',
-        borderColor: titleStyle.borderColor || '',
-    };
-}
-
-function applyBadgeThemeColor(entry, badge, theme = null) {
-    if (!badge) return;
-    const colors = theme || readBadgeThemeColor(entry);
-    if (!colors) return;
-    if (colors.backgroundColor && badge.dataset.slbBg !== colors.backgroundColor) {
-        badge.dataset.slbBg = colors.backgroundColor;
-        badge.style.setProperty('background-color', colors.backgroundColor, 'important');
-    }
-    if (colors.borderColor && badge.dataset.slbBorder !== colors.borderColor) {
-        badge.dataset.slbBorder = colors.borderColor;
-        badge.style.setProperty('border-color', colors.borderColor, 'important');
-    }
-}
-
-function refreshBadgeThemeColors(entries = renderedEntries()) {
-    if (!getSettings().showMobileEntryState) return;
-    // 모든 제목 입력창은 보통 같은 테마 규칙을 쓴다. 클래스와 인라인
-    // 스타일이 같은 입력은 계산된 색도 같으므로 한 번만 읽어 공유한다.
-    // 서로 다른 사용자 스타일이 있는 경우에는 그 조합만 별도로 읽는다.
-    const themeByStyle = new Map();
-    for (const entry of entries) {
-        const badge = entry.querySelector('.slb-mobile-entry-state-badge');
-        const titleInput = entry.querySelector('.slb-title-field textarea, textarea[name="comment"]');
-        if (!badge || !titleInput) continue;
-        const styleKey = `${titleInput.tagName}\u241f${titleInput.className}\u241f${titleInput.getAttribute('style') || ''}`;
-        if (!themeByStyle.has(styleKey)) themeByStyle.set(styleKey, readBadgeThemeColor(entry));
-        applyBadgeThemeColor(entry, badge, themeByStyle.get(styleKey));
-    }
-}
-
 function syncCompactStrategyIcon(entry, value) {
     // Keep the *original* SillyTavern select and event listeners. This is only
     // a small visual representation, never a second input or a custom saver.
@@ -375,12 +321,13 @@ function syncCompactStrategyIcon(entry, value) {
         field.append(icon);
     }
     const current = ['normal', 'constant', 'vectorized'].includes(value) ? value : 'normal';
-    field.dataset.slbState = current;
-    icon.className = 'slb-strategy-icon fa-solid ' + (current === 'vectorized' ? 'fa-link' : 'fa-circle');
+    if (field.dataset.slbState !== current) field.dataset.slbState = current;
+    const iconClass = 'slb-strategy-icon fa-solid ' + (current === 'vectorized' ? 'fa-link' : 'fa-circle');
+    if (icon.className !== iconClass) icon.className = iconClass;
     select.setAttribute('aria-label', '로어북 주입 방식');
 }
 
-function syncMobileEntryStateBadge(entry, syncTheme = true) {
+function syncMobileEntryStateBadge(entry, _syncTheme = true) {
     if (!entry) return;
     const shell = entry.querySelector('.slb-entry-header-shell');
     if (!shell) return;
@@ -411,8 +358,21 @@ function syncMobileEntryStateBadge(entry, syncTheme = true) {
             : data?.vectorized
                 ? 'vectorized'
                 : 'normal';
-    badge.dataset.state = value;
+    if (badge.dataset.state !== value) badge.dataset.state = value;
     syncCompactStrategyIcon(entry, value);
+    // A single Font Awesome node replaces the decorative gradient and emoji
+    // pseudo-elements; theme colors are resolved by CSS without layout reads.
+    let symbol = badge.querySelector(':scope > .slb-state-symbol');
+    if (!symbol) {
+        symbol = createElement('i', 'fa-solid slb-state-symbol');
+        symbol.setAttribute('aria-hidden', 'true');
+        badge.prepend(symbol);
+    }
+    const glyph = value === 'vectorized' ? 'fa-link' : value === 'constant' ? 'fa-circle-dot' : 'fa-circle';
+    if (!symbol.classList.contains(glyph)) {
+        symbol.classList.remove('fa-link', 'fa-circle', 'fa-circle-dot');
+        symbol.classList.add(glyph);
+    }
     // The strategy picker lives inside the badge so it can stay anchored to
     // the badge without fragile viewport coordinates.  A delayed responsive
     // stabilization can run between a mobile pointerdown and click; clearing
@@ -420,17 +380,19 @@ function syncMobileEntryStateBadge(entry, syncTheme = true) {
     // before the click was delivered.  Clear only stray badge content and
     // preserve the active picker until its own selection handler closes it.
     for (const child of Array.from(badge.childNodes)) {
-        if (child instanceof Element && child.id === 'slb-strategy-picker') continue;
+        if (child instanceof Element && (child.id === 'slb-strategy-picker'
+            || child.classList.contains('slb-state-symbol'))) continue;
         child.remove();
     }
-    if (syncTheme) applyBadgeThemeColor(entry, badge);
-    badge.title = (value === 'constant'
+    const tooltip = (value === 'constant'
         ? '상시 주입'
         : value === 'vectorized'
             ? '벡터화'
             : '선택 주입') + ' · 탭하여 변경';
-    badge.setAttribute('aria-label', badge.title);
-    badge.setAttribute('role', 'button');
+    if (badge.title !== tooltip) badge.title = tooltip;
+    if (badge.getAttribute('aria-label') !== tooltip) badge.setAttribute('aria-label', tooltip);
+    if (badge.getAttribute('role') !== 'button') badge.setAttribute('role', 'button');
+    if (badge.getAttribute('tabindex') !== '0') badge.setAttribute('tabindex', '0');
 
     if (!badge.dataset.slbTapBound) {
         badge.dataset.slbTapBound = '1';
@@ -442,6 +404,12 @@ function syncMobileEntryStateBadge(entry, syncTheme = true) {
             openStrategyPicker(entry, badge);
         });
         badge.addEventListener('pointerdown', event => event.stopPropagation());
+        badge.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            event.stopPropagation();
+            openStrategyPicker(entry, badge);
+        });
     }
 }
 
@@ -494,17 +462,23 @@ function openStrategyPicker(entry, badge) {
     const closeIfCurrent = () => {
         if (document.getElementById('slb-strategy-picker') === picker) closeStrategyPicker();
     };
-    for (const [value, label, title] of [
-        ['constant', '🔵', '상시 주입'],
-        ['normal', '🟢', '선택 주입'],
-        ['vectorized', '🔗', '벡터화'],
+    for (const [value, glyph, title] of [
+        ['constant', 'fa-circle-dot', '상시 주입'],
+        ['normal', 'fa-circle', '선택 주입'],
+        ['vectorized', 'fa-link', '벡터화'],
     ]) {
-        const option = createElement('button', 'slb-strategy-picker-option');
+        // Keep the existing selection/save handlers; use themed native buttons
+        // and icon-only labels instead of separate colored emoji tiles.
+        const option = createElement('button', 'menu_button slb-strategy-picker-option');
         option.type = 'button';
-        option.textContent = label;
+        const icon = createElement('i', 'fa-solid slb-picker-glyph ' + glyph);
+        icon.setAttribute('aria-hidden', 'true');
+        option.append(icon);
         option.title = title;
         option.dataset.strategy = value;
         option.setAttribute('aria-label', title);
+        option.setAttribute('role', 'menuitemradio');
+        option.setAttribute('aria-checked', String(current === value));
         if (current === value) option.classList.add('is-current');
         const commit = event => {
             if (event.type === 'pointerup' && event.button != null && event.button !== 0) return;
@@ -515,6 +489,7 @@ function openStrategyPicker(entry, badge) {
                 applyEntryStrategy(entry, value);
                 picker.querySelectorAll('.slb-strategy-picker-option').forEach(item => {
                     item.classList.toggle('is-current', item === option);
+                    item.setAttribute('aria-checked', String(item === option));
                 });
             }
 
@@ -540,10 +515,6 @@ function openStrategyPicker(entry, badge) {
     // 테마나 ST 조상 요소의 transform에 영향받는 fixed 좌표 계산을 쓰지 않는다.
     // 클릭한 배지를 위치 기준으로 삼아 피커를 항상 배지 바로 아래에 붙인다.
     badge.classList.add('slb-picker-open');
-    picker.style.position = 'absolute';
-    picker.style.top = 'calc(100% + 4px)';
-    picker.style.right = '0';
-    picker.style.left = 'auto';
     for (const type of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup', 'click']) {
         picker.addEventListener(type, event => event.stopPropagation());
     }
@@ -605,7 +576,6 @@ function applyMobileDisplaySettings(syncEntries = true) {
     // 색상 계산은 항목마다 강제로 하지 않고 같은 테마끼리 한 번만 읽는다.
     const entries = renderedEntries();
     entries.forEach(entry => syncMobileEntryStateBadge(entry, false));
-    refreshBadgeThemeColors(entries);
 }
 
 function notify(message, type = 'info') {
@@ -3124,11 +3094,10 @@ function createAIBar() {
     bar.innerHTML = `
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b><i class="fa-solid fa-book" aria-hidden="true"></i> 로어북 매니저</b>
+                <b class="slb-extension-title"><i class="fa-solid fa-book" aria-hidden="true"></i><span>로어북 매니저</span></b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content" style="display: none;">
-                <p class="slb-settings-intro">필요한 설정만 펼쳐서 변경할 수 있습니다.</p>
                 <details class="slb-settings-card slb-translation-settings" open>
                     <summary><span><i class="fa-solid fa-language" aria-hidden="true"></i> 번역 설정</span><small>방식 · 지시문</small></summary>
                     <div class="slb-settings-card-body">
@@ -7689,7 +7658,6 @@ function enhanceAll() {
         // 현재 페이지의 헤더가 모두 완성된 순간 먼저 공개한다. 브라우저가
         // 이 상태를 실제로 그릴 수 있도록 상세 편집기 변환은 다음 프레임부터
         // 수행한다.
-        if (freshHeaderPass) refreshBadgeThemeColors(entries);
         listRevealed = revealCompletedEntryList(bookAtStart, entries, freshHeadersVerified);
         if (listRevealed && freshHeaderPass && !narrowLayout) {
             scheduleInitialResponsiveGroupValidation(bookAtStart, entries);
@@ -8012,7 +7980,6 @@ function init() {
         // No visible lore editor means no per-second DOM walk is necessary.
         if (!isWorldInfoDrawerOpen()) return;
         enforceActivationOverviewIntegrity();
-        refreshBadgeThemeColors();
         syncLiveEditorTokens();
     }, 1000);
     console.info(`[로어북 매니저] v${VERSION} initialized`);

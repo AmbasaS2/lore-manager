@@ -3702,9 +3702,6 @@
 
 /* The badge node exists on every layout, but desktop always keeps it out of
    layout. Only the explicitly enabled mobile rule below can display it. */
-#WorldInfo.slb-active .slb-mobile-entry-state-badge {
-    display: none !important;
-}
 
 @media (max-width: 760px) {
     #WorldInfo.slb-active.slb-mobile-token-summary-hidden #slb-token-summary-section,
@@ -3717,7 +3714,7 @@
         .slb-header-title-only {
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) auto !important;
-        grid-template-rows: 29px !important;
+        grid-template-rows: auto !important;
         gap: 5px !important;
         align-items: stretch !important;
     }
@@ -3729,59 +3726,6 @@
         grid-column: 1 !important;
         grid-row: 1 !important;
         min-width: 0 !important;
-    }
-
-    #WorldInfo.slb-active.slb-mobile-entry-state-enabled
-        .world_entry.slb-compact-entry
-        .slb-mobile-entry-state-badge {
-        display: inline-flex !important;
-        box-sizing: border-box;
-        grid-column: 2 !important;
-        grid-row: 1 !important;
-        width: 18px;
-        min-width: 18px;
-        height: 29px;
-        margin: 0;
-        padding: 0;
-        align-items: center;
-        justify-content: center;
-        border: 0;
-        background: transparent;
-        font-size: clamp(9px, 2.35vw, 0.72em);
-        line-height: 1;
-        white-space: nowrap;
-        word-break: keep-all;
-    }
-
-    #WorldInfo.slb-active.slb-mobile-entry-state-enabled
-        .world_entry.slb-compact-entry
-        .slb-mobile-entry-state-badge::before {
-        content: '';
-        display: block;
-        flex: 0 0 auto;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: linear-gradient(145deg, #73eba4, #2bbd6c);
-        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-    }
-
-    #WorldInfo.slb-active.slb-mobile-entry-state-enabled
-        .world_entry.slb-compact-entry
-        .slb-mobile-entry-state-badge[data-state="constant"]::before {
-        background: linear-gradient(145deg, #72b8ff, #2563eb);
-    }
-
-    #WorldInfo.slb-active.slb-mobile-entry-state-enabled
-        .world_entry.slb-compact-entry
-        .slb-mobile-entry-state-badge[data-state="vectorized"]::before {
-        content: '\1F517';
-        width: auto;
-        height: auto;
-        border-radius: 0;
-        background: none;
-        box-shadow: none;
-        font-size: 1em;
     }
 }
 
@@ -3926,32 +3870,6 @@
 
 /* v1.4.12 — Strategy 배지를 뷰포트가 아닌 컴팩트 헤더 상태에 연동
    (데스크톱 모드 브라우저에서도 제목만 보이는 행이면 표시) */
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled
-    .world_entry.slb-compact-entry
-    .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 18px auto !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled
-    .world_entry.slb-compact-entry
-    .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    display: inline-flex !important;
-    box-sizing: border-box !important;
-    grid-column: 3 !important;
-    grid-row: 1 !important;
-    width: 18px !important;
-    min-width: 18px !important;
-    max-width: 18px !important;
-    height: 29px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 0 !important;
-    background: transparent !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
 
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled
     .world_entry.slb-compact-entry
@@ -3960,146 +3878,14 @@
     grid-row: 1 !important;
 }
 
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled
-    .world_entry.slb-compact-entry
-    .slb-entry-header-shell > .slb-mobile-entry-state-badge:before {
-    content: "";
-    display: block !important;
-    width: 12px !important;
-    height: 12px !important;
-    border-radius: 50% !important;
-    background: linear-gradient(145deg, #73eba4, #2bbd6c) !important;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12) !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled
-    .world_entry.slb-compact-entry
-    .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="constant"]:before {
-    background: linear-gradient(145deg, #72b8ff, #2563eb) !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled
-    .world_entry.slb-compact-entry
-    .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="vectorized"]:before {
-    content: "🔗" !important;
-    width: auto !important;
-    height: auto !important;
-    border-radius: 0 !important;
-    background: none !important;
-    box-shadow: none !important;
-}
-
 
 /* v1.4.15 — 배지 탭 주입 방식 피커 */
-#slb-strategy-picker {
-    display: flex;
-    position: absolute !important;
-    top: calc(100% + 4px) !important;
-    right: 0 !important;
-    left: auto !important;
-    gap: 4px;
-    padding: 5px;
-    border-radius: 9px;
-    background: var(--SmartThemeBlurTintColor, rgba(28, 28, 32, 0.96));
-    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
-    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.32);
-    z-index: 9999;
-}
-
-#slb-strategy-picker .slb-strategy-picker-option {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    font-size: 14px;
-    border-radius: 7px;
-    border: 1px solid transparent;
-    background: transparent;
-    cursor: pointer;
-    margin: 0;
-    padding: 0;
-}
-
-#slb-strategy-picker .slb-strategy-picker-option.is-current {
-    border-color: var(--SmartThemeQuoteColor, #8aa);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-#WorldInfo.slb-active .slb-mobile-entry-state-badge {
-    position: relative !important;
-    overflow: visible !important;
-    cursor: pointer;
-}
-
-#WorldInfo.slb-active .slb-mobile-entry-state-badge.slb-picker-open {
-    z-index: 10000 !important;
-}
 
 
 /* v1.4.16 — Strategy 배지를 라운드 사각형 칩으로 */
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell,
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 28px auto !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge,
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    width: 28px !important;
-    min-width: 28px !important;
-    max-width: 28px !important;
-    height: 29px !important;
-    align-self: center !important;
-}
-
-#WorldInfo.slb-active .slb-mobile-entry-state-badge {
-    position: relative;
-}
-
-#WorldInfo.slb-active .slb-mobile-entry-state-badge:after {
-    content: "";
-    position: absolute;
-    inset: 3px 1px;
-    border: 1px solid var(--SmartThemeBorderColor, rgba(128, 128, 128, 0.55));
-    border-radius: 7px;
-    pointer-events: none;
-}
 
 
 /* v1.4.17 — 배지 칩(제목과 동일 높이·흰 배경) + 호출 조건 상단 타이포 */
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell,
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 38px auto !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge,
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    width: 38px !important;
-    min-width: 38px !important;
-    max-width: 38px !important;
-    height: 29px !important;
-    min-height: 29px !important;
-    max-height: 29px !important;
-    align-self: center !important;
-    background: #fff !important;
-    border: 1px solid var(--SmartThemeBorderColor, rgba(128, 96, 96, 0.6)) !important;
-    border-radius: 9px !important;
-}
-
-#WorldInfo.slb-active .slb-mobile-entry-state-badge:after {
-    content: none !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge:before {
-    width: 14px !important;
-    height: 14px !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="vectorized"]:before {
-    width: auto !important;
-    height: auto !important;
-    font-size: 15px !important;
-}
 
 #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select {
     text-align: center !important;
@@ -4121,10 +3907,6 @@
 
 
 /* v1.4.18 — 배지 배경은 JS가 제목 입력창 색을 복사(테마 자동 추종), 호출 조건 값 축소·정중앙 */
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge,
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    background: transparent !important;
-}
 
 #WorldInfo.slb-active .world_entry .slb-activation-overview .slb-strategy-field select {
     font-size: 15px !important;
@@ -4262,12 +4044,6 @@
         max-width: 100% !important;
     }
 
-    #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge,
-    #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge,
-    #WorldInfo.slb-active .world_entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-        display: none !important;
-    }
-
     #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-header-actions,
     #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry .slb-entry-header-shell > .slb-header-actions,
     #WorldInfo.slb-active .world_entry .slb-entry-header-shell > .slb-header-actions {
@@ -4279,7 +4055,7 @@
         min-width: max-content !important;
         max-width: none !important;
         justify-self: end !important;
-        align-self: end !important;
+        align-self: center !important;
         gap: 3px !important;
         padding: 0 !important;
         overflow: visible !important;
@@ -4323,35 +4099,9 @@
 
 
 /* v1.4.21 — 아래 공간 부족 시 피커를 배지 위로 */
-#slb-strategy-picker.slb-picker-up {
-    top: auto !important;
-    bottom: calc(100% + 4px) !important;
-}
 
 
 /* v1.4.23 — iPad·좁은 데스크톱 패널에서도 컴팩트 행의 Strategy 배지 유지 */
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 38px auto !important;
-}
-
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    display: inline-flex !important;
-    box-sizing: border-box !important;
-    grid-column: 3 !important;
-    grid-row: 1 !important;
-    width: 38px !important;
-    min-width: 38px !important;
-    max-width: 38px !important;
-    height: 29px !important;
-    min-height: 29px !important;
-    max-height: 29px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    align-items: center !important;
-    justify-content: center !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
 
 #WorldInfo.slb-active.slb-mobile-entry-state-enabled .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-header-actions {
     grid-column: 4 !important;
@@ -4942,37 +4692,6 @@
 
 /* Mobile header: preserve the existing clickable state-picker listener, but
    replace the large checkbox-like badge with a small Font Awesome symbol. */
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
-    grid-template-columns: auto minmax(0, 1fr) 22px auto !important;
-}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
-    width: 22px !important;
-    min-width: 22px !important;
-    max-width: 22px !important;
-    height: 29px !important;
-    min-height: 29px !important;
-    max-height: 29px !important;
-    border: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge::before {
-    content: "\f111" !important;
-    display: inline-block !important;
-    width: auto !important;
-    height: auto !important;
-    font: 900 13px/1 "Font Awesome 6 Free" !important;
-    color: #35ad68 !important;
-    background: none !important;
-    box-shadow: none !important;
-}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="constant"]::before {
-    color: #438fea !important;
-}
-#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge[data-state="vectorized"]::before {
-    content: "\f0c1" !important;
-    color: var(--SmartThemeBodyColor, currentColor) !important;
-}
 
 /* Native and Select2 selection lists: hide only unrelated options, never
    delete options, change selected values or reinitialize Select2. */
@@ -4989,14 +4708,6 @@
     padding: 7px;
     background: transparent;
     border-color: transparent;
-}
-
-#slb-ai-tools .slb-settings-intro {
-    margin: 0 0 3px;
-    padding-inline: 4px;
-    font-size: 0.84em;
-    line-height: 1.45;
-    opacity: 0.72;
 }
 
 #slb-ai-tools .slb-settings-card {
@@ -5237,4 +4948,176 @@
     .slb-entry-header-shell > .slb-header-grid:not(.slb-header-title-only):has(.slb-title-field:not(.slb-field-original-hidden)) {
         grid-template-rows: 22px minmax(32px, auto) auto !important;
     }
+}
+
+
+/* AmbasaS2: theme-native controls, not per-entry JS color snapshots. */
+#slb-ai-tools .inline-drawer-toggle .slb-extension-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    line-height: 1.3;
+}
+#slb-ai-tools .inline-drawer-toggle .slb-extension-title > i {
+    flex: 0 0 auto;
+    font-size: 0.95em;
+}
+#slb-ai-tools .slb-settings-card {
+    color: var(--SmartThemeBodyColor, inherit);
+    border-color: var(--SmartThemeBorderColor, currentColor);
+    background: transparent;
+}
+#slb-ai-tools .slb-settings-card > summary:hover {
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 8%, transparent);
+}
+
+/* The full header row follows the content height of the title. */
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-entry-header-shell {
+    align-items: center;
+    grid-auto-rows: minmax(32px, auto);
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-toggles,
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-actions {
+    align-self: center !important;
+    margin-top: 0 !important;
+    padding-bottom: 0;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-grid.slb-header-title-only {
+    grid-template-rows: auto !important;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-title-only .slb-title-field {
+    grid-template-rows: auto !important;
+}
+
+/* Reuse original ST action nodes and click handlers; icon buttons receive
+   their foreground and hover colors from active theme variables. */
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-actions > .menu_button {
+    color: var(--SmartThemeBodyColor, inherit);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    border-radius: 5px;
+    padding-inline: 3px;
+    align-self: center;
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-actions > .menu_button:hover,
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-actions > .menu_button:focus-visible {
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 13%, transparent);
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-actions > .menu_button:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
+    outline-offset: -2px;
+}
+
+/* One state glyph; no gradients, white chips or inline CSS. */
+#WorldInfo.slb-active .slb-mobile-entry-state-badge {
+    display: none;
+    position: relative;
+    overflow: visible;
+    cursor: pointer;
+    color: var(--SmartThemeBodyColor, inherit);
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell {
+    grid-template-columns: auto minmax(0, 1fr) 26px auto !important;
+    align-items: center;
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-mobile-entry-state-badge {
+    display: inline-flex !important;
+    grid-column: 3;
+    grid-row: 1;
+    width: 26px;
+    min-width: 26px;
+    max-width: 26px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    justify-self: center;
+    align-self: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 5px;
+}
+#WorldInfo.slb-active.slb-mobile-entry-state-enabled #world_popup_entries_list .world_entry.slb-compact-entry .slb-entry-header-shell > .slb-header-actions {
+    grid-column: 4;
+    grid-row: 1;
+    align-self: center !important;
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge .slb-state-symbol {
+    font-size: 13px;
+    line-height: 1;
+    pointer-events: none;
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="normal"] .slb-state-symbol,
+#slb-strategy-picker .slb-strategy-picker-option[data-strategy="normal"] .slb-picker-glyph {
+    color: var(--SmartThemeEmColor, var(--SmartThemeQuoteColor, currentColor));
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="constant"] .slb-state-symbol,
+#slb-strategy-picker .slb-strategy-picker-option[data-strategy="constant"] .slb-picker-glyph {
+    color: var(--SmartThemeQuoteColor, currentColor);
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge[data-state="vectorized"] .slb-state-symbol,
+#slb-strategy-picker .slb-strategy-picker-option[data-strategy="vectorized"] .slb-picker-glyph {
+    color: var(--SmartThemeBodyColor, inherit);
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge:hover,
+#WorldInfo.slb-active .slb-mobile-entry-state-badge:focus-visible {
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 12%, transparent);
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
+    outline-offset: 0;
+}
+#WorldInfo.slb-active .slb-mobile-entry-state-badge.slb-picker-open {
+    z-index: 10000;
+}
+
+/* Native-themed menu buttons with Font Awesome glyphs. */
+#slb-strategy-picker {
+    display: flex;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    left: auto;
+    gap: 4px;
+    padding: 5px;
+    z-index: 9999;
+    border: 1px solid var(--SmartThemeBorderColor, currentColor);
+    border-radius: 7px;
+    background: var(--SmartThemeBlurTintColor, var(--SmartThemeBackgroundColor, #fff));
+    color: var(--SmartThemeBodyColor, inherit);
+}
+#slb-strategy-picker.slb-picker-up {
+    top: auto;
+    bottom: calc(100% + 4px);
+}
+#slb-strategy-picker .slb-strategy-picker-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    color: var(--SmartThemeBodyColor, inherit);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    box-shadow: none;
+    cursor: pointer;
+}
+#slb-strategy-picker .slb-strategy-picker-option:hover,
+#slb-strategy-picker .slb-strategy-picker-option:focus-visible {
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 12%, transparent);
+}
+#slb-strategy-picker .slb-strategy-picker-option.is-current {
+    border-color: var(--SmartThemeQuoteColor, currentColor);
+}
+#slb-strategy-picker .slb-strategy-picker-option .slb-picker-glyph {
+    pointer-events: none;
 }
