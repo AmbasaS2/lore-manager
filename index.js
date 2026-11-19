@@ -19,7 +19,7 @@ import { createLorebookBulkEditor } from './bulk-edit.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
-const VERSION = '1.4.85-ambasa.2';
+const VERSION = '1.4.85-ambasa.3';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -104,6 +104,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     showMobileTokenSummary: true,
     showMobileEntryFilters: true,
     hideOriginalWhenTranslated: false,
+    showOriginalMetadataWithTranslation: false,
     managerMode: MANAGER_MODE_STANDARD,
     autoBackupEnabled: true,
     translateMissingOnOpen: true,
@@ -3127,7 +3128,8 @@ function createAIBar() {
                     <small>번역본을 수정해도 실제 로어북의 제목과 호출 키워드는 유지됩니다.</small>
                 </fieldset>
                 <div class="slb-mobile-display-options slb-translation-display-options">
-                    <label><input type="checkbox" id="slb-hide-translated-source"> 번역본이 있을 때 원문 숨기기</label>
+                    <label><input type="checkbox" id="slb-hide-translated-source"> 본문 번역본이 있을 때 원문 숨기기</label>
+                    <label><input type="checkbox" id="slb-show-original-metadata"> 제목·키워드 원문도 함께 표시</label>
                 </div>
                 <label class="slb-field slb-prompt-field"><small>번역 추가 지시문 · AI 프로필 모드에서만 적용</small>
                     <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="문체, 고유명사, 용어 통일 규칙 등 추가 번역 지시문을 입력하세요. (AI 번역 전용)"></textarea>
@@ -3225,13 +3227,21 @@ function createAIBar() {
     }
     const provider = document.getElementById('slb-provider');
     const hideSource = document.getElementById('slb-hide-translated-source');
+    const showOriginalMetadata = document.getElementById('slb-show-original-metadata');
+    showOriginalMetadata.checked = settings.showOriginalMetadataWithTranslation === true;
+    showOriginalMetadata.addEventListener('change', () => {
+        settings.showOriginalMetadataWithTranslation = showOriginalMetadata.checked;
+        renderedEntries().forEach(syncMetadataTranslations);
+        saveSettings();
+    });
     hideSource.checked = settings.hideOriginalWhenTranslated;
     hideSource.addEventListener('change', () => {
         getSettings().hideOriginalWhenTranslated = hideSource.checked;
         document.querySelectorAll('.world_entry_edit').forEach(edit => {
             if (edit.slbTranslationUI) syncSourceVisibility(edit.slbTranslationUI);
         });
-        renderedEntries().forEach(syncMetadataTranslations);
+        // This checkbox controls the content editor. Metadata (titles and
+        // keywords) has an independent visibility preference.
         saveSettings();
     });
     const profile = document.getElementById('slb-profile');
@@ -3606,21 +3616,25 @@ function syncMetadataFieldAppearance(view, field, name, force = false) {
         const value = style.getPropertyValue(property);
         if (value && view.style.getPropertyValue(property) !== value) view.style.setProperty(property, value, 'important');
     }
-    let height = target.getBoundingClientRect().height;
-    if (!height && style.height.endsWith('px')) {
-        height = parseFloat(style.height);
-        if (style.boxSizing !== 'border-box') {
-            height += ['padding-top', 'padding-bottom', 'border-top-width', 'border-bottom-width']
-                .reduce((sum, property) => sum + (parseFloat(style.getPropertyValue(property)) || 0), 0);
+    // CSS content sizing manages title height without synchronous DOM
+    // measurements or fixed-size inline overrides on every translated title.
+    if (name !== 'comment') {
+        let height = target.getBoundingClientRect().height;
+        if (!height && style.height.endsWith('px')) {
+            height = parseFloat(style.height);
+            if (style.boxSizing !== 'border-box') {
+                height += ['padding-top', 'padding-bottom', 'border-top-width', 'border-bottom-width']
+                    .reduce((sum, property) => sum + (parseFloat(style.getPropertyValue(property)) || 0), 0);
+            }
+        }
+        if (!height) height = parseFloat(style.minHeight) || 0;
+        if (height > 0) for (const property of ['height', 'min-height', 'max-height']) {
+            const value = `${height}px`;
+            if (view.style.getPropertyValue(property) !== value) view.style.setProperty(property, value, 'important');
         }
     }
-    if (!height) height = parseFloat(style.minHeight) || 0;
-    if (height > 0) for (const property of ['height', 'min-height', 'max-height']) {
-        const value = `${height}px`;
-        if (view.style.getPropertyValue(property) !== value) view.style.setProperty(property, value, 'important');
-    }
     if (textarea) view.rows = textarea.rows;
-    if (typeof ResizeObserver === 'function' && previousTarget !== target) {
+    if (name !== 'comment' && typeof ResizeObserver === 'function' && previousTarget !== target) {
         view.slbAppearanceObserver?.disconnect();
         view.slbAppearanceTarget = target;
         view.slbAppearanceObserver = new ResizeObserver(() => {
@@ -3690,7 +3704,9 @@ function syncMetadataTranslations(entry, options = {}) {
             if (!view.hidden) syncMetadataFieldAppearance(view, field, name, options.refreshAppearance === true);
         }
         const visible = Boolean(view && !view.hidden);
-        field.classList.toggle('slb-field-original-hidden', visible && settings.hideOriginalWhenTranslated);
+        // Hide the native field only visually. Its value, listeners and
+        // original SillyTavern save behavior remain unchanged.
+        field.classList.toggle('slb-field-original-hidden', visible && settings.showOriginalMetadataWithTranslation !== true);
         field.classList.toggle('slb-has-field-translation', visible);
         field.classList.remove('slb-field-editing');
     }
@@ -3711,7 +3727,7 @@ function syncMetadataTranslations(entry, options = {}) {
         // ST/Select2 updates often use jQuery's synthetic change events.
         jQuery(entry).on('change.slbMetadata', '[name="comment"], [name="key"], [name="keysecondary"]', changed);
     }
-    const translatedTitle = getSettings().hideOriginalWhenTranslated && record?.language === language
+    const translatedTitle = getSettings().showOriginalMetadataWithTranslation !== true && record?.language === language
         ? currentMetadataTranslation(record, 'comment', sources.comment) : '';
     const previousTitle = entry.slbMetadataTitle || '';
     if (previousTitle !== translatedTitle) {
@@ -5204,7 +5220,7 @@ function entryLabel(entry) {
     const record = getSettings().translations[translationKey(currentBookName(), uid)];
     const translatedTitle = record?.language === pair.translationLanguage
         ? currentMetadataTranslation(record, 'comment', comment ?? data?.comment ?? '') : '';
-    if (getSettings().hideOriginalWhenTranslated && translatedTitle) return translatedTitle;
+    if (getSettings().showOriginalMetadataWithTranslation !== true && translatedTitle) return translatedTitle;
     const firstKey = Array.isArray(data?.key) ? data.key[0] : '';
     return comment || data?.comment || firstKey || `항목 #${uid}`;
 }

@@ -320,8 +320,10 @@ test('metadata UI keeps originals hidden on click, safely renders text, and pres
         assert.equal(source.parentElement.classList.contains('slb-field-original-hidden'), false, 'stale translation must not hide edited source');
         assert.equal(source.parentElement.querySelector('.slb-field-translation').hidden, true);
         f.settings.hideOriginalWhenTranslated = false; sync();
+        assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), true);
+        f.settings.showOriginalMetadataWithTranslation = true; sync();
         assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), false);
-        f.settings.hideOriginalWhenTranslated = true; ui.translationLanguage = 'en'; sync();
+        f.settings.showOriginalMetadataWithTranslation = false; ui.translationLanguage = 'en'; sync();
         assert.equal(row.querySelector('[name="key"]').parentElement.classList.contains('slb-field-original-hidden'), false, 'language direction is respected');
     } finally { f.close(); }
 });
@@ -406,8 +408,11 @@ test('editable translation fields copy native theme metrics and follow source re
             const view = ui.entry.querySelector(`[data-field="${name}"]`);
             assert.equal(view.tagName, 'TEXTAREA'); assert.equal(view.readOnly, false); assert.equal(view.name, '');
             const style = f.context.getComputedStyle(source);
-            for (const property of ['height', 'font-size', 'padding-top', 'padding-left', 'border-top-width', 'border-top-color']) {
-                assert.equal(view.style.getPropertyValue(property), style.getPropertyValue(property), `${name}: ${property}`);
+            // Title text grows with content; keyword inputs retain native metrics.
+            assert.equal(view.style.getPropertyValue('height'),
+                name === 'comment' ? '' : style.getPropertyValue('height'));
+            for (const property of ['font-size', 'padding-top', 'padding-left', 'border-top-width', 'border-top-color']) {
+                assert.equal(view.style.getPropertyValue(property), style.getPropertyValue(property), name + ': ' + property);
             }
             view.click();
             assert.equal(source.parentElement.classList.contains('slb-field-editing'), false, 'visible translations can be selected without jumping to the source');
@@ -537,15 +542,43 @@ test('native resize observer refreshes cached translation dimensions', () => {
         let resized;
         f.context.ResizeObserver = class { constructor(callback) { resized = callback; } observe() {} disconnect() {} };
         const ui = f.ui(0);
-        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">Title</textarea></div>');
-        f.settings.translations['A:0'] = { language: 'ko', fields: { comment: { source: 'Title', text: '제목' } } };
-        const source = ui.entry.querySelector('[name="comment"]');
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-keyword-core-field"><textarea name="key">key</textarea></div>');
+        f.settings.translations['A:0'] = { language: 'ko', fields: { key: { source: 'key', text: '키워드' } } };
+        const source = ui.entry.querySelector('[name="key"]');
         let height = 29;
         source.getBoundingClientRect = () => ({ height });
         f.context.syncMetadataTranslations(ui.entry);
-        const view = ui.entry.querySelector('[data-field="comment"]');
+        const view = ui.entry.querySelector('[data-field="key"]');
         assert.equal(view.style.height, '29px');
         height = 64; resized();
         assert.equal(view.style.height, '64px');
+    } finally { f.close(); }
+});
+
+
+test('translated titles never mirror pixel heights or subscribe to resize observers', () => {
+    const f = fixture();
+    try {
+        let observers = 0, measurements = 0;
+        f.context.ResizeObserver = class {
+            constructor() { observers++; }
+            observe() {}
+            disconnect() {}
+        };
+        const ui = f.ui(0);
+        ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-title-field"><textarea name="comment">Long title wrapping on several lines</textarea></div>');
+        const source = ui.entry.querySelector('[name="comment"]');
+        source.getBoundingClientRect = () => { measurements++; return { height: 29 }; };
+        f.settings.translations['A:0'] = { language:'ko', fields: { comment: { source:source.value, text:'길고 긴 번역 제목' } } };
+        f.context.syncMetadataTranslations(ui.entry);
+        f.context.syncMetadataTranslations(ui.entry, { refreshAppearance:true });
+        const view = ui.entry.querySelector('[data-field="comment"]');
+        assert.equal(view.style.getPropertyValue('height'), '');
+        assert.equal(view.style.getPropertyValue('min-height'), '');
+        assert.equal(view.style.getPropertyValue('max-height'), '');
+        assert.equal(observers, 0);
+        assert.equal(measurements, 0);
+        assert.equal(source.value, 'Long title wrapping on several lines');
+        assert.equal(view.value, '길고 긴 번역 제목');
     } finally { f.close(); }
 });

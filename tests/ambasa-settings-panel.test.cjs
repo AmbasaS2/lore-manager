@@ -42,6 +42,8 @@ test('settings cards preserve controls and user data; connected filter is manage
         const saveSettings=()=>{saves++};
         const syncConnectedWorldOptions=()=>{filterSync++};
         const syncQuickTranslationOptionsPlacement=()=>{};
+        const renderedEntries=()=>[];
+        const syncMetadataTranslations=()=>{};
         const applyMobileDisplaySettings=()=>{};
         const renderBackupList=()=>{backupReads++};
     `;
@@ -63,7 +65,7 @@ test('settings cards preserve controls and user data; connected filter is manage
         assert.equal(root.querySelector('#slb-profile').value,'stored-profile');
         for (const id of ['slb-provider','slb-profile','slb-output-tokens','slb-translate-content',
             'slb-translate-title','slb-translate-keywords','slb-hide-translated-source',
-            'slb-translate-prompt','slb-options-location','slb-filter-linked-lorebooks',
+            'slb-show-original-metadata','slb-translate-prompt','slb-options-location','slb-filter-linked-lorebooks',
             'slb-show-mobile-entry-state','slb-show-mobile-token-summary','slb-show-mobile-entry-filters',
             'slb-auto-backup-enabled','slb-backup-now','slb-backup-export-all','slb-clear-translations',
             'slb-reset-extension']) {
@@ -77,6 +79,13 @@ test('settings cards preserve controls and user data; connected filter is manage
         assert.equal(w.getCounters().settings.showOnlyLinkedLorebooks,false);
         assert.equal(w.getCounters().filterSync,1);
         assert.equal(w.getCounters().saves,1);
+        const metadata = root.querySelector('#slb-show-original-metadata');
+        assert.equal(metadata.checked,false,'translated title is the default single view');
+        metadata.checked=true;
+        metadata.dispatchEvent(new w.Event('change',{bubbles:true}));
+        assert.equal(w.getCounters().settings.showOriginalMetadataWithTranslation,true);
+        assert.equal(w.getCounters().settings.hideOriginalWhenTranslated,true,'body source preference remains untouched');
+        assert.equal(w.getCounters().saves,2);
         assert.equal(w.getCounters().settings.translationPrompt,
             'Existing custom translation instructions');
         const backup=root.querySelector('.slb-backup-settings');

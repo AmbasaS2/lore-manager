@@ -5202,3 +5202,40 @@
     line-height: 1.4;
     opacity: 0.7;
 }
+
+
+/* AmbasaS2: native browser content-sizing for long lorebook titles.
+   This applies only to the title, not other fields or Foldy layout.
+   The title's original textarea remains SillyTavern's native save control. */
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-title-field > textarea[name="comment"],
+#WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-title-field > textarea.slb-field-translation[data-field="comment"] {
+    box-sizing: border-box;
+    display: block;
+    width: 100% !important;
+    field-sizing: content;
+    height: auto !important;
+    min-height: 32px !important;
+    max-height: 152px !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    resize: none;
+}
+
+#WorldInfo.slb-active #world_popup_entries_list .world_entry.slb-compact-entry .slb-header-title-only .slb-title-field {
+    grid-template-rows: auto !important;
+}
+
+/* Native desktop controls keep their label row aligned and grow the value
+   row when the title wraps. Dual-view mode preserves a separate translation
+   row instead of overlaying the original. */
+@media (min-width: 761px) {
+    #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-entry-header-shell > .slb-header-grid:not(.slb-header-title-only) {
+        grid-template-rows: 22px minmax(32px, auto) !important;
+    }
+
+    #WorldInfo.slb-active #world_popup_entries_list .world_entry.slb-has-title-translation:not(.slb-compact-entry)
+    .slb-entry-header-shell > .slb-header-grid:not(.slb-header-title-only):has(.slb-title-field:not(.slb-field-original-hidden)) {
+        grid-template-rows: 22px minmax(32px, auto) auto !important;
+    }
+}
