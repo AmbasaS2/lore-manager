@@ -5445,10 +5445,31 @@ function bindEntryDrawerLifecycle(entry) {
                 setTimeout(retryOpening, 120);
             }
         };
-        // Single click: normal next frame. Expand-all: shared bounded queue,
-        // never twenty-five heavy editor builders in the same paint frame.
-        if (state.bulkOpeningDrawers) enqueueBulkEditorHydration(syncOpening);
-        else requestAnimationFrame(syncOpening);
+        // Only a single native drawer opening can use the immediate path.
+        // Bulk open keeps its bounded queue, and unavailable translation files
+        // keep the existing deferred path without blocking the native toggle.
+        if (fromBulkOpen) {
+            enqueueBulkEditorHydration(syncOpening);
+        } else {
+            const readyBook = typeof translationFiles !== 'undefined' ? currentBookName() : '';
+            const edit = readyBook && translationFiles.isBookReady(readyBook)
+                ? queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]'])
+                : null;
+            if (edit) {
+                try {
+                    const needsConversion = !edit.dataset.slbEnhanced || !edit.querySelector('.slb-tabbar');
+                    if (needsConversion) enhanceEntry(entry);
+                    if (edit.dataset.slbEnhanced && hasCompleteEnhancedEditor(edit)) {
+                        // A newly built editor already positioned its own fields.
+                        if (!needsConversion) placeResponsiveHeaderFields(entry);
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('[로어북 매니저] 즉시 편집기 구성 실패 · 기존 경로로 복귀', error);
+                }
+            }
+            requestAnimationFrame(syncOpening);
+        }
     });
 }
 
