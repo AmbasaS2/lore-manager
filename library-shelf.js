@@ -92,10 +92,10 @@ export function createStandaloneLibrary({
     }
     function discardOrStay() {
         if (saving) {
-            notifyStatus('저장 작업이 완료된 뒤 이동할 수 있어.', 'warning');
+            notifyStatus('저장 작업이 완료된 후 이동할 수 있습니다.', 'warning');
             return false;
         }
-        return !hasPendingEdit() || doc.defaultView.confirm('저장하지 않은 수정이 있어. 버리고 이동할까?');
+        return !hasPendingEdit() || doc.defaultView.confirm('저장하지 않은 수정 사항이 있습니다. 변경 내용을 버리고 이동하시겠습니까?');
     }
     function resetEdit() { edit = null; }
     function close() {
@@ -131,7 +131,7 @@ export function createStandaloneLibrary({
         top.append(heading, button(doc, 'slb-library-close', '×', 'close'));
         const navigation = element(doc, 'div', 'slb-library-navigation');
         navigation.append(button(doc, '', '‹ 서재 목록', 'books'));
-        navigation.append(element(doc, 'span', 'slb-library-current', '연결된 로어북을 선택해 줘'));
+        navigation.append(element(doc, 'span', 'slb-library-current', '연결된 로어북을 선택하세요.'));
         const filters = element(doc, 'div', 'slb-library-filters');
         const typeLabel = element(doc, 'label', '', '보기 방식');
         typeLabel.htmlFor = 'slb-library-book-type';
@@ -152,7 +152,7 @@ export function createStandaloneLibrary({
         navigation.append(filters, search);
         const body = element(doc, 'main', 'slb-library-body');
         const footer = element(doc, 'footer', 'slb-library-footer');
-        const status = element(doc, 'span', '', '로어북 원문과 번역 데이터를 그대로 연결해.');
+        const status = element(doc, 'span', '', '기존 로어북 원문과 번역 데이터를 사용합니다.');
         status.id = 'slb-library-status';
         footer.append(status, element(doc, 'small', '', '저장은 직접 확정 · AI 자동 실행 없음'));
         shell.append(top, navigation, body, footer);
@@ -179,15 +179,15 @@ export function createStandaloneLibrary({
         body.dataset.type = 'books';
         const head = element(doc, 'div', 'slb-library-books-head');
         const intro = element(doc, 'div');
-        intro.append(element(doc, 'h3', '', '어느 이야기를 펼칠까?'),
-            element(doc, 'p', '', '현재 캐릭터의 연결 로어북부터 보여줘. 원본은 변경되지 않아.'));
+        intro.append(element(doc, 'h3', '', '로어북 선택'),
+            element(doc, 'p', '', '현재 캐릭터에 연결된 로어북을 먼저 표시합니다. 원본은 변경되지 않습니다.'));
         const switchButton = button(doc, 'slb-library-book-filter', allBooks ? '연결된 책만 보기' : '모든 로어북 보기', 'all-books');
         head.append(intro, switchButton);
         const shelf = element(doc, 'div', 'slb-library-book-grid');
         const candidates = uniqueLibraryBooks(bookNames, linkedNames).filter(book => allBooks || book.linked);
         if (!candidates.length) {
             shelf.append(element(doc, 'p', 'slb-library-empty', allBooks
-                ? '저장된 로어북을 찾지 못했어.' : '연결된 로어북이 없어. 모든 로어북 보기를 눌러줘.'));
+                ? '저장된 로어북이 없습니다.' : '연결된 로어북이 없습니다. 모든 로어북 보기를 선택하세요.'));
         }
         for (const item of candidates) {
             const cover = button(doc, 'slb-library-book-cover', '', 'select-book');
@@ -199,7 +199,7 @@ export function createStandaloneLibrary({
             shelf.append(cover);
         }
         body.append(head, shelf);
-        notifyStatus(candidates.length + '권의 로어북 · 책을 선택하면 해당 파일만 불러와.');
+        notifyStatus(candidates.length + '권의 로어북 · 선택한 파일만 불러옵니다.');
     }
     async function selectBook(book) {
         if (!bookNames.includes(book) || !discardOrStay()) return;
@@ -222,12 +222,12 @@ export function createStandaloneLibrary({
         overlay.querySelector('#slb-library-book-type').value = getType(book) || 'general';
         body.replaceChildren(element(doc, 'p', 'slb-library-loading', '책과 번역 기록을 여는 중…'));
         body.dataset.type = 'loading';
-        notifyStatus('선택한 로어북 파일만 불러오고 있어.');
+        notifyStatus('선택한 로어북 파일을 불러오는 중입니다.');
         try {
             // Translation loading does not trigger an AI call or retranslate.
             const [data] = await Promise.all([loadBook(book), loadTranslations(book)]);
             if (!isOpen() || version !== loadVersion || currentBook !== book) return;
-            if (!data?.entries) throw new Error('로어북 데이터가 비어 있거나 올바르지 않아.');
+            if (!data?.entries) throw new Error('로어북 데이터가 비어 있거나 올바르지 않습니다.');
             currentData = data;
             entries = orderedLoreEntries(data);
             buildSearchIndex();
@@ -235,8 +235,8 @@ export function createStandaloneLibrary({
             notifyStatus(entries.length + '개 항목 · 원본 순서 유지');
         } catch (error) {
             if (!isOpen() || version !== loadVersion) return;
-            body.replaceChildren(element(doc, 'p', 'slb-library-empty', '책을 불러오지 못했어: ' + (error.message || error)));
-            notifyStatus('로어북 로딩 실패 · 원본을 수정하지 않았어.', 'error');
+            body.replaceChildren(element(doc, 'p', 'slb-library-empty', '로어북 불러오기 실패: ' + (error.message || error)));
+            notifyStatus('로어북 불러오기 실패 · 원본은 변경되지 않았습니다.', 'error');
         }
     }
     function buildSearchIndex() {
@@ -272,7 +272,7 @@ export function createStandaloneLibrary({
         intro.append(element(doc, 'small', '', found.length + '개 항목 · 저장된 순서'));
         body.append(intro);
         if (!found.length) {
-            body.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없어.'));
+            body.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
             return;
         }
         if (type === 'memory') renderDiary(body, found);
@@ -333,7 +333,7 @@ export function createStandaloneLibrary({
         const selected = found.find(item => String(item.uid) === selectedUid);
         if (selected) paper.append(renderDetail(selected, type));
         else paper.append(element(doc, 'p', 'slb-library-empty', type === 'people'
-            ? '왼쪽에서 이름을 선택하면 연락처 카드가 열려.' : '목차에서 항목을 선택하면 백과사전이 펼쳐져.'));
+            ? '이름을 선택하면 인물 카드가 표시됩니다.' : '목차에서 항목을 선택하면 본문이 표시됩니다.'));
         layout.append(index, paper);
         body.append(layout);
     }
@@ -348,8 +348,8 @@ export function createStandaloneLibrary({
         section.append(element(doc, 'small', 'slb-library-language-mark', format === 'source'
             ? '원문 · ' + lang : translated ? '번역 · ' + lang : '번역 없음 · 원문 표시'));
         section.append(element(doc, 'div', 'slb-library-prose', format === 'source'
-            ? (source || '원문이 비어 있어.') : (translated || source || '내용 없음')));
-        if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', '원문이 변경된 뒤 저장된 번역이야. 다시 번역하면 최신 상태로 맞출 수 있어.'));
+            ? (source || '원문이 비어 있습니다.') : (translated || source || '내용 없음')));
+        if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', '원문 변경 이전에 저장된 번역입니다. 필요한 경우 다시 번역하세요.'));
         return section;
     }
     function renderDetail(entry, type) {
@@ -383,7 +383,7 @@ export function createStandaloneLibrary({
         article.append(pages);
         if (edit && edit.uid === uid) {
             const editor = element(doc, 'section', 'slb-library-edit-panel');
-            editor.append(element(doc, 'label', '', edit.kind === 'source' ? '원문 수정 · 저장 전에는 원본에 반영되지 않아.' : '번역 수정 · 실리태번 원문은 바뀌지 않아.'));
+            editor.append(element(doc, 'label', '', edit.kind === 'source' ? '원문 수정 · 저장 전에는 실제 로어북에 반영되지 않습니다.' : '번역 수정 · 실리태번 원문은 변경되지 않습니다.'));
             const input = element(doc, 'textarea', 'slb-library-editor-text');
             input.rows = 10;
             input.value = edit.initial;
@@ -447,7 +447,7 @@ export function createStandaloneLibrary({
             }
             resetEdit();
             renderBook();
-            notifyStatus('저장 완료 · 원본 로어북/번역 파일에 반영했어.', 'success');
+            notifyStatus('저장 완료 · 원본 로어북/번역 파일에 반영되었습니다.', 'success');
         } catch (error) {
             active.textarea.disabled = false;
             notifyStatus('저장 실패: ' + (error.message || error), 'error');
@@ -459,10 +459,10 @@ export function createStandaloneLibrary({
         if (saving || !discardOrStay()) return;
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!entry?.content?.trim()) {
-            notifyStatus('원문이 없어 번역할 수 없어.', 'warning');
+            notifyStatus('번역할 원문이 없습니다.', 'warning');
             return;
         }
-        if (!doc.defaultView.confirm('이 항목의 원문을 AI로 번역할까? 선택한 연결 방식에 따라 API 비용이 발생할 수 있어.')) return;
+        if (!doc.defaultView.confirm('이 항목의 원문을 AI로 번역하시겠습니까? 연결 방식에 따라 API 이용 요금이 발생할 수 있습니다.')) return;
         saving = true;
         notifyStatus('AI 번역 중…');
         try {
@@ -470,7 +470,7 @@ export function createStandaloneLibrary({
             entryReadViews.set(String(uid), 'translated');
             entrySingleViews.set(String(uid), 'translated');
             renderBook();
-            notifyStatus('AI 번역을 저장했어.', 'success');
+            notifyStatus('AI 번역이 저장되었습니다.', 'success');
         } catch (error) {
             notifyStatus('AI 번역 실패: ' + (error.message || error), 'error');
         } finally {
@@ -587,7 +587,7 @@ export function createStandaloneLibrary({
     function onExternalWorldUpdate(book, data) {
         if (!isOpen() || book !== currentBook || !data?.entries) return;
         if (edit || saving) {
-            notifyStatus('다른 화면에서 로어북이 수정됐어. 현재 편집 내용을 확인해 줘.', 'warning');
+            notifyStatus('다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요.', 'warning');
             return;
         }
         currentData = data;

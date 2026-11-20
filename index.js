@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js'
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.35';
+const VERSION = '1.4.85-ambasa.36';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -895,11 +895,11 @@ function applyManagerMode(requestedMode, {
         if (unavailable) {
             notify('Foldy 로어북 기능을 찾지 못해 기본 화면를 유지했습니다.', 'warning');
         } else if (mode === MANAGER_MODE_FOLDY) {
-            notify('폴디 연동 화면을 켰어.', 'success');
+            notify('Foldy 연동 화면으로 전환되었습니다.', 'success');
         } else if (mode === MANAGER_MODE_NATIVE) {
-            notify('실리태번 기본 로어북 화면으로 전환했어.', 'success');
+            notify('실리태번 기본 로어북 화면으로 전환되었습니다.', 'success');
         } else {
-            notify('로어북 매니저 통합 화면으로 전환했어.', 'success');
+            notify('로어북 매니저 통합 화면으로 전환되었습니다.', 'success');
         }
     }
     if (!initial) scheduleEnhance();
@@ -8968,7 +8968,7 @@ function ensureLibraryStyles() {
         stylesheet.onerror = () => {
             stylesheet.remove();
             libraryStylesPromise = null;
-            reject(new Error('독립 서재 스타일을 불러오지 못했어.'));
+            reject(new Error('독립 서재 스타일을 불러오지 못했습니다.'));
         };
         stylesheet.href = new URL('./library-shelf.css', import.meta.url).href;
         if (!stylesheet.isConnected) document.head.append(stylesheet);
@@ -8996,9 +8996,9 @@ async function saveLibraryOriginal(book, uid, original, nextContent) {
     const fresh = await loadWorldInfo(book);
     const entry = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
         .find(item => item && String(item.uid) === String(uid));
-    if (!entry) throw new Error('항목이 삭제됐거나 UID가 바뀌었어. 저장하지 않았어.');
+    if (!entry) throw new Error('항목이 삭제되었거나 UID가 변경되어 저장하지 않았습니다.');
     if (String(entry.content ?? '') !== original) {
-        throw new Error('다른 화면에서 원문이 변경됐어. 새 데이터를 확인한 뒤 다시 수정해 줘.');
+        throw new Error('다른 화면에서 원문이 변경되었습니다. 최신 내용을 확인한 뒤 다시 수정하세요.');
     }
     if (entry.content === nextContent) return fresh;
     entry.content = nextContent;
@@ -9019,7 +9019,7 @@ async function saveLibraryTranslation(book, entry, nextText, originalText) {
     const pair = getEntryLanguagePair(book, uid);
     const current = getSettings().translations[translationKey(book, uid)];
     if (String(current?.text || '') !== originalText) {
-        throw new Error('다른 화면에서 번역문이 변경됐어. 덮어쓰지 않았어.');
+        throw new Error('다른 화면에서 번역문이 변경되어 덮어쓰지 않았습니다.');
     }
     // A concurrent source edit must never give a saved translation the wrong
     // hash. This reads the original book but never re-saves it.
@@ -9027,7 +9027,7 @@ async function saveLibraryTranslation(book, entry, nextText, originalText) {
     const live = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
         .find(item => item && String(item.uid) === uid);
     if (!live || String(live.content || '') !== String(entry.content || '')) {
-        throw new Error('원문이 바뀌었어. 번역 편집을 다시 열어줘.');
+        throw new Error('원문이 변경되었습니다. 번역 편집을 다시 여세요.');
     }
     const baseline = getTranslationReflectionBaseline(current, entry.content, pair.translationLanguage);
     saveTranslationRecord(book, uid, entry.content, nextText, {
@@ -9039,7 +9039,7 @@ async function saveLibraryTranslation(book, entry, nextText, originalText) {
 }
 
 async function translateLibraryEntry(book, entry) {
-    if (!canTranslate()) throw new Error('확장 설정에서 AI 연결 프로필 또는 구글 번역을 먼저 설정해 줘.');
+    if (!canTranslate()) throw new Error('확장 설정에서 AI 연결 프로필 또는 구글 번역을 먼저 설정하세요.');
     await translationFiles.ensureBook(book);
     translationFiles.assertBookReady(book);
     const uid = String(entry.uid);
@@ -9047,15 +9047,15 @@ async function translateLibraryEntry(book, entry) {
     const source = String(entry.content || '');
     const previous = getSettings().translations[translationKey(book, uid)];
     const translated = await translateText(source, pair.translationLanguage);
-    if (!translated?.trim()) throw new Error('번역 결과가 비어 있어. 기존 번역을 유지했어.');
+    if (!translated?.trim()) throw new Error('번역 결과가 비어 있어 기존 번역을 유지했습니다.');
     const fresh = await loadWorldInfo(book);
     const live = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
         .find(item => item && String(item.uid) === uid);
     if (!live || String(live.content || '') !== source) {
-        throw new Error('번역 중 원문이 바뀌어 새 결과를 저장하지 않았어.');
+        throw new Error('번역 중 원문이 변경되어 새 결과를 저장하지 않았습니다.');
     }
     if (getSettings().translations[translationKey(book, uid)] !== previous) {
-        throw new Error('번역 중 다른 화면에서 번역이 변경돼 새 결과를 저장하지 않았어.');
+        throw new Error('번역 중 다른 화면에서 번역이 변경되어 새 결과를 저장하지 않았습니다.');
     }
     saveTranslationRecord(book, uid, source, translated, {
         sourceLanguage: pair.sourceLanguage,
@@ -9073,7 +9073,7 @@ function openLibraryAdvanced(book, uid) {
         .find(item => item.value !== '' && item.textContent.trim() === book);
     const list = document.getElementById('world_popup_entries_list');
     if (!select || !option || !list) {
-        notify('원본 로어북에서 해당 항목을 찾을 수 없어.', 'warning');
+        notify('원본 로어북에서 해당 항목을 찾을 수 없습니다.', 'warning');
         return;
     }
     const wasSameBook = currentBookName() === book;
@@ -9122,7 +9122,7 @@ function openLibraryAdvanced(book, uid) {
     timer = setTimeout(() => {
         stop();
         if (currentBookName() === book && seek()) return;
-        notify('원본 로어북 항목을 아직 표시하지 못했어. 로딩 상태를 확인해 줘.', 'warning');
+        notify('원본 로어북 항목을 아직 표시하지 못했습니다. 로딩 상태를 확인하세요.', 'warning');
     }, 12000);
 }
 
@@ -9165,7 +9165,7 @@ async function openStandaloneLibrary() {
         await ensureLibraryStyles();
         initStandaloneLibrary().open();
     } catch (error) {
-        notify(error?.message || '독립 서재를 열지 못했어.', 'error');
+        notify(error?.message || '독립 서재를 열지 못했습니다.', 'error');
     }
 }
 
