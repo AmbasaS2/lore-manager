@@ -275,25 +275,25 @@
     border-radius: 5px;
 }
 #slb-library-overlay .slb-library-books-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
     padding: 12px 12px 0;
     min-width: 0;
 }
 #slb-library-overlay .slb-library-book-spines {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 5px;
-    align-items: flex-end;
-    min-height: 242px;
-    width: max-content;
-    min-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 52px);
+    grid-auto-rows: 250px;
+    column-gap: 5px;
+    align-items: end;
+    width: 100%;
+    min-width: 0;
+    min-height: 250px;
+    /* One wooden shelf board under each automatically wrapped row. */
+    background: repeating-linear-gradient(to bottom,
+        transparent 0, transparent 230px,
+        #b99460 231px, #92653c 240px, #4f311f 250px);
 }
 #slb-library-overlay button.slb-library-book-spine {
     display: flex;
-    flex: 0 0 52px;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
@@ -301,6 +301,7 @@
     min-width: 52px;
     height: 220px;
     min-height: 220px;
+    margin-bottom: 20px;
     padding: 11px 5px;
     border: 1px solid #c1a270;
     border-left: 6px solid rgba(30, 19, 13, .55);
@@ -348,10 +349,7 @@
 }
 #slb-library-overlay .slb-library-spine-bottom { font-size: 10px; }
 #slb-library-overlay .slb-library-wood-plank {
-    height: 17px;
-    border-top: 3px solid #b99460;
-    background: linear-gradient(#bc8f57, #7c5132 65%, #4f311f);
-    box-shadow: 0 -2px 4px rgba(20, 13, 8, .26);
+    display: none; /* Boards are now painted beneath every wrapped row. */
 }
 #slb-library-overlay .slb-library-shelf-summary {
     display: flex;
@@ -362,6 +360,7 @@
     padding: 12px 3px;
 }
 #slb-library-overlay .slb-library-shelf-empty {
+    grid-column: 1 / -1;
     color: #fbecd0;
     padding: 16px;
     width: min(480px, 100%);
@@ -632,7 +631,8 @@
     #slb-library-overlay .slb-library-books-head { align-items: flex-start; flex-direction: column; gap: 7px; }
     #slb-library-overlay .slb-library-books-head h3 { font-size: 21px; }
     #slb-library-overlay .slb-library-tagbar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; }
-    #slb-library-overlay button.slb-library-book-spine { flex-basis: 47px; width: 47px; min-width: 47px; }
+    #slb-library-overlay .slb-library-book-spines { grid-template-columns: repeat(auto-fill, 47px); }
+    #slb-library-overlay button.slb-library-book-spine { width: 47px; min-width: 47px; }
     #slb-library-overlay .slb-library-catalog { grid-template-columns: 1fr; }
     #slb-library-overlay .slb-library-index-layout { grid-template-columns: 1fr; }
     #slb-library-overlay .slb-library-index { max-height: 225px; }
