@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js'
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.36';
+const VERSION = '1.4.85-ambasa.37';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -117,6 +117,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     hideOriginalWhenTranslated: false,
     managerMode: MANAGER_MODE_STANDARD,
     libraryBookTypes: {},
+    libraryBookTags: {},
     libraryTheme: 'antique',
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
@@ -344,6 +345,8 @@ function getSettings() {
         ? settings.managerMode : MANAGER_MODE_STANDARD;
     if (!settings.libraryBookTypes || typeof settings.libraryBookTypes !== 'object'
         || Array.isArray(settings.libraryBookTypes)) settings.libraryBookTypes = {};
+    if (!settings.libraryBookTags || typeof settings.libraryBookTags !== 'object'
+        || Array.isArray(settings.libraryBookTags)) settings.libraryBookTags = {};
     if (!['antique', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
@@ -9153,6 +9156,30 @@ function initStandaloneLibrary() {
             if (!Object.hasOwn(LIBRARY_BOOK_TYPES, type)) return;
             getSettings().libraryBookTypes[book] = type;
             void Promise.resolve(saveSettings());
+        },
+        getTags: book => {
+            const all = getSettings().libraryBookTags;
+            return Object.hasOwn(all, book) ? all[book] : [];
+        },
+        getTagMap: () => getSettings().libraryBookTags,
+        setTags: async (book, tags) => {
+            const all = getSettings().libraryBookTags;
+            const existed = Object.hasOwn(all, book);
+            const previous = existed ? all[book] : undefined;
+            // defineProperty also handles a lorebook literally named "__proto__".
+            Object.defineProperty(all, book, {
+                value: [...tags], writable: true, enumerable: true, configurable: true,
+            });
+            try {
+                await saveSettings();
+            } catch (error) {
+                if (existed) {
+                    Object.defineProperty(all, book, {
+                        value: previous, writable: true, enumerable: true, configurable: true,
+                    });
+                } else delete all[book];
+                throw error;
+            }
         },
         getTheme: () => 'antique',
         notify,

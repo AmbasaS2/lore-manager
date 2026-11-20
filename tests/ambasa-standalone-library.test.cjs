@@ -32,10 +32,12 @@ function fixture({ count = 3, linked = new Set(['Memory Peter', 'Cody Core']), t
     const books = ['Memory Peter', 'Cody Core', 'Cody Locations'];
     const calls = { loaded: [], translations: [], sources: [], savedTranslations: [], ai: [], advanced: [], notify: [] };
     const records = new Map();
+    const tagsByBook = {};
+    const tagSaves = [];
     const entriesByBook = Object.fromEntries(books.map(name => [name, data(count)]));
     if (translate) records.set('Memory Peter:0', { text: '한국어 번역 첫째', title: '번역 제목 0', stale: false });
     let lib;
-    return { dom, w, calls, books, types, records, entriesByBook,
+    return { dom, w, calls, books, types, records, entriesByBook, tagsByBook, tagSaves,
         async build() {
             const { createStandaloneLibrary } = await production();
             lib = createStandaloneLibrary({
@@ -68,6 +70,8 @@ function fixture({ count = 3, linked = new Set(['Memory Peter', 'Cody Core']), t
                 openAdvanced: (name, uid) => { calls.advanced.push([name, uid]); },
                 getType: name => types[name] || 'general',
                 setType: (name, value) => { types[name] = value; },
+                getTags: name => tagsByBook[name] || [],
+                setTags: async (name, tags) => { tagsByBook[name] = tags; tagSaves.push({name,tags}); },
                 getTheme: () => 'antique',
                 notify: (message, tone) => calls.notify.push([message, tone]),
             });
@@ -108,11 +112,11 @@ test('start screen shows linked lorebooks only, with explicit all-books option; 
     try {
         const lib = await f.build();
         lib.open();
-        assert.equal(f.w.document.querySelectorAll('.slb-library-book-cover').length, 2);
+        assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length, 2);
         assert.equal(f.calls.loaded.length, 0);
         assert.equal(f.calls.ai.length, 0);
         f.click('[data-action="all-books"]');
-        assert.equal(f.w.document.querySelectorAll('.slb-library-book-cover').length, 3);
+        assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length, 3);
         await f.load('Cody Locations');
         assert.deepEqual(f.calls.loaded, ['Cody Locations']);
         assert.deepEqual(f.calls.translations, ['Cody Locations']);
@@ -403,4 +407,155 @@ test('in the continuous diary each entry switches source and translation indepen
         assert.equal(after[1].querySelectorAll('.slb-library-reading').length, 2);
         assert.equal(f.calls.ai.length, 0);
     } finally { f.dom.window.close(); }
+});
+
+test('bookshelf displays physical spines, no source file requests before selection, and original book order', async () => {
+    const f=fixture({linked:null});
+    try{
+        const lib=await f.build();
+        lib.open();
+        const spines=[...f.w.document.querySelectorAll('.slb-library-book-spine')];
+        assert.equal(spines.length,3);
+        assert.deepEqual(spines.map(item=>item.dataset.book),f.books);
+        assert.equal(spines[0].getAttribute('title'),'Memory Peter');
+        assert.equal(spines[0].getAttribute('aria-label'),'Memory Peter · 로어북 열기');
+        assert.deepEqual(f.calls.loaded,[]);
+        assert.deepEqual(f.calls.translations,[]);
+        assert.deepEqual(f.calls.ai,[]);
+        assert.deepEqual(f.calls.sources,[]);
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        await new Promise(resolve=>setImmediate(resolve));
+        assert.deepEqual(f.calls.loaded,['Memory Peter']);
+    }finally{f.dom.window.close()}
+});
+
+test('one book can belong to multiple tag shelves, filtering uses settings metadata only', async()=>{
+    const f=fixture({linked:null});
+    try{
+        f.tagsByBook['Memory Peter']=['기억','마법 세계'];
+        f.tagsByBook['Cody Core']=['마법 세계'];
+        const lib=await f.build();lib.open();
+        assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length,3);
+        f.click('[data-action="shelf-tag"][data-filter="tag:기억"]');
+        assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(b=>b.dataset.book),['Memory Peter']);
+        f.click('[data-action="shelf-tag"][data-filter="tag:마법 세계"]');
+        assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(b=>b.dataset.book),['Memory Peter','Cody Core']);
+        f.click('[data-action="shelf-tag"][data-filter="untagged"]');
+        assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(b=>b.dataset.book),['Cody Locations']);
+        assert.equal(f.calls.loaded.length,0);
+        assert.equal(f.calls.translations.length,0);
+        assert.equal(f.calls.ai.length,0);
+        assert.equal(f.tagSaves.length,0);
+    }finally{f.dom.window.close()}
+});
+
+test('tag edit mode changes only book tag settings; normal spine click still opens original book', async()=>{
+    const f=fixture({linked:null});
+    try{
+        const lib=await f.build();lib.open();
+        f.click('[data-action="tag-mode"]');
+        assert.equal(f.w.document.querySelector('.slb-library-tag-hint')!==null,true);
+        assert.equal(f.w.document.querySelector('.slb-library-book-spine').getAttribute('aria-label'),'Memory Peter · 태그 편집');
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        const tagInput=f.w.document.querySelector('#slb-library-tag-input');
+        assert.ok(tagInput,'inline antique editor opens within the shelf');
+        assert.equal(f.tagSaves.length,0,'opening editor does not persist anything');
+        tagInput.value='기억,  세계관,기억';
+        f.click('[data-action="tag-save"]');
+        await new Promise(resolve=>setImmediate(resolve));
+        assert.deepEqual(f.tagsByBook['Memory Peter'],['기억','세계관']);
+        assert.equal(f.tagSaves.length,1);
+        assert.equal(f.calls.loaded.length,0,'tag editing must not open or save a lorebook');
+        assert.equal(f.calls.translations.length,0);
+        assert.equal(f.calls.ai.length,0);
+        f.click('[data-action="tag-mode"]');
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        await new Promise(resolve=>setImmediate(resolve));
+        assert.deepEqual(f.calls.loaded,['Memory Peter']);
+    }finally{f.dom.window.close()}
+});
+
+test('cancelled, invalid or unchanged tag input does not call settings save',async()=>{
+    const f=fixture({linked:null});
+    try{
+        f.tagsByBook['Memory Peter']=['기억'];
+        const lib=await f.build();lib.open();
+        f.click('[data-action="tag-mode"]');
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        assert.equal(f.w.document.querySelector('#slb-library-tag-input').value,'기억');
+        f.click('[data-action="tag-save"]');
+        await new Promise(resolve=>setImmediate(resolve));
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        f.w.document.querySelector('#slb-library-tag-input').value=Array.from({length:9},(_,i)=>'tag'+i).join(',');
+        f.click('[data-action="tag-save"]');
+        await new Promise(resolve=>setImmediate(resolve));
+        assert.ok(f.w.document.querySelector('#slb-library-tag-input'),'invalid input remains editable');
+        f.click('[data-action="tag-cancel"]');
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        f.w.document.querySelector('#slb-library-tag-input').value='변경 중';
+        f.click('[data-action="tag-cancel"]');
+        assert.equal(f.tagSaves.length,0);
+        assert.deepEqual(f.tagsByBook['Memory Peter'],['기억']);
+    }finally{f.dom.window.close()}
+});
+
+test('shelf limits initial DOM to 24 spines even when 240 books exist; more button expands by 24',async()=>{
+    const {createStandaloneLibrary}=await production();
+    const dom=new JSDOM('<html><body></body></html>',{runScripts:'outside-only'});
+    const w=dom.window;
+    try{
+        const names=Array.from({length:240},(_,i)=>'책 '+i);
+        let loads=0,translations=0,tagMapReads=0,individualTagReads=0;
+        const lib=createStandaloneLibrary({
+            document:w.document,listBooks:()=>names,linkedBooks:()=>new Set(names),
+            loadBook:async()=>{loads++;return data();},loadTranslations:async()=>{translations++;},
+            translationFor:()=>({text:''}),saveContent:async()=>{},translateOne:async()=>{},
+            saveTranslation:async()=>{},openAdvanced:()=>{},getType:()=> 'general',
+            setType:()=>{},getTags:()=>{individualTagReads++;return [];},
+            getTagMap:()=>{tagMapReads++;return {};},setTags:async()=>{},getTheme:()=> 'antique',notify:()=>{},
+        });
+        lib.open();
+        assert.equal(w.document.querySelectorAll('.slb-library-book-spine').length,24);
+        assert.equal(tagMapReads,1,'metadata snapshot is read once per shelf view');
+        assert.equal(individualTagReads,0,'never repeat settings reads for each of 240 books');
+        assert.equal(w.document.querySelector('.slb-library-shelf-summary span').textContent,'240권 중 24권 표시');
+        w.document.querySelector('[data-action="shelf-more"]').click();
+        assert.equal(w.document.querySelectorAll('.slb-library-book-spine').length,48);
+        assert.equal(tagMapReads,2,'more view reuses a single metadata snapshot');
+        assert.equal(loads,0);
+        assert.equal(translations,0);
+        assert.equal(w.document.querySelectorAll('[data-action="shelf-tag"]').length,2);
+    }finally{dom.window.close()}
+});
+
+test('book spines use Unicode-aware vertical writing and inherit user theme fonts', async()=>{
+    const sourceCss=readFileSync(join(__dirname,'../library-shelf.css'),'utf8');
+    assert.match(sourceCss, /writing-mode:\s*vertical-rl/);
+    assert.match(sourceCss, /text-orientation:\s*mixed/);
+    assert.doesNotMatch(sourceCss, /(?:font-family\s*:|@font-face|Georgia|Noto Serif KR|sans-serif)/i);
+    assert.match(sourceCss, /overflow-x:\s*auto/);
+    assert.match(sourceCss, /#slb-library-overlay button\.slb-library-book-spine/);
+    const {normalizeLibraryTags}=await production();
+    assert.deepEqual(normalizeLibraryTags(['기억','뉴욕','기억',' ',null]),['기억','뉴욕']);
+});
+
+test('unsaved inline tag editing keeps the shelf open when exit is declined',async()=>{
+    const f=fixture({linked:null});
+    try{
+        const lib=await f.build();lib.open();
+        f.click('[data-action="tag-mode"]');
+        f.click('[data-action="select-book"][data-book="Memory Peter"]');
+        const input=f.w.document.querySelector('#slb-library-tag-input');
+        input.value='아직 미저장';
+        let asks=0;
+        f.w.confirm=()=>{asks++;return false};
+        f.click('[data-action="close"]');
+        assert.equal(lib.isOpen(),true);
+        assert.equal(f.w.document.querySelector('#slb-library-tag-input').value,'아직 미저장');
+        assert.equal(asks,1);
+        assert.equal(f.tagSaves.length,0);
+        f.click('[data-action="tag-cancel"]');
+        f.click('[data-action="close"]');
+        assert.equal(lib.isOpen(),false);
+    }finally{f.dom.window.close()}
 });
