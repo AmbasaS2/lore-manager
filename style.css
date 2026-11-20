@@ -4467,3 +4467,50 @@
     height: 28px !important;
     min-height: 28px !important;
 }
+
+/* Native ST is a real display mode, not another manager layout. Only
+   custom toolbar controls are hidden; the original WorldInfo UI stays live. */
+#WorldInfo.slb-native-view #slb-entry-selection-toolbar,
+#WorldInfo.slb-native-view #slb-token-summary-section,
+#WorldInfo.slb-native-view #slb-entry-filters-section,
+#WorldInfo.slb-native-view #slb-toggle-all-entries {
+    display: none !important;
+}
+
+/* Extension-only library preferences, not native WorldInfo overrides. */
+#slb-ai-tools .slb-library-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin: 0;
+    padding: 9px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,.28));
+    border-radius: 7px;
+}
+#slb-ai-tools .slb-library-settings > legend {
+    padding: 0 6px;
+    font-weight: 700;
+}
+#slb-ai-tools .slb-library-settings > label {
+    flex: 0 0 auto;
+}
+#slb-ai-tools .slb-library-settings #slb-library-theme {
+    min-width: 150px;
+    max-width: 230px;
+    flex: 1 1 auto;
+}
+#slb-ai-tools .slb-library-settings #slb-open-library {
+    flex: 0 0 auto;
+    min-height: 32px;
+}
+#slb-ai-tools .slb-library-settings > small {
+    flex: 1 1 100%;
+    opacity: .78;
+}
+@media (max-width: 600px) {
+    #slb-ai-tools .slb-library-settings #slb-library-theme {
+        min-width: 120px;
+    }
+}

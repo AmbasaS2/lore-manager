@@ -50,7 +50,7 @@ test('three original stored visibility preferences apply across widths',()=>{
 });
 
 test('settings labels visibility as global without losing saved keys',()=>{
-    assert.match(source,/class="slb-mobile-display-title">로어북 표시</);
+    assert.match(source,/class="slb-mobile-display-title">통합 화면 표시 옵션</);
     assert.match(source,/PC·모바일 공통/);
     assert.doesNotMatch(source,/모바일 로어북 표시/);
     for(const key of ['showMobileEntryState','showMobileTokenSummary','showMobileEntryFilters','showBulkEditToolbar']){

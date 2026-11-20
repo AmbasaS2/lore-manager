@@ -22,10 +22,11 @@ import { translateLoreWithValidation } from './lore-translation.js';
 import { translateLoreFieldsBatch } from './lore-translation-batch.js';
 import { planLoreEntryGroups, translateLoreEntryGroup } from './lore-entry-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
+import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.31';
+const VERSION = '1.4.85-ambasa.32';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -60,6 +61,7 @@ const TOKEN_CACHE_MAX_BOOKS = 40;
 const ENTRY_STATE_FILTER = 'simple_lorebook_entry_state';
 const MANAGER_MODE_STANDARD = 'standard';
 const MANAGER_MODE_FOLDY = 'foldy';
+const MANAGER_MODE_NATIVE = 'native';
 const FOLDY_SORT_VALUES = Object.freeze(['foldy-order', 'foldy']);
 const OBSOLETE_MANAGER_FOLDY_SORT_VALUE = 'slb-fast-foldy';
 const NATIVE_ENTRY_SELECTOR = '#world_popup_entries_list > .world_entry:not(.ui-sortable-helper):not(.ui-sortable-placeholder)';
@@ -114,6 +116,8 @@ const DEFAULT_SETTINGS = Object.freeze({
     showBulkEditToolbar: false,
     hideOriginalWhenTranslated: false,
     managerMode: MANAGER_MODE_STANDARD,
+    libraryBookTypes: {},
+    libraryTheme: 'antique',
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -139,17 +143,20 @@ const translationFiles = createLoreTranslationStorage({
         return document?.extension_settings?.[EXTENSION_NAME] || {};
     },
     onBookLoaded(book) {
-        if (currentBookName() === book) refreshTranslationFromLoadedBook(book);
-    },
+        if (currentBookName() === book && getSettings().managerMode !== 'native') refreshTranslationFromLoadedBook(book);
+        standaloneLibrary?.refreshTranslations(book);
+    }
     onError(error) {
         console.warn('[로어북 매니저] 번역 서버 파일 저장/이전 실패', error);
         notify(error?.message || '번역 저장소에 접근할 수 없습니다. 번역 기록은 메모리에 유지됩니다.', 'error');
     },
 });
 const pendingTranslationFallbackBooks = new Set();
+let standaloneLibrary = null;
+let libraryStylesPromise = null;
 
 function refreshTranslationFromLoadedBook(book) {
-    if (!book || currentBookName() !== book) return;
+    if (!book || currentBookName() !== book || getSettings().managerMode === 'native') return;
     // Called once when a requested book (or matching legacy fallback) finishes
     // its network read. Never poll the page for translations.
     for (const entry of renderedEntries()) {
@@ -293,7 +300,7 @@ function getSettings() {
     // 1.4.50 exposed a separate experimental checkbox. Preserve an explicit
     // opt-in once, then remove both legacy Foldy-only manager keys so standard
     // mode has no Foldy deletion state of its own.
-    if (settings.managerMode !== MANAGER_MODE_STANDARD && settings.managerMode !== MANAGER_MODE_FOLDY) {
+    if (![MANAGER_MODE_STANDARD, MANAGER_MODE_FOLDY, 'native'].includes(settings.managerMode)) {
         settings.managerMode = settings.fastFoldyMode ? MANAGER_MODE_FOLDY : MANAGER_MODE_STANDARD;
         state.settingsMigrationNeeded = true;
     }
@@ -333,9 +340,11 @@ function getSettings() {
     settings.showMobileTokenSummary = Boolean(settings.showMobileTokenSummary);
     settings.showMobileEntryFilters = Boolean(settings.showMobileEntryFilters);
     settings.showBulkEditToolbar = Boolean(settings.showBulkEditToolbar);
-    settings.managerMode = settings.managerMode === MANAGER_MODE_FOLDY
-        ? MANAGER_MODE_FOLDY
-        : MANAGER_MODE_STANDARD;
+    settings.managerMode = [MANAGER_MODE_STANDARD, MANAGER_MODE_FOLDY, 'native'].includes(settings.managerMode)
+        ? settings.managerMode : MANAGER_MODE_STANDARD;
+    if (!settings.libraryBookTypes || typeof settings.libraryBookTypes !== 'object'
+        || Array.isArray(settings.libraryBookTypes)) settings.libraryBookTypes = {};
+    if (!['antique', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -343,6 +352,10 @@ function getSettings() {
 
 function isFoldyLinkedMode() {
     return state.managerMode === MANAGER_MODE_FOLDY;
+}
+
+function isNativeLorebookMode() {
+    return state.managerMode === MANAGER_MODE_NATIVE;
 }
 
 // 제목 입력창의 실제 배경·테두리 색을 배지에 복사한다.
@@ -704,8 +717,11 @@ function removeObsoleteManagerFoldyUi() {
 
 function applyManagerModeClasses(mode = getSettings().managerMode) {
     const linked = mode === MANAGER_MODE_FOLDY;
+    const native = mode === MANAGER_MODE_NATIVE;
     const worldInfo = document.getElementById('WorldInfo');
-    worldInfo?.classList.toggle('slb-manager-standard-mode', !linked);
+    worldInfo?.classList.toggle('slb-active', !native);
+    worldInfo?.classList.toggle('slb-native-view', native);
+    worldInfo?.classList.toggle('slb-manager-standard-mode', !native && !linked);
     worldInfo?.classList.toggle('slb-foldy-linked-mode', linked);
 }
 
@@ -802,10 +818,10 @@ function applyManagerMode(requestedMode, {
     initial = false,
 } = {}) {
     const settings = getSettings();
-    const previousMode = settings.managerMode;
+    const previousMode = state.managerMode;
     let mode = requestedMode === MANAGER_MODE_FOLDY
         ? MANAGER_MODE_FOLDY
-        : MANAGER_MODE_STANDARD;
+        : requestedMode === MANAGER_MODE_NATIVE ? MANAGER_MODE_NATIVE : MANAGER_MODE_STANDARD;
     let unavailable = false;
     clearTimeout(state.foldyLinkedActivationTimer);
     state.foldyLinkedActivationTimer = null;
@@ -840,6 +856,35 @@ function applyManagerMode(requestedMode, {
             leaveFoldyLinkedViewOnce();
         }
     }
+    if (mode === MANAGER_MODE_NATIVE) {
+        // Genuine native view: stop the manager's DOM observers and repaint
+        // the native ST rows once. Never make the idle native screen pay the
+        // continuous styling/hydration cost of the integrated manager.
+        unbindWorkspaceEntries();
+        state.workspaceObserver?.disconnect();
+        state.workspaceObserver = null;
+        state.workspaceObserverTarget = null;
+        if (state.refreshTimer) cancelAnimationFrame(state.refreshTimer);
+        state.refreshTimer = null;
+        if (state.enhanceChunkRaf) cancelAnimationFrame(state.enhanceChunkRaf);
+        state.enhanceChunkRaf = 0;
+        state.enhanceRunId++;
+        state.enhancing = false;
+        state.enhancePending = false;
+        if (state.bookSwitch?.timer) clearTimeout(state.bookSwitch.timer);
+        state.bookSwitch = null;
+        if (state.incompleteHeaderRetry?.timer) clearTimeout(state.incompleteHeaderRetry.timer);
+        state.incompleteHeaderRetry = null;
+        finishWorldDrawerOpenLoading();
+        setBookSwitchLoading(false);
+        if (!initial) document.getElementById('world_refresh')?.click();
+    } else if (previousMode === MANAGER_MODE_NATIVE && !initial) {
+        // Native -> integrated: reconnect the same observer only once.
+        createWorkspace();
+        bindCombinedEntryToggle();
+        document.getElementById('world_refresh')?.click();
+    }
+    syncConnectedWorldOptions();
     state.navigatorDirty = true;
     if (persist || unavailable) void Promise.resolve(saveSettings());
 
@@ -850,9 +895,11 @@ function applyManagerMode(requestedMode, {
         if (unavailable) {
             notify('Foldy 로어북 기능을 찾지 못해 기본 화면를 유지했습니다.', 'warning');
         } else if (mode === MANAGER_MODE_FOLDY) {
-            notify('폴디 연동 화면를 켰습니다. Foldy 원본 폴더 기능을 그대로 연결합니다.', 'success');
+            notify('폴디 연동 화면을 켰어.', 'success');
+        } else if (mode === MANAGER_MODE_NATIVE) {
+            notify('실리태번 기본 로어북 화면으로 전환했어.', 'success');
         } else {
-            notify('기본 화면로 전환했습니다. Foldy 연동을 완전히 종료했습니다.', 'success');
+            notify('로어북 매니저 통합 화면으로 전환했어.', 'success');
         }
     }
     if (!initial) scheduleEnhance();
@@ -3237,12 +3284,43 @@ function createAIBar() {
                 <details class="slb-settings-card slb-advanced-settings">
                     <summary><span><i class="fa-solid fa-sliders" aria-hidden="true"></i> 화면 · 고급 설정</span><small>표시 · 연동</small></summary>
                     <div class="slb-settings-card-body">
+                        <fieldset class="slb-manager-mode-settings">
+                            <legend>실리태번 로어북 화면 표시 방식</legend>
+                            <div class="slb-manager-mode-options">
+                                <label class="slb-manager-mode-choice">
+                                    <input type="radio" name="slb-manager-mode" value="native">
+                                    <span>실리태번 기본 화면</span>
+                                </label>
+                                <label class="slb-manager-mode-choice">
+                                    <input type="radio" name="slb-manager-mode" value="standard">
+                                    <span>로어북 매니저 통합 화면</span>
+                                </label>
+                                <label class="slb-manager-mode-choice">
+                                    <input type="radio" name="slb-manager-mode" value="foldy">
+                                    <span>Foldy 연동 화면</span>
+                                </label>
+                            </div>
+                            <small id="slb-manager-mode-status"></small>
+                            <small>독립 로어북 서재는 어떤 표시 방식을 선택해도 별도로 열 수 있습니다.</small>
+                        </fieldset>
+                        <fieldset class="slb-library-settings">
+                            <legend>독립 로어북 매니저 · 서재</legend>
+                            <label for="slb-library-theme">서재 테마</label>
+                            <select id="slb-library-theme" class="text_pole">
+                                <option value="antique">앤티크 서재</option>
+                                <option value="light">밝은 문구류</option>
+                                <option value="dark">어두운 서재</option>
+                                <option value="st">실리태번 테마 연동</option>
+                            </select>
+                            <button type="button" id="slb-open-library" class="menu_button"><i class="fa-solid fa-book-open"></i> 독립 서재 열기</button>
+                            <small>로어북별로 일반·기억·세계관·인물록을 선택할 수 있습니다. 이 선택은 원본 로어북과 AI 발동에 영향을 주지 않습니다.</small>
+                        </fieldset>
                         <div class="slb-linked-world-setting">
                             <label><input type="checkbox" id="slb-filter-linked-lorebooks"> 선택 캐릭터의 로어북만 표시</label>
                             <small>캐릭터 미선택 시 전체 목록. 로어북 연결은 변경되지 않습니다.</small>
                         </div>
                         <div class="slb-mobile-display-settings">
-                    <strong class="slb-mobile-display-title">로어북 표시</strong>
+                    <strong class="slb-mobile-display-title">통합 화면 표시 옵션</strong>
                     <div class="slb-mobile-display-options">
                         <label><input type="checkbox" id="slb-show-mobile-entry-state"> 제목 옆 발동 방식 아이콘</label>
                         <label><input type="checkbox" id="slb-show-mobile-token-summary"> 토큰 통계 표시</label>
@@ -3251,21 +3329,7 @@ function createAIBar() {
                     </div>
                     <small class="slb-mobile-display-note">PC·모바일 공통. 일괄 편집은 선택한 항목의 발동 설정을 함께 수정하며 번역·삭제 선택에도 사용됩니다.</small>
                 </div>
-                <fieldset class="slb-manager-mode-settings">
-                    <legend>화면 표시 방식</legend>
-                    <div class="slb-manager-mode-options">
-                        <label class="slb-manager-mode-choice">
-                            <input type="radio" name="slb-manager-mode" value="standard">
-                            <span>기본 화면</span>
-                        </label>
-                        <label class="slb-manager-mode-choice">
-                            <input type="radio" name="slb-manager-mode" value="foldy">
-                            <span>폴디 연동 화면</span>
-                        </label>
-                    </div>
-                    <small id="slb-manager-mode-status">기존 모드는 Foldy와 분리된 순수 로어북 매니저입니다.</small>
-                    <small>폴디를 사용하지 않으면 기본 화면을 선택하세요.</small>
-                </fieldset>
+
                     </div>
                 </details>
                 <details class="slb-settings-card slb-backup-settings">
@@ -3376,13 +3440,25 @@ function createAIBar() {
             input.closest('.slb-manager-mode-choice')?.classList.toggle('is-selected', input.checked);
             input.closest('.slb-manager-mode-choice')?.classList.remove('is-disabled');
         });
-        managerModeStatus.textContent = mode === MANAGER_MODE_FOLDY && !available
+        managerModeStatus.textContent = mode === 'native'
+            ? '사용 중 · 실리태번 원본 로어북 화면을 유지하며 서재는 독립적으로 실행합니다.'
+            : mode === MANAGER_MODE_FOLDY && !available
                 ? 'Foldy 원본 로어북 기능이 준비되기를 기다리는 중입니다.'
             : mode === MANAGER_MODE_FOLDY
-                ? '사용 중 · Foldy 원본 폴더 기능과 화면에 로어북 매니저를 연결합니다.'
-                : '사용 중 · Foldy와 완전히 분리된 기본 로어북 매니저입니다.';
+                ? '사용 중 · Foldy 원본 폴더와 매니저를 연동합니다.'
+                : '사용 중 · 매니저 통합 로어북 편집 화면입니다.';
     };
     syncManagerModeControls();
+    const libraryThemeControl = document.getElementById('slb-library-theme');
+    if (libraryThemeControl) {
+        libraryThemeControl.value = settings.libraryTheme;
+        libraryThemeControl.addEventListener('change', () => {
+            settings.libraryTheme = libraryThemeControl.value;
+            void Promise.resolve(saveSettings());
+            standaloneLibrary?.updateTheme();
+        });
+    }
+    document.getElementById('slb-open-library')?.addEventListener('click', () => void openStandaloneLibrary());
     managerModeControls.forEach(input => input.addEventListener('change', () => {
         if (!input.checked) return;
         applyManagerMode(input.value, { persist: true, announce: true });
@@ -4814,6 +4890,7 @@ function bindWorkspacePopupObserver(popup) {
 }
 
 function createWorkspace() {
+    if (state.managerMode === 'native') return;
     compactNativeSort(document);
     enableNativeEntryDrag({ document, jQuery, isFoldy: isFoldyLinkedMode, getBook: currentBookName, notify });
     const popup = document.getElementById('world_popup');
@@ -7920,6 +7997,7 @@ function hasCompleteVisibleEntryHeaders() {
 }
 
 function beginWorldDrawerOpenLoading() {
+    if (state.managerMode === 'native') return;
     if (state.drawerOpenLoadingTimer) clearTimeout(state.drawerOpenLoadingTimer);
     state.drawerOpenLoadingTimer = null;
     // 선택된 로어북이 없을 때는 빈 선택 화면을 로딩 화면으로 오인하지 않는다.
@@ -8162,6 +8240,7 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 }
 
 function beginBookSwitch(book, suppliedBoundary = null) {
+    if (state.managerMode === 'native') return;
     if (book) loadTranslationBook(book);
     if (state.bulkTranslation && !state.bulkTranslation.independent) cancelBulkTranslation({ silent: true });
     // Do not hydrate editor UI from the previous book after its rows change.
@@ -8287,7 +8366,7 @@ function revealCompletedEntryList(book, entries, headersVerified = false) {
 }
 
 function enhanceAll() {
-    if (state.sorting || state.enhancing) return;
+    if (state.managerMode === 'native' || state.sorting || state.enhancing) return;
     const liveEntryList = document.getElementById('world_popup_entries_list');
     bindFoldyFolderDeleteDrawerGuards(liveEntryList || document);
     if (isFoldyLinkedMode() && liveEntryList?.classList.contains('foldy-lore-pending')) {
@@ -8497,6 +8576,7 @@ function enhanceAll() {
 }
 
 function scheduleEnhance() {
+    if (state.managerMode === 'native') return;
     if (state.bookSwitch && !state.bookSwitch.ready) {
         scheduleBookSwitchReadyCheck();
         return;
@@ -8552,7 +8632,7 @@ function syncConnectedWorldOptions() {
 
     // Filter the native options purely for display. Keep selected value and
     // SillyTavern's original select / Select2 instance untouched.
-    const linked = getSettings().showOnlyLinkedLorebooks === false ? null : currentCharacterLinkedBooks();
+    const linked = getSettings().managerMode === 'native' || getSettings().showOnlyLinkedLorebooks === false ? null : currentCharacterLinkedBooks();
     for (const option of select.options) {
         const visible = isVisibleWorldOption(option.value, option.textContent, world_names, linked);
         if (option.hidden !== !visible) option.hidden = !visible;
@@ -8653,6 +8733,7 @@ function localizeNativeSortingPopup() {
 }
 
 function bindNativeSortingHelp() {
+    if (document.getElementById('WorldInfo')?.classList.contains('slb-native-view')) return;
     const button = document.getElementById('world_apply_current_sorting');
     if (!button || button.dataset.slbSortHelpBound === 'true') return;
     button.dataset.slbSortHelpBound = 'true';
@@ -8670,6 +8751,7 @@ function bindNativeSortingHelp() {
 }
 
 function bindCombinedEntryToggle() {
+    if (state.managerMode === 'native') return;
     // Use the same exported SillyTavern drawer utility as its native buttons,
     // without ST's per-drawer delay(0) queues. The original buttons and their
     // listeners remain mounted for other extensions.
@@ -8754,11 +8836,13 @@ function bindEvents() {
     window.addEventListener('mousedown', primeFoldyFolderDeleteDrawerGuard, true);
     window.addEventListener('click', primeFoldyFolderDeleteDrawerGuard, true);
     worldInfoDrawerToggle?.addEventListener('pointerdown', () => {
+        if (isNativeLorebookMode()) return;
         // SillyTavern의 클릭 핸들러가 드로어를 화면에 그리기 전 같은 입력
         // 이벤트에서 가림막을 먼저 준비해, 첫 프레임에 빈 행이 보이지 않게 한다.
         if (!isWorldInfoDrawerOpen()) beginWorldDrawerOpenLoading();
     }, { passive: true });
     const markWorldSelectionIntent = () => {
+        if (isNativeLorebookMode()) return;
         state.worldSelectUserIntentUntil = Date.now() + 4000;
         // pointer/keyboard 입력은 select 값이 바뀌기 전이다. 이전 로어북의
         // 실제 행·제목·주입 컨트롤을 이 순간 보관해 두면, 먼저 등록된
@@ -8775,6 +8859,7 @@ function bindEvents() {
         }
     }, { capture: true, passive: true });
     worldSelect?.addEventListener('change', () => {
+        if (isNativeLorebookMode()) return;
         // target-capture는 SillyTavern의 기존 target-bubble change 핸들러보다
         // 먼저 실행된다. pointerdown이 없는 프로그램 전환도 이 경계에서
         // 이전 DOM을 잡아 기존 모드의 대기가 새 DOM을 기준으로 시작되지 않게 한다.
@@ -8784,6 +8869,7 @@ function bindEvents() {
         beginBookSwitch(currentBookName(), boundary);
     }, { capture: true });
     worldSelect?.addEventListener('change', event => {
+        if (isNativeLorebookMode()) return;
         state.selectedUid = '';
         state.currentBook = '';
         state.currentBookData = null;
@@ -8807,12 +8893,13 @@ function bindEvents() {
         scheduleInitialTokenSummary(null, isNarrowEntryLayout() ? 520 : 300);
         // SillyTavern은 초기화·목록 갱신 때도 change를 프로그램으로 발생시킨다.
         // 실제 사용자 조작이 확인된 선택 변경만 열기 기준 백업으로 취급한다.
-        if (event.isTrusted || Date.now() <= state.worldSelectUserIntentUntil) {
+        if (!isNativeLorebookMode() && (event.isTrusted || Date.now() <= state.worldSelectUserIntentUntil)) {
             state.worldSelectUserIntentUntil = 0;
             scheduleLorebookOpenBackup(currentBookName(), isNarrowEntryLayout() ? 900 : 650);
         }
     });
     worldInfoDrawerToggle?.addEventListener('click', () => {
+        if (isNativeLorebookMode()) return;
         // 키보드/프로그램 클릭처럼 pointerdown이 없는 열기도 보완한다.
         if (isWorldInfoDrawerOpen() && !hasCompleteVisibleEntryHeaders()) {
             beginWorldDrawerOpenLoading();
@@ -8829,9 +8916,11 @@ function bindEvents() {
         }, 0);
     });
     document.getElementById('world_refresh')?.addEventListener('click', () => {
+        if (isNativeLorebookMode()) return;
         scheduleTokenSummary();
     });
     document.getElementById('world_popup_new')?.addEventListener('click', () => {
+        if (isNativeLorebookMode()) return;
         state.selectedUid = '';
         state.navigatorDirty = true;
         scheduleEnhance();
@@ -8840,7 +8929,8 @@ function bindEvents() {
 
     if (event_types.WORLDINFO_UPDATED) {
         eventSource.on(event_types.WORLDINFO_UPDATED, (name, data) => {
-            if (name !== currentBookName()) return;
+            standaloneLibrary?.onExternalWorldUpdate(name, data);
+            if (name !== currentBookName() || isNativeLorebookMode()) return;
             // 주입 방식·위치 같은 메타데이터 저장에도 이 이벤트가 발생한다.
             // 원문 해시가 그대로라면 전체 토큰 작업을 다시 시작하지 않고
             // 상시/선택/벡터 합계만 현재 데이터로 즉시 다시 그린다.
@@ -8871,6 +8961,254 @@ function bindEvents() {
     }
 }
 
+
+function libraryTypeFor(book) {
+    const stored = getSettings().libraryBookTypes?.[book];
+    return Object.hasOwn(LIBRARY_BOOK_TYPES, stored) ? stored : 'general';
+}
+
+function ensureLibraryStyles() {
+    if (libraryStylesPromise) return libraryStylesPromise;
+    const stylesheet = document.getElementById('slb-library-styles') || document.createElement('link');
+    libraryStylesPromise = new Promise((resolve, reject) => {
+        if (stylesheet.dataset.loaded === 'true') {
+            resolve();
+            return;
+        }
+        stylesheet.id = 'slb-library-styles';
+        stylesheet.rel = 'stylesheet';
+        stylesheet.onload = () => {
+            stylesheet.dataset.loaded = 'true';
+            resolve();
+        };
+        stylesheet.onerror = () => {
+            stylesheet.remove();
+            libraryStylesPromise = null;
+            reject(new Error('독립 서재 스타일을 불러오지 못했어.'));
+        };
+        stylesheet.href = new URL('./library-shelf.css', import.meta.url).href;
+        if (!stylesheet.isConnected) document.head.append(stylesheet);
+    });
+    return libraryStylesPromise;
+}
+
+function librarySavedTranslation(book, entry) {
+    const uid = String(entry.uid);
+    const pair = getEntryLanguagePair(book, uid);
+    const record = getSettings().translations[translationKey(book, uid)];
+    if (!record || record.language !== pair.translationLanguage) return { pair, text: '', title: '' };
+    const title = record.fields?.comment?.source === String(entry.comment || '')
+        ? String(record.fields.comment.text || '')
+        : '';
+    return {
+        pair,
+        text: String(record.text || ''),
+        title,
+        stale: Boolean(record.text && record.sourceHash !== hashText(entry.content)),
+    };
+}
+
+async function saveLibraryOriginal(book, uid, original, nextContent) {
+    const fresh = await loadWorldInfo(book);
+    const entry = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
+        .find(item => item && String(item.uid) === String(uid));
+    if (!entry) throw new Error('항목이 삭제됐거나 UID가 바뀌었어. 저장하지 않았어.');
+    if (String(entry.content ?? '') !== original) {
+        throw new Error('다른 화면에서 원문이 변경됐어. 새 데이터를 확인한 뒤 다시 수정해 줘.');
+    }
+    if (entry.content === nextContent) return fresh;
+    entry.content = nextContent;
+    // Imported worldbooks may carry originalData separately. Keep that
+    // canonical entry synchronized through ST's own compatibility helper.
+    setWIOriginalDataValue(fresh, entry.uid, 'content', nextContent);
+    // Use ST's own world-file save path. Do not change order, triggers,
+    // position, recursion, or other fields in the original object.
+    await saveWorldInfo(book, fresh, true);
+    if (currentBookName() === book) document.getElementById('world_refresh')?.click();
+    return fresh;
+}
+
+async function saveLibraryTranslation(book, entry, nextText, originalText) {
+    await translationFiles.ensureBook(book);
+    translationFiles.assertBookReady(book);
+    const uid = String(entry.uid);
+    const pair = getEntryLanguagePair(book, uid);
+    const current = getSettings().translations[translationKey(book, uid)];
+    if (String(current?.text || '') !== originalText) {
+        throw new Error('다른 화면에서 번역문이 변경됐어. 덮어쓰지 않았어.');
+    }
+    // A concurrent source edit must never give a saved translation the wrong
+    // hash. This reads the original book but never re-saves it.
+    const fresh = await loadWorldInfo(book);
+    const live = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
+        .find(item => item && String(item.uid) === uid);
+    if (!live || String(live.content || '') !== String(entry.content || '')) {
+        throw new Error('원문이 바뀌었어. 번역 편집을 다시 열어줘.');
+    }
+    const baseline = getTranslationReflectionBaseline(current, entry.content, pair.translationLanguage);
+    saveTranslationRecord(book, uid, entry.content, nextText, {
+        baseline,
+        sourceLanguage: pair.sourceLanguage,
+        translationLanguage: pair.translationLanguage,
+    });
+    await translationFiles.flushBook(book);
+}
+
+async function translateLibraryEntry(book, entry) {
+    if (!canTranslate()) throw new Error('확장 설정에서 AI 연결 프로필 또는 구글 번역을 먼저 설정해 줘.');
+    await translationFiles.ensureBook(book);
+    translationFiles.assertBookReady(book);
+    const uid = String(entry.uid);
+    const pair = getEntryLanguagePair(book, uid);
+    const source = String(entry.content || '');
+    const previous = getSettings().translations[translationKey(book, uid)];
+    const translated = await translateText(source, pair.translationLanguage);
+    if (!translated?.trim()) throw new Error('번역 결과가 비어 있어. 기존 번역을 유지했어.');
+    const fresh = await loadWorldInfo(book);
+    const live = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
+        .find(item => item && String(item.uid) === uid);
+    if (!live || String(live.content || '') !== source) {
+        throw new Error('번역 중 원문이 바뀌어 새 결과를 저장하지 않았어.');
+    }
+    if (getSettings().translations[translationKey(book, uid)] !== previous) {
+        throw new Error('번역 중 다른 화면에서 번역이 변경돼 새 결과를 저장하지 않았어.');
+    }
+    saveTranslationRecord(book, uid, source, translated, {
+        sourceLanguage: pair.sourceLanguage,
+        translationLanguage: pair.translationLanguage,
+        markSynced: true,
+    });
+    await translationFiles.flushBook(book);
+}
+
+// One-shot navigation back to the native ST WorldInfo list. Never scan or
+// observe the list while the independent library is idle.
+function openLibraryAdvanced(book, uid) {
+    const select = document.getElementById('world_editor_select');
+    const option = Array.from(select?.options || [])
+        .find(item => item.value !== '' && item.textContent.trim() === book);
+    const list = document.getElementById('world_popup_entries_list');
+    if (!select || !option || !list) {
+        notify('원본 로어북에서 해당 항목을 찾을 수 없어.', 'warning');
+        return;
+    }
+    const wasSameBook = currentBookName() === book;
+    const seek = () => {
+        // On a book change ST must finish replacing the previous book rows.
+        const item = Array.from(list.querySelectorAll('.world_entry'))
+            .find(row => getUid(row) === String(uid));
+        if (!item) return false;
+        // Integrated mode's existing tab system can open the activation panel
+        // immediately or use this saved tab when the async builder finishes.
+        if (state.managerMode !== 'native') {
+            item.dataset.slbActiveTab = 'activation';
+            item.querySelector('.slb-tab[data-tab="activation"]')?.click();
+        }
+        const drawer = getEntryDrawer(item);
+        if (drawer && !isEntryDrawerOpen(item)) toggleDrawer(drawer, true);
+        item.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+        return true;
+    };
+    let observer = null;
+    let timer = null;
+    const stop = () => {
+        observer?.disconnect();
+        observer = null;
+        clearTimeout(timer);
+    };
+    if (!isWorldInfoDrawerOpen()) {
+        document.querySelector('#WI-SP-button > .drawer-toggle')?.click();
+    }
+    if (!wasSameBook) {
+        // Attach before firing the native change event; there is no polling.
+        observer = new MutationObserver(() => {
+            if (currentBookName() !== book) return;
+            if (seek()) stop();
+        });
+        observer.observe(list, { childList: true, subtree: true });
+        select.value = option.value;
+        jQuery(select).trigger('change');
+    } else if (seek()) return;
+    if (!observer) {
+        observer = new MutationObserver(() => {
+            if (seek()) stop();
+        });
+        observer.observe(list, { childList: true, subtree: true });
+    }
+    timer = setTimeout(() => {
+        stop();
+        if (currentBookName() === book && seek()) return;
+        notify('원본 로어북 항목을 아직 표시하지 못했어. 로딩 상태를 확인해 줘.', 'warning');
+    }, 12000);
+}
+
+function initStandaloneLibrary() {
+    if (standaloneLibrary) return standaloneLibrary;
+    standaloneLibrary = createStandaloneLibrary({
+        document,
+        listBooks: () => [...new Set(existingLorebookNames())],
+        linkedBooks: () => currentCharacterLinkedBooks(),
+        loadBook: book => loadWorldInfo(book),
+        loadTranslations: async book => {
+            try {
+                await translationFiles.start();
+                await translationFiles.ensureBook(book);
+            } catch (error) {
+                // Failed translated-file reads must not prevent the user from
+                // reading the original lorebook in the independent modal.
+                console.warn('[로어북 매니저] 독립 서재 번역 기록 불러오기 실패', error);
+            }
+        },
+        translationFor: librarySavedTranslation,
+        saveContent: saveLibraryOriginal,
+        saveTranslation: saveLibraryTranslation,
+        translateOne: translateLibraryEntry,
+        openAdvanced: openLibraryAdvanced,
+        getType: libraryTypeFor,
+        setType: (book, type) => {
+            if (!Object.hasOwn(LIBRARY_BOOK_TYPES, type)) return;
+            getSettings().libraryBookTypes[book] = type;
+            void Promise.resolve(saveSettings());
+        },
+        getTheme: () => getSettings().libraryTheme,
+        notify,
+    });
+    return standaloneLibrary;
+}
+
+async function openStandaloneLibrary() {
+    try {
+        await ensureLibraryStyles();
+        initStandaloneLibrary().open();
+    } catch (error) {
+        notify(error?.message || '독립 서재를 열지 못했어.', 'error');
+    }
+}
+
+function bindStandaloneLibraryMenu() {
+    const menu = document.getElementById('extensionsMenu');
+    if (!menu || document.getElementById('slb-library-menu-container')) return;
+    const container = createElement('div', 'extension_container interactable');
+    container.id = 'slb-library-menu-container';
+    const action = createElement('div', 'list-group-item flex-container flexGap5 interactable');
+    action.id = 'slb-library-menu-action';
+    action.setAttribute('role', 'button');
+    action.tabIndex = 0;
+    action.setAttribute('aria-label', '독립 로어북 매니저 서재 열기');
+    action.append(createElement('div', 'fa-solid fa-book-open extensionsMenuExtensionButton'));
+    action.append(createElement('span', '', '로어북 매니저'));
+    const open = () => void openStandaloneLibrary();
+    action.addEventListener('click', open);
+    action.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            open();
+        }
+    });
+    container.append(action);
+    menu.append(container);
+}
+
 function init() {
     const worldInfo = document.getElementById('WorldInfo');
     if (!worldInfo) {
@@ -8897,16 +9235,20 @@ function init() {
     state.settingsMigrationNeeded = false;
     loadPersistedTokenCache();
     installEntryStateFilter();
-    worldInfo.classList.add('slb-active');
-    ensureCriticalLayoutStyles();
+    if (!isNativeLorebookMode()) ensureCriticalLayoutStyles();
     createAIBar();
     createBulkLorebookExportControls();
     createWorkspace();
     bindEvents();
+    bindStandaloneLibraryMenu();
+    // If the extension menu is mounted late, bind on its actual user click;
+    // unlike polling, this costs nothing while the menu is idle.
+    document.getElementById('extensionsMenuButton')?.addEventListener('click', bindStandaloneLibraryMenu);
     state.responsiveMedia = window.matchMedia('(max-width: 760px)');
     state.responsiveViewportWidth = window.innerWidth;
     state.responsiveBreakpoint = state.responsiveMedia.matches;
     const responsiveListener = () => {
+        if (isNativeLorebookMode()) return;
         const width = window.innerWidth;
         const narrow = state.responsiveMedia?.matches === true;
         // A mobile software keyboard can fire many height-only resize events.
@@ -8956,19 +9298,19 @@ function init() {
         });
     }
     // enhanceAll이 새 헤더마다 배지를 연결한다. 초기화 직전에는 클래스만 설정한다.
-    applyMobileDisplaySettings(false);
-    if (isWorldInfoDrawerOpen() && currentBookName() && !hasCompleteVisibleEntryHeaders()) {
+    if (!isNativeLorebookMode()) applyMobileDisplaySettings(false);
+    if (!isNativeLorebookMode() && isWorldInfoDrawerOpen() && currentBookName() && !hasCompleteVisibleEntryHeaders()) {
         beginWorldDrawerOpenLoading();
     }
     // 최초 로드 시 이미 존재하는 현재 페이지는 한 프레임 미루지 않고 바로
     // 꾸민다. 항목이 아직 없다면 이후 DOM observer가 동일 경로를 실행한다.
     enhanceAll();
-    scheduleInitialTokenSummary();
+    if (!isNativeLorebookMode()) scheduleInitialTokenSummary();
     state.liveSyncTimer = setInterval(() => {
         // Native change, drawer, and tab events handle interactive changes
         // immediately. This is only a last-resort repair for extensions that
         // mutate values without an event, not the primary UI rendering loop.
-        if (document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen()) return;
+        if (isNativeLorebookMode() || document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen()) return;
         enforceActivationOverviewIntegrity();
         syncLiveEditorTokens();
     }, LIVE_SYNC_FALLBACK_INTERVAL_MS);
