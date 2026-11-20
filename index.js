@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js'
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.33';
+const VERSION = '1.4.85-ambasa.34';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -145,7 +145,7 @@ const translationFiles = createLoreTranslationStorage({
     onBookLoaded(book) {
         if (currentBookName() === book && getSettings().managerMode !== 'native') refreshTranslationFromLoadedBook(book);
         standaloneLibrary?.refreshTranslations(book);
-    }
+    },
     onError(error) {
         console.warn('[로어북 매니저] 번역 서버 파일 저장/이전 실패', error);
         notify(error?.message || '번역 저장소에 접근할 수 없습니다. 번역 기록은 메모리에 유지됩니다.', 'error');
