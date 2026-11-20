@@ -4479,10 +4479,9 @@
 
 /* Extension-only library preferences, not native WorldInfo overrides. */
 #slb-ai-tools .slb-library-settings {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
     min-width: 0;
     margin: 0;
     padding: 9px;
@@ -4493,24 +4492,18 @@
     padding: 0 6px;
     font-weight: 700;
 }
-#slb-ai-tools .slb-library-settings > label {
-    flex: 0 0 auto;
-}
-#slb-ai-tools .slb-library-settings #slb-library-theme {
-    min-width: 150px;
-    max-width: 230px;
-    flex: 1 1 auto;
-}
 #slb-ai-tools .slb-library-settings #slb-open-library {
-    flex: 0 0 auto;
-    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    white-space: nowrap !important;
+    word-break: keep-all;
+    writing-mode: horizontal-tb;
 }
 #slb-ai-tools .slb-library-settings > small {
-    flex: 1 1 100%;
     opacity: .78;
-}
-@media (max-width: 600px) {
-    #slb-ai-tools .slb-library-settings #slb-library-theme {
-        min-width: 120px;
-    }
 }

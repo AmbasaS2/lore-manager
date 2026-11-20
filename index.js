@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js'
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.34';
+const VERSION = '1.4.85-ambasa.35';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3305,13 +3305,6 @@ function createAIBar() {
                         </fieldset>
                         <fieldset class="slb-library-settings">
                             <legend>독립 로어북 매니저 · 서재</legend>
-                            <label for="slb-library-theme">서재 테마</label>
-                            <select id="slb-library-theme" class="text_pole">
-                                <option value="antique">앤티크 서재</option>
-                                <option value="light">밝은 문구류</option>
-                                <option value="dark">어두운 서재</option>
-                                <option value="st">실리태번 테마 연동</option>
-                            </select>
                             <button type="button" id="slb-open-library" class="menu_button"><i class="fa-solid fa-book-open"></i> 독립 서재 열기</button>
                             <small>로어북별로 일반·기억·세계관·인물록을 선택할 수 있습니다. 이 선택은 원본 로어북과 AI 발동에 영향을 주지 않습니다.</small>
                         </fieldset>
@@ -3449,15 +3442,6 @@ function createAIBar() {
                 : '사용 중 · 매니저 통합 로어북 편집 화면입니다.';
     };
     syncManagerModeControls();
-    const libraryThemeControl = document.getElementById('slb-library-theme');
-    if (libraryThemeControl) {
-        libraryThemeControl.value = settings.libraryTheme;
-        libraryThemeControl.addEventListener('change', () => {
-            settings.libraryTheme = libraryThemeControl.value;
-            void Promise.resolve(saveSettings());
-            standaloneLibrary?.updateTheme();
-        });
-    }
     document.getElementById('slb-open-library')?.addEventListener('click', () => void openStandaloneLibrary());
     managerModeControls.forEach(input => input.addEventListener('change', () => {
         if (!input.checked) return;
@@ -9170,7 +9154,7 @@ function initStandaloneLibrary() {
             getSettings().libraryBookTypes[book] = type;
             void Promise.resolve(saveSettings());
         },
-        getTheme: () => getSettings().libraryTheme,
+        getTheme: () => 'antique',
         notify,
     });
     return standaloneLibrary;
