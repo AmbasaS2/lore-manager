@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js'
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.32';
+const VERSION = '1.4.85-ambasa.33';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -9240,10 +9240,6 @@ function init() {
     createBulkLorebookExportControls();
     createWorkspace();
     bindEvents();
-    bindStandaloneLibraryMenu();
-    // If the extension menu is mounted late, bind on its actual user click;
-    // unlike polling, this costs nothing while the menu is idle.
-    document.getElementById('extensionsMenuButton')?.addEventListener('click', bindStandaloneLibraryMenu);
     state.responsiveMedia = window.matchMedia('(max-width: 760px)');
     state.responsiveViewportWidth = window.innerWidth;
     state.responsiveBreakpoint = state.responsiveMedia.matches;
@@ -9329,6 +9325,14 @@ jQuery(() => {
         return;
     }
     window.__slbLoreManagerActive = VERSION;
+    // The wand menu belongs to ST, not to the WorldInfo editor. Register
+    // independently: the editor may initialize later or stop before its
+    // ordinary settings/render setup completes.
+    bindStandaloneLibraryMenu();
+    // ST fires APP_READY after its extension/menu and WorldInfo initialization.
+    // Reuse the existing lifecycle signal for late-mounted menu markup,
+    // without polling, observing the whole document, or rerendering rows.
+    if (event_types.APP_READY) eventSource.on(event_types.APP_READY, bindStandaloneLibraryMenu);
     init();
 });
 
