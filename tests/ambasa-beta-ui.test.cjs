@@ -71,13 +71,14 @@ test('character filter preference lives in extension settings without an extra t
     } finally { w.close(); }
 });
 
-test('reopening an already hydrated book with one repaired row avoids the full loading mask', () => {
+test('reopening with incomplete rows repairs them before revealing a mixed native/manager UI', () => {
     const dom = new JSDOM('<div id="world_popup_entries_list"><div class="world_entry" data-slb-header-enhanced="1"></div><div class="world_entry"></div></div>', { runScripts: 'outside-only' });
     const w = dom.window;
     w.eval(`
         const state = {drawerOpenLoadingTimer:null, worldDrawerOpening:false, currentBook:'Remus',bookSwitch:null};
         const currentBookName = () => 'Remus';
         const renderedEntries = () => [...document.querySelectorAll('.world_entry')];
+        const isEntryHeaderReadyForReveal = row => row.dataset.slbHeaderEnhanced === '1';
         const hasCompleteVisibleEntryHeaders = () => false;
         let masked = 0, scheduled = 0;
         const setBookSwitchLoading = value => { if (value) masked++; };
@@ -88,7 +89,7 @@ test('reopening an already hydrated book with one repaired row avoids the full l
     `);
     try {
         w.reopen();
-        assert.equal(w.readCounts().masked, 0);
-        assert.equal(w.readCounts().scheduled, 1);
+        assert.equal(w.readCounts().masked, 1, 'incomplete rows are not exposed');
+        assert.equal(w.readCounts().scheduled, 1, 'repair is still scheduled without polling');
     } finally { w.close(); }
 });

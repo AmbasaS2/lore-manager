@@ -3965,7 +3965,7 @@
     width: 100% !important;
     field-sizing: content;
     height: auto !important;
-    min-height: 32px !important;
+    min-height: 28px !important;
     max-height: 152px !important;
     overflow-y: auto !important;
     white-space: pre-wrap;
@@ -3993,10 +3993,16 @@
     background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 8%, transparent);
 }
 
-/* The full header row follows the content height of the title. */
+/* Compact one-line titles use the natural 28px field height; long
+   titles still grow with field-sizing:content (maximum 152px). */
 #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-entry-header-shell {
     align-items: center;
-    grid-auto-rows: minmax(32px, auto);
+    grid-auto-rows: minmax(28px, auto);
+}
+#WorldInfo.slb-active #world_popup_entries_list .world_entry
+    .slb-header-actions > .menu_button {
+    height: 28px !important;
+    min-height: 28px !important;
 }
 #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-toggles,
 #WorldInfo.slb-active #world_popup_entries_list .world_entry .slb-header-actions {

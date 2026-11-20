@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.20';
+const VERSION = '1.4.85-ambasa.22';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -177,6 +177,7 @@ const state = {
     entryStateValues: new WeakMap(),
     headerRecoveryTimers: new WeakMap(),
     headerRecoveryAttempts: new WeakMap(),
+    incompleteHeaderRetry: null,
     closingEntryDrawers: new WeakSet(),
     backupTimers: new Map(),
     backupOpenPromises: new Map(),
@@ -2476,6 +2477,9 @@ function createLorebookBackup(book, options = {}) {
 
 async function createLorebookBackupInternal(book, { reason = 'manual', force = false, data = null } = {}) {
     if (!book) throw new Error('백업할 로어북을 먼저 선택해주세요.');
+    const scheduled = reason === 'auto' || reason === 'opened';
+    // An OFF toggle also cancels snapshots already awaiting an async read.
+    if (scheduled && (!getSettings().autoBackupEnabled || state.backupRestoreInProgress)) return { status: 'disabled' };
     const lorebook = structuredClone(data || await loadWorldInfo(book));
     if (!lorebook?.entries) throw new Error('로어북 데이터를 불러오지 못했습니다.');
     const translations = lorebookTranslations(book);
@@ -2483,6 +2487,7 @@ async function createLorebookBackupInternal(book, { reason = 'manual', force = f
     const existing = (await listLorebookBackups()).filter(record => record.book === book);
     const latest = existing[0];
     if (!force && latest?.hash === hash) return { status: 'unchanged', record: latest };
+    if (scheduled && (!getSettings().autoBackupEnabled || state.backupRestoreInProgress)) return { status: 'disabled' };
     const record = {
         id: backupId(),
         schemaVersion: BACKUP_SCHEMA_VERSION,
@@ -3352,7 +3357,8 @@ function createAIBar() {
     });
     autoBackupEnabled.addEventListener('change', () => {
         settings.autoBackupEnabled = autoBackupEnabled.checked;
-        saveSettingsDebounced();
+        // OFF must persist immediately, even if the user closes the page.
+        void saveSettings().catch(error => console.warn('[로어북 매니저] 자동 백업 설정 저장 실패', error));
         if (autoBackupEnabled.checked && currentBookName()) {
             backupLorebookOnOpen(currentBookName());
         } else {
@@ -7572,11 +7578,14 @@ function beginWorldDrawerOpenLoading() {
     const existingRows = renderedEntries();
     if (!state.bookSwitch
         && state.currentBook === book
-        && existingRows.some(row => row.dataset.slbHeaderEnhanced)) {
-        state.worldDrawerOpening = false;
-        setBookSwitchLoading(false);
-        if (!hasCompleteVisibleEntryHeaders()) scheduleEnhance();
-        return;
+        && existingRows.length > 0) {
+        if (existingRows.every(isEntryHeaderReadyForReveal)) {
+            state.worldDrawerOpening = false;
+            setBookSwitchLoading(false);
+            return;
+        }
+        // A partially hydrated page must be repaired before it is visible.
+        scheduleEnhance();
     }
     state.worldDrawerOpening = true;
     if (!hasCompleteVisibleEntryHeaders()) setBookSwitchLoading(true);
@@ -7796,6 +7805,8 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 
 function beginBookSwitch(book, suppliedBoundary = null) {
     if (state.bulkTranslation) cancelBulkTranslation({ silent: true });
+    if (state.incompleteHeaderRetry?.timer) clearTimeout(state.incompleteHeaderRetry.timer);
+    state.incompleteHeaderRetry = null;
     entryBulkEditor.reset(book);
     const previous = state.bookSwitch;
     if (previous?.timer) clearTimeout(previous.timer);
@@ -7883,12 +7894,10 @@ function revealCompletedEntryList(book, entries, headersVerified = false) {
     const liveEntries = renderedEntries();
     const sameRenderedPage = liveEntries.length === entries.length
         && liveEntries.every((entry, index) => entry === entries[index]);
-    // A malformed/late native row should not hold already-completed rows
-    // hostage to the full-screen loading mask. Keep retrying that row through
-    // native DOM changes, but allow the finished part of the page to appear.
-    const hasReadyHeader = entries.some(isEntryHeaderReadyForReveal);
+    // A single completed row is NOT proof that this page is ready: releasing
+    // the whole list here exposed raw SillyTavern rows below managed rows.
     if (state.enhancePending || !sameRenderedPage
-        || (entries.length > 0 && !headersVerified && !hasReadyHeader)) return false;
+        || (entries.length > 0 && !entries.every(isEntryHeaderReadyForReveal))) return false;
 
     // 제목·주입 방식·작업 버튼까지만 완성되면 목록을 즉시 공개한다.
     // 토큰 통계, 필터 동기화, 열린 항목의 번역 UI 같은 부가 작업은 이 뒤의
@@ -7971,7 +7980,30 @@ function enhanceAll() {
         }
         if (!needsAnotherEnhancePass && !listRevealed) {
             listRevealed = revealCompletedEntryList(bookAtStart, entries, freshHeadersVerified);
-            if (listRevealed && freshHeaderPass && !narrowLayout) {
+        }
+        // Only an incomplete page gets bounded retries; successful pages
+        // do not incur another timer or a polling loop.
+        if (listRevealed) {
+            if (state.incompleteHeaderRetry?.timer) clearTimeout(state.incompleteHeaderRetry.timer);
+            state.incompleteHeaderRetry = null;
+        } else if (!needsAnotherEnhancePass && currentBookName() === bookAtStart && entries.length) {
+            const pending = entries.some(entry => entry.isConnected && !isEntryHeaderReadyForReveal(entry));
+            if (pending) {
+                let retry = state.incompleteHeaderRetry;
+                if (!retry || retry.book !== bookAtStart || retry.firstRow !== entries[0]) {
+                    retry = { book: bookAtStart, firstRow: entries[0], count: 0, timer: null };
+                    state.incompleteHeaderRetry = retry;
+                }
+                if (retry.count < 3 && !retry.timer) {
+                    const delay = [70, 160, 350][retry.count++];
+                    retry.timer = setTimeout(() => {
+                        retry.timer = null;
+                        if (currentBookName() === bookAtStart && !state.enhancing) scheduleEnhance();
+                    }, delay);
+                } else if (retry.count === 3 && !retry.timer) {
+                    console.warn('[로어북 매니저] 일부 항목의 헤더 변환이 완료되지 않았습니다. 브라우저 콘솔의 항목 오류를 확인해주세요.');
+                    retry.count = 4;
+                }
             }
         }
     };
@@ -7993,7 +8025,11 @@ function enhanceAll() {
         for (; index < hardEnd; index++) {
             const entry = openedEntries[index];
             if (!entry?.isConnected) continue;
-            if (isEntryEditorRendered(entry)) enhanceEntry(entry);
+            try {
+                if (isEntryEditorRendered(entry)) enhanceEntry(entry);
+            } catch (error) {
+                console.error('[로어북 매니저] 항목 편집기 렌더 오류', getUid(entry), error);
+            }
             if (index > start && performance.now() >= deadline) {
                 index += 1;
                 break;
@@ -8021,7 +8057,8 @@ function enhanceAll() {
         for (; index < hardEnd; index++) {
             const entry = entries[index];
             if (!entry?.isConnected) continue;
-            if (freshHeaderPass) {
+            try {
+                if (freshHeaderPass) {
                 if (narrowLayout) {
                     enhanceEntryHeader(entry, { initialCompact: true, deferBadgeTheme: true });
                 } else {
@@ -8042,9 +8079,13 @@ function enhanceAll() {
                 enhanceEntryHeader(entry);
             }
             if (freshHeaderPass && entry.dataset.slbHeaderEnhanced !== VERSION) {
+                    freshHeadersVerified = false;
+                }
+                syncMetadataTranslations(entry);
+            } catch (error) {
                 freshHeadersVerified = false;
+                console.error('[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
             }
-            syncMetadataTranslations(entry);
             // 접힌 행은 편집기 DOM 자체가 없으므로 getClientRects를 호출하지
             // 않는다. 실제 편집기가 있는 소수의 열린 행만 렌더 여부를 확인한다.
             const editor = queryCompatible(entry, [
