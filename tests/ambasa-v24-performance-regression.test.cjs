@@ -182,6 +182,7 @@ test('switching books cancels stale editor hydration without modifying native da
       "const scheduleBookSwitchReadyCheck=()=>{};",
       "const isFoldyLinkedMode=()=>false;",
       "const markFoldyLinkedPreparing=()=>{};",
+      "const loadTranslationBook=()=>{};",
       func('beginBookSwitch'),
       "window.api={run:beginBookSwitch,rows,state,cancellations};",
     ].join('\n');

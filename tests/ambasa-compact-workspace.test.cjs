@@ -97,7 +97,7 @@ test('bulk-selection UI is named and shows single select-all/clear toggle, not a
 
 test('translation bulk picker is clearly differentiated from per-entry translate buttons',()=>{
     assert.match(src,/id="slb-translate-book"[^>]*>[\s\S]*?로어북 일괄 번역/);
-    assert.match(src,/번역할 로어북을 선택한 뒤, 미번역 항목만 번역하거나 전체 재번역/);
+    assert.match(src,/로어북을 하나 이상 선택해 미번역 항목만 번역하거나 전체 재번역/);
     assert.match(src,/자동 번역 · 원문 반영 설정/);
 });
 

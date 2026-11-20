@@ -74,7 +74,11 @@ test('legacy fallback still copies a matching record to the current book once', 
         translationKey:(book,uid)=>book+'\u241f'+uid,
         hashText:source=>source,
         translationFallbackLookup:createTranslationFallbackLookup(),
-        saveSettingsDebounced:()=>{saves++},
+        translationFiles:{
+            isBookReady:()=>true, assertBookReady:()=>{}, hintFor:()=>'',ensureBook:async()=>{}
+        },
+        pendingTranslationFallbackBooks:new Set(),
+        saveBookTranslations:()=>{saves++},
     });
     vm.runInContext(match[0],context);
     const found = context.findTranslationRecord('New',8,'source-hash','ko');

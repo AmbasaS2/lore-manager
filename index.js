@@ -17,13 +17,14 @@ import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js
 import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
 import { createTranslationFallbackLookup } from './translation-lookup.js';
+import { createLoreTranslationStorage } from './translation-storage.js';
 import { translateLoreWithValidation } from './lore-translation.js';
 import { translateLoreFieldsBatch } from './lore-translation-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.24';
+const VERSION = '1.4.85-ambasa.25';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -116,8 +117,6 @@ const DEFAULT_SETTINGS = Object.freeze({
     translateMissingOnOpen: true,
     autoTranslateSource: true,
     autoSyncToSource: true,
-    entryLanguagePairs: {},
-    translations: {},
 });
 
 function normalizeAIOutputTokens(value) {
@@ -126,6 +125,46 @@ function normalizeAIOutputTokens(value) {
     return Math.min(MAX_AI_OUTPUT_TOKENS, Math.max(MIN_AI_OUTPUT_TOKENS, parsed));
 }
 
+const translationFiles = createLoreTranslationStorage({
+    getRequestHeaders,
+    onBookLoaded(book) {
+        if (currentBookName() === book) refreshTranslationFromLoadedBook(book);
+    },
+    onError(error) {
+        console.warn('[로어북 매니저] 번역 서버 파일 저장/이전 실패', error);
+        notify(error?.message || '번역 저장소에 접근할 수 없습니다. 번역 기록은 메모리에 유지됩니다.', 'error');
+    },
+});
+const pendingTranslationFallbackBooks = new Set();
+
+function refreshTranslationFromLoadedBook(book) {
+    if (!book || currentBookName() !== book) return;
+    // Called once when a requested book (or matching legacy fallback) finishes
+    // its network read. Never poll the page for translations.
+    for (const entry of renderedEntries()) {
+        syncMetadataTranslations(entry);
+        const ui = entry.querySelector('.world_entry_edit')?.slbTranslationUI;
+        if (!ui || ui.book !== book || ui.flags.translating || ui.flags.writingTranslation) continue;
+        const saved = findTranslationRecord(book, ui.uid, ui.source.value, ui.translationLanguage);
+        if (saved && !ui.translation.value.trim()) {
+            ui.translation.value = saved.text || '';
+            ui.reflectionBaseline = getTranslationReflectionBaseline(saved, ui.source.value, ui.translationLanguage);
+            ui.status.textContent = '저장된 번역을 불러왔습니다.';
+            syncSourceVisibility(ui);
+        }
+    }
+    scheduleEnhance();
+}
+
+function loadTranslationBook(book) {
+    if (!book) return;
+    void translationFiles.ensureBook(book).catch(error => {
+        console.warn('[로어북 매니저] 번역 로어북 파일을 불러오지 못했습니다', book, error);
+    });
+}
+function saveBookTranslations(book) {
+    translationFiles.scheduleSave(book);
+}
 const GOOGLE_LANGUAGE_CODES = Object.freeze({
     [ENTRY_LANGUAGE_KOREAN]: 'ko',
     [ENTRY_LANGUAGE_ENGLISH]: 'en',
@@ -271,12 +310,10 @@ function getSettings() {
         }
     }
 
-    if (!settings.translations || typeof settings.translations !== 'object' || Array.isArray(settings.translations)) {
-        settings.translations = {};
-    }
-    if (!settings.entryLanguagePairs || typeof settings.entryLanguagePairs !== 'object' || Array.isArray(settings.entryLanguagePairs)) {
-        settings.entryLanguagePairs = {};
-    }
+    // UI reads remain synchronous, but newly generated translation records are
+    // non-enumerable in settings and saved exclusively to per-book JSON files.
+    // Unexpected old settings data is retained and blocks file mode safely.
+    translationFiles.attach(settings);
 
     settings.aiOutputTokens = normalizeAIOutputTokens(settings.aiOutputTokens);
     settings.tokenSummaryCollapsed = Boolean(settings.tokenSummaryCollapsed);
@@ -1083,13 +1120,14 @@ function saveEntryLanguagePair(book, uid, sourceLanguage, translationLanguage) {
     const pair = source === translation
         ? { sourceLanguage: source, translationLanguage: oppositeEntryLanguage(source) }
         : { sourceLanguage: source, translationLanguage: translation };
+    translationFiles.assertBookReady(book);
     const settings = getSettings();
     const key = translationKey(book, uid);
     const previous = settings.entryLanguagePairs[key];
     if (previous?.sourceLanguage === pair.sourceLanguage
         && previous?.translationLanguage === pair.translationLanguage) return pair;
     settings.entryLanguagePairs[key] = pair;
-    saveSettingsDebounced();
+    saveBookTranslations(book);
     return pair;
 }
 
@@ -1152,6 +1190,17 @@ function findTranslationRecord(book, uid, source, translationLanguage) {
     if (exact && exact.language === translationLanguage) return exact;
 
     const sourceHash = hashText(source);
+    // Only on a matching lightweight index hint, fetch another book on demand.
+    // Never read every translated book merely to open the current one.
+    const hintedBook = translationFiles.hintFor(uid, sourceHash, translationLanguage);
+    if (hintedBook && hintedBook !== book && !translationFiles.isBookReady(hintedBook)
+        && !pendingTranslationFallbackBooks.has(hintedBook)) {
+        pendingTranslationFallbackBooks.add(hintedBook);
+        void translationFiles.ensureBook(hintedBook).then(() => {
+            if (currentBookName() === book) refreshTranslationFromLoadedBook(book);
+        }).catch(error => console.warn('[로어북 매니저] 이전 로어북 번역 조회 실패', error))
+            .finally(() => pendingTranslationFallbackBooks.delete(hintedBook));
+    }
     // A missing exact key used to scan every stored translation on each
     // lookup. Cache that read-only index until the store is changed; no
     // serialized settings or on-disk records are modified by the cache.
@@ -1160,9 +1209,10 @@ function findTranslationRecord(book, uid, source, translationLanguage) {
     );
 
     if (fallback) {
+        translationFiles.assertBookReady(book);
         settings.translations[exactKey] = { ...fallback, book };
         translationFallbackLookup.invalidate(settings.translations);
-        saveSettingsDebounced();
+        saveBookTranslations(book);
         return settings.translations[exactKey];
     }
 
@@ -1196,6 +1246,7 @@ function hasSamePersistedTranslationPayload(previous, next) {
 }
 
 function saveTranslationRecord(book, uid, source, translation, options = {}) {
+    translationFiles.assertBookReady(book);
     const settings = getSettings();
     const key = translationKey(book, uid);
     const sourceLanguage = normalizeEntryLanguage(options.sourceLanguage) || ENTRY_LANGUAGE_ENGLISH;
@@ -1230,7 +1281,7 @@ function saveTranslationRecord(book, uid, source, translation, options = {}) {
     settings.translations[key] = record;
     settings.entryLanguagePairs[key] = { sourceLanguage, translationLanguage };
     translationFallbackLookup.invalidate(settings.translations);
-    saveSettingsDebounced();
+    saveBookTranslations(book);
     scheduleAutomaticLorebookBackup(book);
 }
 
@@ -2358,18 +2409,21 @@ async function flushExtensionSettings() {
 }
 
 async function clearTranslationStorage({ refreshUI = true } = {}) {
-    const settings = extension_settings[EXTENSION_NAME];
-    if (settings && typeof settings === 'object') settings.translations = {};
+    // A verified recovery backup is written before any server record is cleared.
+    await translationFiles.clearAll({ onlyTranslations: true });
+    translationFallbackLookup.invalidate(getSettings().translations);
     state.translationTimers.forEach(timer => clearTimeout(timer));
     state.translationTimers.clear();
     if (refreshUI) clearVisibleTranslations();
-    await flushExtensionSettings();
 }
 
 async function resetExtensionStorage({ refreshUI = false } = {}) {
     if (state.extensionDataCleaning) return;
     state.extensionDataCleaning = true;
     state.backupRestoreInProgress = true;
+    // Remove server translation files only after a verified full-store backup.
+    // A failed write/read never proceeds to wiping the extension settings.
+    await translationFiles.clearAll();
     clearAllAutomaticBackupSchedules();
     state.sourceTimers.forEach(timer => clearTimeout(timer));
     state.translationTimers.forEach(timer => clearTimeout(timer));
@@ -2435,6 +2489,7 @@ function lorebookTranslations(book) {
 }
 
 function replaceLorebookTranslations(book, records) {
+    translationFiles.assertBookReady(book);
     const settings = getSettings();
     const prefix = `${book}\u241f`;
     for (const [key, value] of Object.entries(settings.translations)) {
@@ -2455,7 +2510,7 @@ function replaceLorebookTranslations(book, records) {
         }
     }
     translationFallbackLookup.invalidate(settings.translations);
-    saveSettingsDebounced();
+    saveBookTranslations(book);
 }
 
 function backupSnapshotHash(lorebook, translations) {
@@ -2484,7 +2539,12 @@ function createLorebookBackup(book, options = {}) {
 async function createLorebookBackupInternal(book, { reason = 'manual', force = false, data = null } = {}) {
     if (!book) throw new Error('백업할 로어북을 먼저 선택해주세요.');
     const scheduled = reason === 'auto' || reason === 'opened';
-    // An OFF toggle also cancels snapshots already awaiting an async read.
+    // OFF must return before ANY translation-file read or disk activity.
+    if (scheduled && (!getSettings().autoBackupEnabled || state.backupRestoreInProgress)) return { status: 'disabled' };
+    // Manual and enabled automatic backups contain the latest committed
+    // translation data; an in-flight edit is flushed before the snapshot.
+    await translationFiles.ensureBook(book);
+    await translationFiles.flushBook(book);
     if (scheduled && (!getSettings().autoBackupEnabled || state.backupRestoreInProgress)) return { status: 'disabled' };
     const lorebook = structuredClone(data || await loadWorldInfo(book));
     if (!lorebook?.entries) throw new Error('로어북 데이터를 불러오지 못했습니다.');
@@ -2928,7 +2988,9 @@ async function restoreLorebookBackup(id, mode) {
 
     state.backupRestoreInProgress = true;
     try {
+        await translationFiles.ensureBook(targetBook);
         replaceLorebookTranslations(targetBook, backup.translations || []);
+        await translationFiles.flushBook(targetBook);
         await saveWorldInfo(targetBook, structuredClone(backup.lorebook), true);
         if (mode !== 'current') await updateWorldInfoList();
     } finally {
@@ -3512,7 +3574,7 @@ function createQuickTranslationOptions() {
             <div class="slb-bulk-action">
                 <strong class="slb-bulk-action-title">로어북 단위 번역</strong>
                 <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>로어북 일괄 번역</span></button>
-                <small class="slb-translate-book-help">번역할 로어북을 선택한 뒤, 미번역 항목만 번역하거나 전체 재번역을 진행합니다.</small>
+                <small class="slb-translate-book-help">로어북을 하나 이상 선택해 미번역 항목만 번역하거나 전체 재번역을 진행합니다.</small>
             </div>
             <section class="slb-auto-options" aria-label="자동 번역 및 원문 반영 설정">
                 <strong class="slb-auto-options-title">자동 번역 · 원문 반영 설정</strong>
@@ -3601,50 +3663,99 @@ async function showLorebookTranslationPicker() {
     const linkedBooks = currentCharacterLinkedBooks();
     const current = currentBookName();
     const form = createElement('div', 'slb-translation-picker');
-    const fieldLabel = createElement('label', 'slb-translation-picker-label', '로어북 선택');
-    fieldLabel.htmlFor = 'slb-translate-world-select';
-    const select = createElement('select', 'text_pole textarea_compact');
-    select.id = 'slb-translate-world-select';
+    const fieldLabel = createElement('strong', 'slb-translation-picker-label', '번역할 로어북 선택 (복수 선택 가능)');
+    fieldLabel.id = 'slb-translate-world-label';
+    const list = createElement('div', 'slb-translation-picker-book-list');
+    list.id = 'slb-translate-world-list';
+    list.setAttribute('role', 'group');
+    list.setAttribute('aria-labelledby', fieldLabel.id);
+    // A native, scrollable checkbox list needs no new theme CSS rules.
+    list.style.maxHeight = 'min(42vh, 320px)';
+    list.style.overflowY = 'auto';
+    const selectAllButton = createElement('button', 'menu_button slb-translation-picker-select-all', '모두 선택');
+    selectAllButton.type = 'button';
+    selectAllButton.id = 'slb-translate-world-select-all';
+    const selectedStatus = createElement('small', 'slb-translation-picker-selected');
+    selectedStatus.id = 'slb-translate-world-selected';
     const showAllLabel = createElement('label', 'checkbox_label slb-translation-picker-all');
     const showAll = document.createElement('input');
     showAll.type = 'checkbox';
     showAll.id = 'slb-translate-world-show-all';
     showAll.checked = linkedBooks === null;
     showAll.disabled = linkedBooks === null;
-    // Match STLO/SillyTavern's native checkbox structure; without .checkmark
-    // some themes hide the actual input and no checkbox is visible.
     showAllLabel.append(showAll, createElement('span', 'checkmark'),
         createElement('span', '', '모든 로어북 보기'));
     const status = createElement('small', 'slb-translation-picker-status');
-    const updateOptions = () => {
-        const allowed = showAll.checked || linkedBooks === null
-            ? allBooks : allBooks.filter(name => linkedBooks.has(name));
-        const previous = select.value;
-        select.replaceChildren();
-        for (const name of allowed) {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            select.append(option);
-        }
-        select.value = allowed.includes(previous) ? previous
-            : allowed.includes(current) ? current : allowed[0] ?? '';
-        status.textContent = allowed.length ? '' : '연결된 로어북이 없습니다. 모든 로어북 보기를 선택해주세요.';
+    const selected = new Set();
+    let allowed = [];
+    const updateSelectedStatus = () => {
+        const count = allowed.filter(name => selected.has(name)).length;
+        selectedStatus.textContent = count ? count + '개 로어북 선택됨' : '선택한 로어북 없음';
+        selectAllButton.textContent = allowed.length && count === allowed.length ? '선택 해제' : '모두 선택';
+        selectAllButton.disabled = allowed.length === 0;
     };
-    showAll.addEventListener('change', updateOptions);
+    const updateOptions = () => {
+        allowed = showAll.checked || linkedBooks === null
+            ? allBooks : allBooks.filter(name => linkedBooks.has(name));
+        for (const name of [...selected]) {
+            if (!allowed.includes(name)) selected.delete(name);
+        }
+        if (!selected.size && allowed.length && !list.dataset.slbUserCleared) {
+            selected.add(allowed.includes(current) ? current : allowed[0]);
+        }
+        list.replaceChildren();
+        for (const name of allowed) {
+            const label = createElement('label', 'checkbox_label slb-translation-picker-book');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.minHeight = '28px';
+            label.style.width = '100%';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.value = name;
+            input.checked = selected.has(name);
+            input.setAttribute('aria-label', name);
+            input.addEventListener('change', () => {
+                if (input.checked) selected.add(name);
+                else selected.delete(name);
+                list.dataset.slbUserCleared = selected.size ? '' : 'true';
+                updateSelectedStatus();
+            });
+            label.append(input, createElement('span', 'checkmark'), createElement('span', '', name));
+            list.append(label);
+        }
+        status.textContent = allowed.length ? '' : '연결된 로어북이 없습니다. 모든 로어북 보기를 선택해주세요.';
+        updateSelectedStatus();
+    };
+    selectAllButton.addEventListener('click', () => {
+        const allSelected = allowed.every(name => selected.has(name));
+        if (allSelected) {
+            allowed.forEach(name => selected.delete(name));
+            list.dataset.slbUserCleared = 'true';
+        } else {
+            allowed.forEach(name => selected.add(name));
+            delete list.dataset.slbUserCleared;
+        }
+        updateOptions();
+    });
+    showAll.addEventListener('change', () => {
+        delete list.dataset.slbUserCleared;
+        updateOptions();
+    });
     updateOptions();
-    form.append(fieldLabel, select, showAllLabel, status);
+    form.append(fieldLabel, selectAllButton, selectedStatus, list, showAllLabel, status);
 
     const popup = new Popup(form, POPUP_TYPE.CONFIRM, '', {
         okButton: false,
         cancelButton: '닫기',
         customButtons: [
-            { text: '번역문 없는 로어 전체 번역', result: 2, icon: 'fa-language' },
-            { text: '이 로어북 전체 재번역', result: 3, icon: 'fa-arrows-rotate' },
+            { text: '선택한 로어북 미번역 항목 번역', result: 2, icon: 'fa-language' },
+            { text: '선택한 로어북 전체 재번역', result: 3, icon: 'fa-arrows-rotate' },
         ],
         onClosing: dialog => {
-            if ((dialog.result === 2 || dialog.result === 3) && !select.value) {
-                status.textContent = '번역할 로어북을 먼저 선택해주세요.';
+            if ((dialog.result === 2 || dialog.result === 3)
+                && !allowed.some(name => selected.has(name))) {
+                status.textContent = '번역할 로어북을 하나 이상 선택해주세요.';
                 return false;
             }
             return true;
@@ -3652,10 +3763,67 @@ async function showLorebookTranslationPicker() {
     });
     const result = await popup.show();
     if (result !== 2 && result !== 3) return;
-    const selectedBook = select.value;
-    // Popup closes, browser-tab work continues. Closing the ST tab still
-    // interrupts browser-side API requests: this is not a server-side job.
-    void translateCurrentLorebook(result === 2 ? 'missing' : 'all', null, selectedBook);
+    const selectedBooks = allowed.filter(name => selected.has(name));
+    if (!selectedBooks.length) return;
+    const mode = result === 2 ? 'missing' : 'all';
+    // A single selected book keeps the old processing path. Multiple books
+    // share one cancellable job and run sequentially to cap API load.
+    if (selectedBooks.length === 1) {
+        void translateCurrentLorebook(mode, null, selectedBooks[0]);
+    } else {
+        void translateMultipleLorebooks(selectedBooks, mode);
+    }
+}
+
+async function translateMultipleLorebooks(books, mode = 'missing') {
+    const selectedBooks = [...new Set((books || []).filter(book => typeof book === 'string' && book.trim()))];
+    if (!selectedBooks.length) return;
+    if (state.bulkTranslation) return;
+    if (!selectedTranslationFields().length) {
+        notify('확장 탭에서 번역할 항목을 선택해주세요.', 'warning');
+        return;
+    }
+    if (!canTranslate()) {
+        notify('확장 탭에서 번역 방식과 연결 프로필을 먼저 설정해주세요.', 'warning');
+        return;
+    }
+    const job = {
+        book: selectedBooks[0], mode, independent: true,
+        cancelled: false, uids: null,
+        multiTotal: selectedBooks.length, multiIndex: 0,
+        abortController: new AbortController(),
+    };
+    state.bulkTranslation = job;
+    const sum = {succeeded: 0, failed: 0, skipped: 0, booksCompleted: 0};
+    try {
+        for (const [index, book] of selectedBooks.entries()) {
+            if (job.cancelled || state.bulkTranslation !== job) return;
+            job.book = book;
+            job.multiIndex = index + 1;
+            updateBulkTranslationStatus('[' + job.multiIndex + '/' + job.multiTotal + '] ' + book + ' · 준비 중…');
+            const result = await translateCurrentLorebook(mode, null, book, job);
+            if (job.cancelled || state.bulkTranslation !== job) return;
+            if (result) {
+                sum.succeeded += result.succeeded || 0;
+                sum.failed += result.failed || 0;
+                sum.skipped += result.skipped || 0;
+                sum.booksCompleted++;
+            } else {
+                sum.failed++;
+            }
+        }
+        if (job.cancelled || state.bulkTranslation !== job) return;
+        const summary = selectedBooks.length + '개 로어북 번역 완료 · 성공 '
+            + sum.succeeded + '개, 실패 ' + sum.failed + '개, 건너뜀 ' + sum.skipped + '개';
+        updateBulkTranslationStatus(summary);
+        notify(summary, sum.failed ? 'warning' : 'success', true);
+        return sum;
+    } finally {
+        if (state.bulkTranslation === job) {
+            state.bulkTranslation = null;
+            updateBulkTranslationStatus();
+        }
+    }
 }
 
 function selectedTranslationFields() {
@@ -3694,6 +3862,7 @@ function currentMetadataTranslation(record, field, source) {
 }
 
 function saveMetadataTranslations(book, uid, pair, sources, results) {
+    translationFiles.assertBookReady(book);
     const fields = ['comment', 'key', 'keysecondary'].filter(field => results[field] !== undefined);
     if (!fields.length) return;
     const settings = getSettings();
@@ -3719,7 +3888,7 @@ function saveMetadataTranslations(book, uid, pair, sources, results) {
     settings.translations[key] = record;
     settings.entryLanguagePairs[key] = { ...pair };
     translationFallbackLookup.invalidate(settings.translations);
-    saveSettingsDebounced();
+    saveBookTranslations(book);
     scheduleAutomaticLorebookBackup(book);
 }
 
@@ -3920,6 +4089,7 @@ async function deleteSelectedEntries(selection) {
         affectedUIs.forEach(ui => { ui.flags.deleted = false; });
         throw error;
     }
+    await translationFiles.ensureBook(selection.book);
     const settings = getSettings();
     for (const uid of uids) {
         const key = translationKey(selection.book, uid);
@@ -3927,7 +4097,8 @@ async function deleteSelectedEntries(selection) {
         delete settings.entryLanguagePairs[key];
     }
     translationFallbackLookup.invalidate(settings.translations);
-    saveSettingsDebounced();
+    saveBookTranslations(selection.book);
+    await translationFiles.flushBook(selection.book);
     if (currentBookName() === selection.book) {
         state.currentBookData = data;
         entryBulkEditor.prune(data);
@@ -3938,8 +4109,10 @@ async function deleteSelectedEntries(selection) {
     notify(`선택한 ${uids.length}개 항목을 삭제했습니다.`, 'success');
 }
 
-async function translateCurrentLorebook(mode = 'all', selection = null, selectedBook = null) {
-    if (state.bulkTranslation) {
+async function translateCurrentLorebook(mode = 'all', selection = null, selectedBook = null, sharedJob = null) {
+    if (sharedJob) {
+        if (sharedJob.cancelled || state.bulkTranslation !== sharedJob) return;
+    } else if (state.bulkTranslation) {
         cancelBulkTranslation();
         return;
     }
@@ -3959,17 +4132,19 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         return;
     }
 
-    const job = {
+    const job = sharedJob || {
         book, mode, independent, cancelled: false,
         uids: selection ? new Set(selection.uids) : null,
         abortController: new AbortController(),
     };
-    state.bulkTranslation = job;
+    if (!sharedJob) state.bulkTranslation = job;
     updateBulkTranslationStatus('로어북 항목을 불러오는 중…');
     let succeeded = 0;
     let failed = 0;
     let skipped = 0;
     try {
+        await translationFiles.ensureBook(book);
+        if (job.cancelled || state.bulkTranslation !== job) return;
         const data = await loadWorldInfo(book);
         if (job.cancelled || state.bulkTranslation !== job) return;
         if (!data?.entries) throw new Error('로어북 항목을 불러오지 못했습니다.');
@@ -3980,7 +4155,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         const jobLabel = mode === 'selected' ? '선택 항목 번역' : mode === 'missing' ? '번역 안 된 항목만 번역' : '전체 번역';
         if (!entries.length) {
             updateBulkTranslationStatus(mode === 'missing' ? '번역할 미번역 항목이 없습니다.' : '번역할 항목이 없습니다.');
-            return;
+            return {succeeded: 0, failed: 0, skipped: 0};
         }
         // Each worker keeps its own UID and content snapshot. A completed result
         // can be applied immediately even while earlier requests are still pending.
@@ -3988,7 +4163,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         const showProgress = () => {
             if (job.cancelled || state.bulkTranslation !== job) return;
             updateBulkTranslationStatus(
-                `${book} · ${jobLabel} ${succeeded + failed + skipped}/${entries.length} (완료 ${succeeded}, 실패 ${failed}, 건너뜀 ${skipped})`,
+                `${sharedJob ? '[' + job.multiIndex + '/' + job.multiTotal + '] ' : ''}${book} · ${jobLabel} ${succeeded + failed + skipped}/${entries.length} (완료 ${succeeded}, 실패 ${failed}, 건너뜀 ${skipped})`,
             );
         };
         let checkpoint = Promise.resolve();
@@ -4077,9 +4252,9 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                 if (liveUI) liveUI.status.textContent = `${jobLabel}으로 선택한 번역본을 저장했습니다.`;
                 succeeded += 1;
                 if (succeeded % 5 === 0 && !job.cancelled && state.bulkTranslation === job) {
-                    // Serialize checkpoints; multiple workers must not save older
-                    // settings snapshots over one another.
-                    checkpoint = checkpoint.catch(() => undefined).then(() => saveSettings());
+                    // Persist book-local translation checkpoints without
+                    // serializing SillyTavern's entire settings.json.
+                    checkpoint = checkpoint.catch(() => undefined).then(() => translationFiles.flushBook(book));
                     await checkpoint;
                 }
             } catch (error) {
@@ -4091,20 +4266,22 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
             }
         });
         if (job.cancelled || state.bulkTranslation !== job) return;
-        await saveSettings();
+        await translationFiles.flushBook(book);
         if (job.cancelled || state.bulkTranslation !== job) return;
         const summary = `${book} ${jobLabel} 완료 · 성공 ${succeeded}개, 실패 ${failed}개, 건너뜀 ${skipped}개`;
         updateBulkTranslationStatus(summary);
-        notify(summary, failed ? 'warning' : 'success', true);
+        if (!sharedJob) notify(summary, failed ? 'warning' : 'success', true);
+        return {succeeded, failed, skipped};
     } catch (error) {
         if (!job.cancelled && state.bulkTranslation === job) {
             updateBulkTranslationStatus(error.message || '로어북 전체 번역에 실패했습니다.');
-            notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error', true);
+            if (!sharedJob) notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error', true);
         }
+        return job.cancelled ? null : {succeeded, failed: failed + 1, skipped};
     } finally {
-        // A canceled old job may finish after a new one started. It must
-        // never reset the new button, progress or saved translations.
-        if (state.bulkTranslation === job) {
+        // The multi-book coordinator owns the shared cancellation scope.
+        // A completed old job must never reset a newer translation job.
+        if (!sharedJob && state.bulkTranslation === job) {
             state.bulkTranslation = null;
             updateBulkTranslationStatus();
         }
@@ -6561,6 +6738,11 @@ function attachLoreEntryHelp(panels) {
 
 function enhanceEntry(entry) {
     if (!entry) return;
+    const bookForTranslation = currentBookName();
+    if (bookForTranslation && !translationFiles.isBookReady(bookForTranslation)) {
+        loadTranslationBook(bookForTranslation);
+        return; // No automatic paid retranslation before saved records arrive.
+    }
     const edit = queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]']);
     if (!edit) return;
     if (edit.dataset.slbEnhanced) {
@@ -7097,7 +7279,10 @@ function enhanceEntry(entry) {
         }
     });
     const hasTranslation = hasEntryTranslation(book, { ...entryData(uid), uid, content: source.value });
-    if (state.bulkTranslation?.book !== book && canTranslate()) {
+    const hintedBook = translationFiles.hintFor(uid, hashText(source.value), languagePair.translationLanguage);
+    const pendingFallback = Boolean(!hasTranslation && hintedBook && hintedBook !== book
+        && !translationFiles.isBookReady(hintedBook));
+    if (!pendingFallback && state.bulkTranslation?.book !== book && canTranslate()) {
         if (!hasTranslation && settings.translateMissingOnOpen) {
             setTimeout(() => {
                 if (ui.root.isConnected) translateEntrySource(ui, true, true);
@@ -7860,6 +8045,7 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 }
 
 function beginBookSwitch(book, suppliedBoundary = null) {
+    if (book) loadTranslationBook(book);
     if (state.bulkTranslation) cancelBulkTranslation({ silent: true });
     // Do not hydrate editor UI from the previous book after its rows change.
     if (state.bulkEditorHydrationRaf) cancelAnimationFrame(state.bulkEditorHydrationRaf);
@@ -8570,6 +8756,12 @@ function init() {
     if (worldInfo.classList.contains('slb-active')) return;
 
     getSettings();
+    // Startup file reads are asynchronous; never hold the 1st render or
+    // preload all lorebooks merely to hydrate one selected book.
+    void translationFiles.start().then(() => {
+        loadTranslationBook(currentBookName());
+        scheduleEnhance();
+    }).catch(error => console.warn('[로어북 매니저] 번역 저장소 초기화 실패', error));
     // 1.4.51의 매니저 자체 폴더 UI 잔재만 일회 정리한다. Foldy 원본
     // 요소·설정·이벤트에는 손대지 않는다.
     removeObsoleteManagerFoldyUi();
@@ -8616,6 +8808,11 @@ function init() {
         state.responsiveMedia.addListener(responsiveListener);
     }
     window.addEventListener('resize', responsiveListener, { passive: true });
+    window.addEventListener('beforeunload', event => {
+        if (!translationFiles.hasPending()) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
     if (typeof ResizeObserver === 'function') {
         state.responsiveObserver = new ResizeObserver(records => {
             if (state.responsiveMedia?.matches) return;

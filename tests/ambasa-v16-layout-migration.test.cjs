@@ -20,7 +20,8 @@ test('old lorebook-location setting is removed without affecting translation or 
   "const DEFAULT_SETTINGS={profileId:'',translationPrompt:'',managerMode:'standard',autoBackupEnabled:false};",
   "const state={settingsMigrationNeeded:false};",
   "const normalizeAIOutputTokens=n=>n||8192;",
-  "const structuredClone=v=>JSON.parse(JSON.stringify(v));"
+  "const structuredClone=v=>JSON.parse(JSON.stringify(v));",
+  "const translationFiles={attach:()=>{}};"
  ].join('\n');
  w.eval(stubs+'\n'+fn('getSettings')+'\nwindow.read=getSettings;window.st=state;');
  try{

@@ -51,6 +51,7 @@ test('turning automatic backup off prevents pending open/edit snapshots from wri
         structuredClone,
         state:{backupRestoreInProgress:false},
         getSettings:()=>({autoBackupEnabled:enabled}),
+        translationFiles:{ensureBook:async()=>{},flushBook:async()=>{}},
         loadWorldInfo:()=>new Promise(resolve=>{resolveRead=resolve;}),
         lorebookTranslations:()=>[],
         backupSnapshotHash:()=> 'hash',
@@ -65,6 +66,7 @@ test('turning automatic backup off prevents pending open/edit snapshots from wri
     vm.runInNewContext(prod('createLorebookBackupInternal')
        + '\nglobalThis.backup=createLorebookBackupInternal;',ctx);
     const pending=ctx.backup('Remus',{reason:'opened'});
+    await new Promise(resolve=>setImmediate(resolve));
     enabled=false;
     resolveRead({entries:{1:{uid:1,content:'hello'}}});
     const result=await pending;
@@ -74,6 +76,7 @@ test('turning automatic backup off prevents pending open/edit snapshots from wri
     assert.equal(automatic.status,'disabled');
     assert.equal(stored.length,0);
     const manualPending=ctx.backup('Remus',{reason:'manual',force:true});
+    await new Promise(resolve=>setImmediate(resolve));
     resolveRead({entries:{1:{uid:1,content:'hello'}}});
     assert.equal((await manualPending).status,'created','manual backups remain available');
     assert.equal(stored.length,1);
@@ -143,4 +146,37 @@ test('one malformed row cannot abort the rest of a 25-row enhancement batch',()=
         assert.equal(w.api.getReveal(),1,'fully repaired list is made visible');
         assert.equal(w.api.state.incompleteHeaderRetry,null);
     }finally { w.close(); }
+});
+
+test('OFF means absolutely no automatic backup file reads, while explicit manual backup still works',async()=>{
+    const requests=[];
+    let saved=false;
+    const ctx={
+        structuredClone,
+        getSettings:()=>({autoBackupEnabled:false}),
+        state:{backupRestoreInProgress:false},
+        translationFiles:{
+            ensureBook:async book=>requests.push(['ensure',book]),
+            flushBook:async book=>requests.push(['flush',book]),
+        },
+        loadWorldInfo:async book=>{requests.push(['world',book]);return {entries:{1:{uid:1,content:'a'}}};},
+        lorebookTranslations:()=>[],
+        backupSnapshotHash:()=> 'h',
+        listLorebookBackups:async()=>[],
+        backupId:()=> 'id',
+        BACKUP_SCHEMA_VERSION:1,
+        VERSION:'1.4.85-ambasa.25',
+        putLorebookBackup:async()=>{saved=true},
+        pruneLorebookBackups:async()=>{},
+        renderBackupList:()=>{},
+    };
+    vm.runInNewContext(prod('createLorebookBackupInternal')+
+       '\nglobalThis.backup=createLorebookBackupInternal;',ctx);
+    assert.equal((await ctx.backup('A',{reason:'auto'})).status,'disabled');
+    assert.equal((await ctx.backup('A',{reason:'opened'})).status,'disabled');
+    assert.deepEqual(requests,[],'disabled auto backups cannot touch server storage');
+    assert.equal(saved,false);
+    assert.equal((await ctx.backup('A',{reason:'manual',force:true})).status,'created');
+    assert.deepEqual(requests,[['ensure','A'],['flush','A'],['world','A']]);
+    assert.equal(saved,true);
 });

@@ -29,6 +29,16 @@ function fixture() {
         saveWorldInfo: (...args) => save(...args),
         deleteWIOriginalDataValue: (data, uid) => { data.originalData.entries = data.originalData.entries.filter(e => String(e.uid) !== uid); },
         saveSettingsDebounced: () => { debounceCalls++; }, saveSettings: async () => {},
+        // Browser persistence uses per-book verified files now, rather than
+        // serializing the full settings.json after each translation.
+        translationFiles: {
+            ensureBook: async () => {},
+            assertBookReady: () => {},
+            flushBook: async () => { events.push('file-flush'); },
+            isBookReady: () => true,
+            hintFor: () => '',
+        },
+        saveBookTranslations: () => { debounceCalls++; },
         translationFallbackLookup: {
             find: (records, uid, hash, language) => Object.values(records).find(record =>
                 record && String(record.uid) === String(uid) &&
@@ -50,7 +60,7 @@ function fixture() {
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
 
     });
-    vm.runInContext(['mapLimit', 'throwIfTranslationCancelled', 'awaitCancelableTranslation', 'cancelBulkTranslation', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'throwIfTranslationCancelled', 'awaitCancelableTranslation', 'cancelBulkTranslation', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateMultipleLorebooks', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
@@ -862,4 +872,83 @@ test('batch translation skips saving if a title changes while a shared request i
   await task;
   assert.equal(f.settings.translations['A:0'],undefined,'stale combined result never applied');
  }finally{f.close();}
+});
+
+
+test('multi-book translation processes each selected lorebook sequentially and persists only its own translations',async()=>{
+    const f=fixture();
+    try {
+        const events=[];
+        f.context.updateBulkTranslationStatus=message=>events.push(message);
+        const result=await f.context.translateMultipleLorebooks(['A','B','A'],'all');
+        assert.equal(result.booksCompleted,2,'duplicate book names do not duplicate paid requests');
+        assert.equal(result.succeeded,8,'four entries across two books');
+        assert.equal(result.failed,0);
+        assert.equal(f.requests.length,8);
+        assert.equal(f.context.state.bulkTranslation,null);
+        for(const book of ['A','B'])for(const uid of ['0','1','2','3']){
+            assert.equal(f.settings.translations[key(book,uid)].text,'translated source '+uid);
+        }
+        assert.equal(f.events.filter(item=>item==='file-flush').length,2,
+            'one flushed file for each completed book');
+        const completion=f.events.filter(item=>Array.isArray(item)&&item[0].includes('2개 로어북 번역 완료'));
+        assert.equal(completion.length,1,'one notification, not one per book');
+        assert.ok(events.some(message=>message?.includes('[1/2] A')));
+        assert.ok(events.some(message=>message?.includes('[2/2] B')));
+    }finally{f.close()}
+});
+
+test('multi-book missing mode preserves existing translations and reuses same-source cache across books',async()=>{
+    const f=fixture();
+    try {
+        f.settings.translations[key('A','0')]={book:'A',uid:'0',sourceHash:'source 0',language:'ko',text:'내가 수정한 번역'};
+        const result=await f.context.translateMultipleLorebooks(['A','B'],'missing');
+        assert.equal(result.booksCompleted,2);
+        assert.equal(f.settings.translations[key('A','0')].text,'내가 수정한 번역');
+        assert.equal(f.settings.translations[key('B','0')].text,'내가 수정한 번역',
+            'exact matching source reuses the valid cached translation rather than a paid request');
+        assert.equal(f.requests.length,3,'second identical book reuses all matching results; only A missing entries invoke API');
+        assert.equal(f.context.state.bulkTranslation,null);
+    }finally{f.close()}
+});
+
+test('one cancel aborts the entire multi-book queue without starting the following books',async()=>{
+    const f=fixture();
+    try {
+        const delayed=[];
+        f.translate(()=>new Promise(resolve=>delayed.push(resolve)));
+        const pending=f.context.translateMultipleLorebooks(['A','B','C'],'all');
+        await flush();
+        assert.ok(f.requests.length>=1,'book A has started');
+        assert.equal(f.context.state.bulkTranslation?.book,'A');
+        const cancelled=f.context.cancelBulkTranslation();
+        assert.equal(cancelled,true);
+        assert.equal(f.context.state.bulkTranslation,null,'cancel releases shared job immediately');
+        await pending;
+        assert.equal(Object.keys(f.settings.translations).length,0);
+        const before=f.requests.length;
+        delayed.forEach(resolve=>resolve('stale translated text'));
+        await flush();
+        assert.equal(f.requests.length,before,'no request starts for B or C');
+        assert.equal(Object.keys(f.settings.translations).length,0,'late result discarded');
+    }finally{f.close()}
+});
+
+test('an unavailable second book counts as a failure but does not erase the first book',async()=>{
+    const f=fixture();
+    try {
+        const ensure=f.context.translationFiles.ensureBook;
+        f.context.translationFiles.ensureBook=async book=>{
+            if(book==='B')throw Error('book B file missing');
+            return ensure(book);
+        };
+        const result=await f.context.translateMultipleLorebooks(['A','B','C'],'all');
+        assert.equal(result.booksCompleted,3);
+        assert.equal(result.failed,1);
+        assert.equal(result.succeeded,8);
+        assert.equal(f.settings.translations[key('A','0')].text,'translated source 0');
+        assert.equal(f.settings.translations[key('B','0')],undefined);
+        assert.equal(f.settings.translations[key('C','0')].text,'translated source 0');
+        assert.equal(f.context.state.bulkTranslation,null);
+    }finally{f.close()}
 });
