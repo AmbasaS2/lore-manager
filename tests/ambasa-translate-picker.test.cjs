@@ -83,7 +83,8 @@ test('without linked-character filter every lorebook is listed, with clear/selec
   assert.equal(f.querySelector('#slb-translate-world-show-all').disabled,true);
   const names=()=>[...f.querySelectorAll('#slb-translate-world-list input')].map(i=>i.value);
   assert.deepEqual(names(),['A','B','C']);
-  assert.deepEqual([...f.querySelectorAll('#slb-translate-world-list input')].filter(i=>i.checked).map(i=>i.value),['B']);
+  assert.deepEqual([...f.querySelectorAll('#slb-translate-world-list input')].filter(i=>i.checked).map(i=>i.value),[],'picker must never preselect current book');
+  assert.equal(f.querySelector('#slb-translate-world-selected').textContent,'선택한 로어북 없음');
   f.querySelector('#slb-translate-world-select-all').click();
   assert.equal(f.querySelector('#slb-translate-world-selected').textContent,'3개 로어북 선택됨');
   assert.equal(f.querySelector('#slb-translate-world-select-all').textContent,'선택 해제');
@@ -100,4 +101,43 @@ test('popup retains native styling, bulk action and nonlinked filtering without 
  assert.match(source,/const selectedBooks = allowed\.filter\(name => selected\.has\(name\)\)/);
  assert.match(source,/selectedBook \|\| currentBookName\(\)/);
  assert.match(source,/if \(!independent && currentBookName\(\) !== book && state\.bulkTranslation === job\)/);
+});
+
+test('linked-book picker starts empty and filter toggles never select implicitly',async()=>{
+ const dom=new JSDOM('<main></main>',{runScripts:'outside-only',pretendToBeVisual:true});
+ const w=dom.window;
+ w.eval([
+  'let form=null,options=null; const snapshots={}; let runs=0;',
+  'const createElement=(tag,css,text)=>{const e=document.createElement(tag);if(css)e.className=css;if(text)e.textContent=text;return e;};',
+  'const availableLorebookNames=()=>["A","B","C"];',
+  'const currentCharacterLinkedBooks=()=>new Set(["A","B"]);',
+  'const currentBookName=()=>"B";',
+  'const notify=()=>{};const POPUP_TYPE={CONFIRM:1};',
+  'const translateCurrentLorebook=async()=>{runs++};',
+  'const translateMultipleLorebooks=async()=>{runs++};',
+  'class Popup{constructor(f,t,i,o){form=f;options=o;}async show(){',
+  'const boxes=()=>[...form.querySelectorAll("#slb-translate-world-list input")];',
+  'snapshots.initial=boxes().filter(i=>i.checked).map(i=>i.value);',
+  'snapshots.initialCount=form.querySelector("#slb-translate-world-selected").textContent;',
+  'const showAll=form.querySelector("#slb-translate-world-show-all");',
+  'showAll.checked=true;showAll.dispatchEvent(new Event("change"));',
+  'snapshots.afterFilter=boxes().filter(i=>i.checked).map(i=>i.value);',
+  'const all=form.querySelector("#slb-translate-world-select-all");all.click();',
+  'snapshots.afterSelectAll=boxes().filter(i=>i.checked).map(i=>i.value);',
+  'all.click();snapshots.afterDeselect=boxes().filter(i=>i.checked).map(i=>i.value);',
+  'snapshots.preventEmptySubmit=options.onClosing({result:2})===false;',
+  'return null;}}',
+  extract('showLorebookTranslationPicker'),
+  'window.api={open:showLorebookTranslationPicker,snapshots,readRuns:()=>runs};',
+ ].join("\n"));
+ try{
+  await w.api.open();
+  assert.deepEqual(Array.from(w.api.snapshots.initial),[]);
+  assert.equal(w.api.snapshots.initialCount,'선택한 로어북 없음');
+  assert.deepEqual(Array.from(w.api.snapshots.afterFilter),[]);
+  assert.deepEqual(Array.from(w.api.snapshots.afterSelectAll),['A','B','C']);
+  assert.deepEqual(Array.from(w.api.snapshots.afterDeselect),[]);
+  assert.equal(w.api.snapshots.preventEmptySubmit,true,'native popup must block empty selection');
+  assert.equal(w.api.readRuns(),0);
+ }finally{w.close()}
 });

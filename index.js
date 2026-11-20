@@ -25,7 +25,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.29';
+const VERSION = '1.4.85-ambasa.30';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3672,7 +3672,6 @@ async function showLorebookTranslationPicker() {
         return;
     }
     const linkedBooks = currentCharacterLinkedBooks();
-    const current = currentBookName();
     const form = createElement('div', 'slb-translation-picker');
     const fieldLabel = createElement('strong', 'slb-translation-picker-label', '번역할 로어북 선택 (복수 선택 가능)');
     fieldLabel.id = 'slb-translate-world-label';
@@ -3711,9 +3710,6 @@ async function showLorebookTranslationPicker() {
         for (const name of [...selected]) {
             if (!allowed.includes(name)) selected.delete(name);
         }
-        if (!selected.size && allowed.length && !list.dataset.slbUserCleared) {
-            selected.add(allowed.includes(current) ? current : allowed[0]);
-        }
         list.replaceChildren();
         for (const name of allowed) {
             const label = createElement('label', 'checkbox_label slb-translation-picker-book');
@@ -3729,7 +3725,6 @@ async function showLorebookTranslationPicker() {
             input.addEventListener('change', () => {
                 if (input.checked) selected.add(name);
                 else selected.delete(name);
-                list.dataset.slbUserCleared = selected.size ? '' : 'true';
                 updateSelectedStatus();
             });
             label.append(input, createElement('span', 'checkmark'), createElement('span', '', name));
@@ -3742,15 +3737,12 @@ async function showLorebookTranslationPicker() {
         const allSelected = allowed.every(name => selected.has(name));
         if (allSelected) {
             allowed.forEach(name => selected.delete(name));
-            list.dataset.slbUserCleared = 'true';
         } else {
             allowed.forEach(name => selected.add(name));
-            delete list.dataset.slbUserCleared;
         }
         updateOptions();
     });
     showAll.addEventListener('change', () => {
-        delete list.dataset.slbUserCleared;
         updateOptions();
     });
     updateOptions();
