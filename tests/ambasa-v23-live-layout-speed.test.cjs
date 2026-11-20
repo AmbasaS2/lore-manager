@@ -71,7 +71,7 @@ test('drawer click defers editor rebuilding to the next frame and only hydrates 
     assert.equal(w.api.counts().rebuilds,1,'ready editor not rebuilt on repeated open');
     dom.window.close();
 });
-test('expand-all chunks 25 native drawer operations without freezing one click',()=>{
+test('all-open and all-close preserve immediate native toggles without a queued frame',()=>{
     const dom=new JSDOM('<div id="WorldInfo"><button id="OpenAllWIEntries"></button><button id="CloseAllWIEntries"></button>'
        +'<div id="world_popup_entries_list">'+Array.from({length:25},()=>'<div class="inline-drawer"><div class="inline-drawer-header">'
        +'<i class="inline-drawer-icon down"></i></div></div>').join('')+'</div></div>',{runScripts:'outside-only'});
@@ -80,22 +80,19 @@ test('expand-all chunks 25 native drawer operations without freezing one click',
     w.requestAnimationFrame=fn=>{raf.push(fn);return raf.length};
     w.eval([
         "const createElement=(tag,cls)=>{const e=document.createElement(tag);e.className=cls;return e;};",
+        "const state={bulkEditorHydrationQueue:[],bulkEditorHydrationHead:0,bulkEditorHydrationRaf:0,bulkOpeningDrawers:false};",
         "let toggled=0;",
-        "const toggleDrawer=(drawer,open)=>{toggled++;drawer.querySelector('.inline-drawer-icon').classList.toggle('up',open)};",
+        "const toggleDrawer=(drawer,open)=>{toggled++;if(open && !state.bulkOpeningDrawers)throw Error('native open not immediate');drawer.querySelector('.inline-drawer-icon').classList.toggle('up',open)};",
         production('bindCombinedEntryToggle'),
         "window.api={bindCombinedEntryToggle,read:()=>toggled};"
     ].join('\n'));
     w.api.bindCombinedEntryToggle();
     w.document.getElementById('slb-toggle-all-entries').click();
-    assert.equal(w.api.read(),4,'first chunk is bounded');
-    assert.equal(raf.length,1);
-    let count=0;
-    while(raf.length){raf.shift()(); if(++count>50) throw Error('unbounded RAF loop');}
-    assert.equal(w.api.read(),25,'all native drawers eventually toggle');
+    assert.equal(w.api.read(),25,'all 25 drawers switch immediately without a 4-per-frame queue');
+    assert.equal(raf.length,0,'no work scheduled behind the native click');
     w.document.getElementById('slb-toggle-all-entries').click();
-    assert.equal(w.api.read(),29,'closing also yields after first four');
-    while(raf.length){raf.shift()(); if(++count>100) throw Error('unbounded RAF loop');}
-    assert.equal(w.api.read(),50);
+    assert.equal(w.api.read(),50,'closing all is also immediate');
+    assert.equal(raf.length,0);
     dom.window.close();
 });
 test('ambasa.21 CSS restored while preserving title autosize and backup OFF',()=>{

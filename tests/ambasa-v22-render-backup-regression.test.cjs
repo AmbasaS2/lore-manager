@@ -118,6 +118,7 @@ test('one malformed row cannot abort the rest of a 25-row enhancement batch',()=
         'const syncMetadataTranslations=()=>{};',
         'const queryCompatible=()=>null;',
         'const isEntryEditorRendered=()=>false;',
+        'const isEntryDrawerOpen=()=>false;',
         'const isEntryHeaderReadyForReveal=e=>e.dataset.slbHeaderEnhanced===VERSION;',
         'const applyMobileDisplaySettings=()=>{};',
         'const syncResponsiveEntryLayouts=()=>{};',

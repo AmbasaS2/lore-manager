@@ -25,7 +25,7 @@ test('combined button uses native ST toggleDrawer directly and preserves both or
         '</div></div></div>';
     const dom=new JSDOM(html,{runScripts:'outside-only',pretendToBeVisual:true});
     const w=dom.window;
-    w.eval(elementStub + '\nlet calls=[]; const toggleDrawer=(drawer, expand)=>{' +
+    w.eval(elementStub + '\nconst state={bulkOpeningDrawers:false,bulkEditorHydrationQueue:[],bulkEditorHydrationHead:0,bulkEditorHydrationRaf:0};\nlet calls=[]; const toggleDrawer=(drawer, expand)=>{' +
         'calls.push(expand);let icon=drawer.querySelector(".inline-drawer-icon");' +
         'icon.classList.toggle("up",expand);icon.classList.toggle("down",!expand);' +
         'drawer.querySelector(".inline-drawer-content").style.display=expand?"block":"none";' +

@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.23';
+const VERSION = '1.4.85-ambasa.24';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -145,6 +145,12 @@ const state = {
     enhancePending: false,
     enhanceRunId: 0,
     enhanceChunkRaf: 0,
+    // Native expand-all remains immediate; only expensive opened-editor UI
+    // hydration is scheduled across frames when many drawers open together.
+    bulkOpeningDrawers: false,
+    bulkEditorHydrationQueue: [],
+    bulkEditorHydrationHead: 0,
+    bulkEditorHydrationRaf: 0,
     bookSwitchRunId: 0,
     bookSwitch: null,
     worldSelectTransitionBoundary: null,
@@ -4434,7 +4440,16 @@ function bindWorkspaceEntries(entries) {
                     || node.querySelector(nativeHeaderAdditions)
                 ) {
                     const row = node.closest('.world_entry') || mutation.target.closest?.('.world_entry');
-                    if (row && !isEntryHeaderReadyForReveal(row)) delete row.dataset.slbDisplayReady;
+                    if (row?.dataset.slbDisplayReady === 'true') {
+                        const nativeReplacement = node.matches(
+                            '.inline-drawer-header:not(.slb-entry-header), .world_entry_thin_controls, .WIEntryTitleAndStatus, .WIEntryTitleStatus'
+                        ) || node.querySelector(
+                            '.inline-drawer-header:not(.slb-entry-header), .world_entry_thin_controls, .WIEntryTitleAndStatus, .WIEntryTitleStatus'
+                        );
+                        if (nativeReplacement || !isEntryHeaderReadyForReveal(row)) {
+                            delete row.dataset.slbDisplayReady;
+                        }
+                    }
                     entryChanged = true;
                 }
             }
@@ -5060,6 +5075,31 @@ function getEntryDrawer(entry) {
     ]) || entry.querySelector('.slb-entry-header')?.closest('.inline-drawer') || null;
 }
 
+function enqueueBulkEditorHydration(task) {
+    state.bulkEditorHydrationQueue.push(task);
+    if (state.bulkEditorHydrationRaf) return;
+    const flush = () => {
+        state.bulkEditorHydrationRaf = 0;
+        const deadline = performance.now() + 12;
+        let done = 0;
+        // A cursor avoids O(n²) Array.shift() overhead on very large books.
+        while (state.bulkEditorHydrationHead < state.bulkEditorHydrationQueue.length && done < 3) {
+            const next = state.bulkEditorHydrationQueue[state.bulkEditorHydrationHead++];
+            try { next(); }
+            catch (error) { console.error('[로어북 매니저] 전체 열기 편집기 구성 오류', error); }
+            done++;
+            if (performance.now() >= deadline) break;
+        }
+        if (state.bulkEditorHydrationHead < state.bulkEditorHydrationQueue.length) {
+            state.bulkEditorHydrationRaf = requestAnimationFrame(flush);
+        } else {
+            state.bulkEditorHydrationQueue.length = 0;
+            state.bulkEditorHydrationHead = 0;
+        }
+    };
+    state.bulkEditorHydrationRaf = requestAnimationFrame(flush);
+}
+
 function bindEntryDrawerLifecycle(entry) {
     const drawer = getEntryDrawer(entry);
     if (!drawer || drawer.dataset.slbDrawerLifecycle === VERSION) return;
@@ -5098,7 +5138,13 @@ function bindEntryDrawerLifecycle(entry) {
             }, 700);
             return;
         }
+        const fromBulkOpen = state.bulkOpeningDrawers === true;
         let attempts = 0;
+        const retryOpening = () => {
+            if (!entry.isConnected || state.closingEntryDrawers.has(entry)) return;
+            if (fromBulkOpen) enqueueBulkEditorHydration(syncOpening);
+            else syncOpening();
+        };
         const syncOpening = () => {
             if (!entry.isConnected || state.closingEntryDrawers.has(entry)) return;
             const open = isEntryEditorRendered(entry);
@@ -5110,13 +5156,16 @@ function bindEntryDrawerLifecycle(entry) {
                 }
                 placeResponsiveHeaderFields(entry);
                 if (edit && !edit.dataset.slbEnhanced && ++attempts < 3) {
-                    setTimeout(syncOpening, 120);
+                    setTimeout(retryOpening, 120);
                 }
             } else if (isEntryDrawerOpen(entry) && ++attempts < 3) {
-                setTimeout(syncOpening, 120);
+                setTimeout(retryOpening, 120);
             }
         };
-        requestAnimationFrame(syncOpening);
+        // Single click: normal next frame. Expand-all: shared bounded queue,
+        // never twenty-five heavy editor builders in the same paint frame.
+        if (state.bulkOpeningDrawers) enqueueBulkEditorHydration(syncOpening);
+        else requestAnimationFrame(syncOpening);
     });
 }
 
@@ -7788,11 +7837,11 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
                 setBookSwitchLoading(false);
                 return;
             }
-            // 기존 모드는 새 행/컨트롤을 두 프레임 안에 판정한다. 1초가 지나도
-            // 렌더 신호가 없을 때만 느슨하게 확인해 불필요한 DOM 순회를 막는다.
-            scheduleBookSwitchReadyCheck(
-                transition.mode === MANAGER_MODE_STANDARD && elapsed < 1000 ? 16 : 50,
-            );
+            // Native child mutations already wake this checker immediately.
+            // Only a genuinely pending stable candidate needs the next 16ms
+            // frame; otherwise avoid repeated whole-book DOM snapshots.
+            const retryDelay = transition.readyCandidate ? 16 : (elapsed < 1000 ? 120 : 350);
+            scheduleBookSwitchReadyCheck(retryDelay);
             return;
         }
         transition.ready = true;
@@ -7812,9 +7861,23 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 
 function beginBookSwitch(book, suppliedBoundary = null) {
     if (state.bulkTranslation) cancelBulkTranslation({ silent: true });
+    // Do not hydrate editor UI from the previous book after its rows change.
+    if (state.bulkEditorHydrationRaf) cancelAnimationFrame(state.bulkEditorHydrationRaf);
+    state.bulkEditorHydrationRaf = 0;
+    state.bulkEditorHydrationQueue.length = 0;
+    state.bulkEditorHydrationHead = 0;
+    state.bulkOpeningDrawers = false;
     if (state.incompleteHeaderRetry?.timer) clearTimeout(state.incompleteHeaderRetry.timer);
     state.incompleteHeaderRetry = null;
     entryBulkEditor.reset(book);
+    // ST can reuse the same native row objects when switching lorebooks.
+    // Invalidate only on an actual book change; otherwise the per-row fast
+    // path could keep an old badge/translation on the reused DOM.
+    if (book && state.currentBook && state.currentBook !== book) {
+        for (const row of renderedEntries()) {
+            if (row.dataset.slbDisplayReady) delete row.dataset.slbDisplayReady;
+        }
+    }
     const previous = state.bookSwitch;
     if (previous?.timer) clearTimeout(previous.timer);
     state.bookSwitch = null;
@@ -7936,37 +7999,26 @@ function enhanceAll() {
     const entries = renderedEntries();
     const bookAtStart = currentBookName();
     const runId = ++state.enhanceRunId;
-    // 책 전환으로 들어온 완전한 네이티브 목록에만 빠른 초기 배치를 쓴다.
-    // 이미 관리 중인 행이 하나라도 있으면 상태 저장/폴더 이동 중일 수 있으므로
-    // 기존의 보수적인 전체 복구 경로를 그대로 유지한다.
-    const freshHeaderPass = entries.length > 0
-        && entries.every(entry => !entry.dataset.slbHeaderEnhanced);
-    // 좁은 화면 여부를 항목마다 다시 측정하지 않고 현재 목록에서 한 번만
-    // 결정한다. 헤더 묶음도 조금 크게 처리해 긴 로어북에서 여러 렌더 프레임을
-    // 기다리는 시간을 줄이되, 시간 예산을 넘으면 즉시 다음 프레임에 양보한다.
+    // A partly rendered page no longer makes the whole book take the slow
+    // recovery path. A completed row is reused, each new row is processed once.
+    // Responsive width is read once and remains controlled by the existing
+    // coalesced resize observer.
     const narrowLayout = isNarrowEntryLayout();
     const batchSize = narrowLayout ? 50 : 80;
     const batchBudgetMs = narrowLayout ? 48 : 60;
     state.enhancing = true;
     let listRevealed = false;
-    let freshHeadersVerified = freshHeaderPass;
+    let freshHeadersVerified = true;
 
     const finish = () => {
         if (runId !== state.enhanceRunId) return;
         state.enhancing = false;
         state.enhanceChunkRaf = 0;
 
-        if (freshHeaderPass) {
-            // 새 행은 헤더 루프에서 다섯 필드와 배지를 모두 검증했다. 같은
-            // 100개를 다시 두 번 측정하지 않고 표시 클래스만 확정한다.
-            applyMobileDisplaySettings(false);
-        } else {
-            // 상태 저장, 부분 DOM 교체, 폴더 이동 경로는 기존 복구 패스를
-            // 그대로 유지해 모바일 호출 조건 첫째 줄 보호를 약화시키지 않는다.
-            syncResponsiveEntryLayouts();
-            applyMobileDisplaySettings();
-        }
-        syncFilterButtons();
+        // Each changed entry already synchronizes its layout and badge.
+        // The former mixed-page fallback reflowed ALL rows (including closed
+        // ones) and then rescanned their badges after a single native insert.
+        applyMobileDisplaySettings(false);
         syncAutoControls();
         // The editor can render its selected lorebook after this extension's first
         // token pass. Re-run once entries exist so the summary never stays at “—”.
@@ -8023,7 +8075,6 @@ function enhanceAll() {
     };
 
     const openedEntries = [];
-    const compactByContainer = new Map();
     const enhanceEditorBatch = start => {
         if (runId !== state.enhanceRunId) return;
         if (currentBookName() !== bookAtStart) {
@@ -8071,54 +8122,41 @@ function enhanceAll() {
         for (; index < hardEnd; index++) {
             const entry = entries[index];
             if (!entry?.isConnected) continue;
-            try {
-                if (freshHeaderPass) {
-                if (narrowLayout) {
+            const ready = entry.dataset.slbDisplayReady === 'true'
+                && entry.dataset.slbHeaderEnhanced === VERSION;
+            if (!ready) {
+                try {
+                    // After ambasa.16 all devices use a title-only header.
+                    // The initial compact path avoids closed-row layout probes
+                    // and no longer needs a first-row width measurement.
                     enhanceEntryHeader(entry, { initialCompact: true, deferBadgeTheme: true });
-                } else {
-                    // 같은 Foldy 컨테이너의 행은 가용 폭이 같다. 컨테이너 첫
-                    // 행만 실제 폭을 재고 나머지는 그 결과를 재사용한다.
-                    const container = entry.parentElement;
-                    if (compactByContainer.has(container)) {
-                        enhanceEntryHeader(entry, {
-                            initialCompact: compactByContainer.get(container),
-                            deferBadgeTheme: true,
-                        });
-                    } else {
-                        enhanceEntryHeader(entry, { deferBadgeTheme: true });
-                        compactByContainer.set(container, entry.classList.contains('slb-compact-entry'));
-                    }
-                }
-            } else {
-                enhanceEntryHeader(entry);
-            }
-            if (freshHeaderPass && entry.dataset.slbHeaderEnhanced !== VERSION) {
+                    syncMetadataTranslations(entry);
+                } catch (error) {
                     freshHeadersVerified = false;
+                    console.error('[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
                 }
-                syncMetadataTranslations(entry);
-            } catch (error) {
-                freshHeadersVerified = false;
-                console.error('[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
+                if (isEntryHeaderReadyForReveal(entry)) {
+                    if (entry.dataset.slbDisplayReady !== 'true') entry.dataset.slbDisplayReady = 'true';
+                    if (entry.dataset.slbRenderFailed) delete entry.dataset.slbRenderFailed;
+                } else {
+                    freshHeadersVerified = false;
+                    if (entry.dataset.slbDisplayReady) delete entry.dataset.slbDisplayReady;
+                }
             }
-            // Hidden native rows become visible only after their own header is complete.
-            if (isEntryHeaderReadyForReveal(entry)) {
-                entry.dataset.slbDisplayReady = 'true';
-                delete entry.dataset.slbRenderFailed;
-            } else {
-                delete entry.dataset.slbDisplayReady;
-            }
-            // 접힌 행은 편집기 DOM 자체가 없으므로 getClientRects를 호출하지
-            // 않는다. 실제 편집기가 있는 소수의 열린 행만 렌더 여부를 확인한다.
+            // The 4s fallback and native change events handle closed rows;
+            // do not force getClientRects() for their retained editor DOM.
             try {
-                const editor = queryCompatible(entry, [
-                    '.world_entry_edit',
-                    '.world-entry-edit',
-                    '[data-role="entry-editor"]',
-                ]);
-                if (editor && isEntryEditorRendered(entry)) openedEntries.push(entry);
+                if (entry.dataset.slbDrawerOpen === 'true' || isEntryDrawerOpen(entry)) {
+                    const editor = queryCompatible(entry, [
+                        '.world_entry_edit',
+                        '.world-entry-edit',
+                        '[data-role="entry-editor"]',
+                    ]);
+                    if (editor && isEntryEditorRendered(entry)) openedEntries.push(entry);
+                }
             } catch (error) {
                 freshHeadersVerified = false;
-                console.error('[로어북 매니저] 항목 편집기 발견 오류', getUid(entry), error);
+                console.error('[로어북 매니저] 열린 편집기 발견 오류', getUid(entry), error);
             }
             if (index > start && performance.now() >= deadline) {
                 index += 1;
@@ -8134,8 +8172,6 @@ function enhanceAll() {
         // 이 상태를 실제로 그릴 수 있도록 상세 편집기 변환은 다음 프레임부터
         // 수행한다.
         listRevealed = revealCompletedEntryList(bookAtStart, entries, freshHeadersVerified);
-        if (listRevealed && freshHeaderPass && !narrowLayout) {
-        }
         if (!listRevealed && state.enhancePending) {
             finish();
             return;
@@ -8359,28 +8395,26 @@ function bindCombinedEntryToggle() {
     };
     syncAction();
     button.dataset.slbBound = 'true';
-    let toggleRun = 0;
     button.addEventListener('click', event => {
         event.stopPropagation();
         const expand = button.dataset.slbAction === 'open';
-        const targets = Array.from(drawers()).filter(drawer => isExpanded(drawer) !== expand);
-        const run = ++toggleRun;
-        nextAction(expand ? 'close' : 'open');
-        let cursor = 0;
-        const chunk = () => {
-            if (run !== toggleRun) return;
-            const deadline = performance.now() + 12;
-            let processed = 0;
-            while (cursor < targets.length && processed < 4) {
-                const drawer = targets[cursor++];
-                if (drawer.isConnected && isExpanded(drawer) !== expand) toggleDrawer(drawer, expand);
-                processed++;
-                if (processed >= 1 && performance.now() >= deadline) break;
+        // The native utility already owns its lifecycle; do not add a new
+        // frame-by-frame queue on top of the c1ef465 immediate toggle path.
+        if (!expand && state.bulkEditorHydrationQueue.length) {
+            state.bulkEditorHydrationQueue.length = 0;
+            state.bulkEditorHydrationHead = 0;
+            if (state.bulkEditorHydrationRaf) cancelAnimationFrame(state.bulkEditorHydrationRaf);
+            state.bulkEditorHydrationRaf = 0;
+        }
+        state.bulkOpeningDrawers = expand;
+        try {
+            for (const drawer of drawers()) {
+                if (isExpanded(drawer) !== expand) toggleDrawer(drawer, expand);
             }
-            if (cursor < targets.length) requestAnimationFrame(chunk);
-        };
-        // Start the first operation on click; yield before opening the rest.
-        chunk();
+        } finally {
+            state.bulkOpeningDrawers = false;
+        }
+        nextAction(expand ? 'close' : 'open');
     });
     // Native buttons are not replaced, so ST and other extensions can still
     // trigger them. Their original callbacks update the combined action too.
