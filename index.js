@@ -24,7 +24,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.25';
+const VERSION = '1.4.85-ambasa.26';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -127,6 +127,16 @@ function normalizeAIOutputTokens(value) {
 
 const translationFiles = createLoreTranslationStorage({
     getRequestHeaders,
+    saveSettings: () => saveSettings(),
+    async readSettings() {
+        const response = await fetch('/api/settings/get', {
+            method:'POST', headers:getRequestHeaders(), body:'{}', cache:'no-store',
+        });
+        if (!response.ok) throw new Error('설정 파일 확인 요청 실패 ('+response.status+')');
+        const saved=await response.json();
+        const document=JSON.parse(saved.settings);
+        return document?.extension_settings?.[EXTENSION_NAME] || {};
+    },
     onBookLoaded(book) {
         if (currentBookName() === book) refreshTranslationFromLoadedBook(book);
     },
