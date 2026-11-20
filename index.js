@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.22';
+const VERSION = '1.4.85-ambasa.23';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -4139,15 +4139,12 @@ function createTokenStrip() {
 }
 
 function createEntryFilters() {
-    // Native <details> provides an accessible toggle without a second select
-    // occupying another row. Only the single FA filter glyph is visible until
-    // the user opens the four existing (unchanged) ST filter values.
+    // Keep the existing native details filter values and add the visible button label.
     const filter = createElement('details', 'slb-filter-details');
     filter.id = 'slb-entry-filters';
     filter.innerHTML = `
-        <summary class="menu_button slb-filter-trigger" title="표시할 로어 항목 선택"
-                 aria-label="표시할 로어 항목 선택" aria-expanded="false">
-            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+        <summary class="menu_button slb-filter-trigger slb-bulk-mode-label" title="항목 필터" aria-label="항목 필터" aria-expanded="false">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i><span>항목 필터</span>
         </summary>
         <div class="slb-filter-options" role="group" aria-label="로어 항목 표시">
             <button type="button" class="slb-filter-option" data-filter="all">전체 보기</button>
@@ -4436,6 +4433,8 @@ function bindWorkspaceEntries(entries) {
                     node.matches(nativeHeaderAdditions)
                     || node.querySelector(nativeHeaderAdditions)
                 ) {
+                    const row = node.closest('.world_entry') || mutation.target.closest?.('.world_entry');
+                    if (row && !isEntryHeaderReadyForReveal(row)) delete row.dataset.slbDisplayReady;
                     entryChanged = true;
                 }
             }
@@ -4493,21 +4492,19 @@ function bindWorkspacePopupObserver(popup) {
         const tokenSection = document.getElementById('slb-token-summary-section');
         const filterSection = document.getElementById('slb-entry-filters-section');
         const selectionToolbar = document.getElementById('slb-entry-selection-toolbar');
-        const summaryBar = document.getElementById('slb-summary-toolbar');
         const workspaceMissing = !livePopup
             || !liveEntries
             || liveEntries.parentElement !== livePopup
             || !tokenSection
-            || !summaryBar
-            || summaryBar.parentElement !== livePopup
-            || tokenSection.parentElement !== summaryBar
             || !tokenSection.querySelector('#slb-token-strip')
             || !filterSection
             || !selectionToolbar
             || selectionToolbar.parentElement !== livePopup
+            || tokenSection.parentElement !== selectionToolbar
             || filterSection.parentElement !== selectionToolbar
+            || tokenSection.nextElementSibling !== filterSection
+            || filterSection.nextElementSibling !== selectionToolbar.querySelector(':scope > .slb-bulk-mode-label')
             || !filterSection.querySelector('#slb-entry-filters')
-            || summaryBar.nextElementSibling !== selectionToolbar
             || selectionToolbar.nextElementSibling !== liveEntries
             || state.workspace?.entries !== liveEntries;
 
@@ -4540,17 +4537,14 @@ function createWorkspace() {
 
     bindEntryFilterControls(filters);
     const selectionToolbar = entryBulkEditor.ensureToolbar(popup, entries);
-    // Separate rows: token totals stand alone; the small FA funnel belongs
-    // at the far right of the bulk-edit controls. Each visibility preference
-    // remains independent, including when no lorebook is currently selected.
-    let summaryBar = document.getElementById('slb-summary-toolbar');
-    if (!summaryBar) {
-        summaryBar = createElement('div', 'slb-summary-toolbar');
-        summaryBar.id = 'slb-summary-toolbar';
+    // All optional actions share one compact row, with no reserved empty space.
+    if (selectionToolbar.firstElementChild !== tokenSection) selectionToolbar.prepend(tokenSection);
+    const bulkButton = selectionToolbar.querySelector(':scope > .slb-bulk-mode-label');
+    if (filterSection.parentElement !== selectionToolbar || filterSection.nextElementSibling !== bulkButton) {
+        selectionToolbar.insertBefore(filterSection, bulkButton);
     }
-    if (tokenSection.parentElement !== summaryBar) summaryBar.append(tokenSection);
-    if (filterSection.parentElement !== selectionToolbar) selectionToolbar.append(filterSection);
-    if (summaryBar.nextElementSibling !== selectionToolbar) popup.insertBefore(summaryBar, selectionToolbar);
+    document.getElementById('slb-summary-toolbar')?.remove();
+    popup.classList.toggle('slb-no-book-selected', !currentBookName());
     bindWorkspaceEntries(entries);
     bindWorkspacePopupObserver(popup);
     syncFilterButtons();
@@ -5094,22 +5088,35 @@ function bindEntryDrawerLifecycle(entry) {
         if (state.entryFilterRefreshPending) {
             setTimeout(refreshEntryStateFilterIfIdle, 350);
         }
-        const syncFromRender = () => {
-            if (!entry.isConnected) return;
-            // 아이콘이 아니라 실제 렌더 여부로 열림/닫힘을 기록한다.
-            // 애니메이션으로 늦게 닫히는 경우를 위해 ST의 1초 지연 정리
-            // (clearEntryList) 전에 두 번 더 재확인해 필드를 회수한다.
-            entry.dataset.slbDrawerOpen = String(!state.closingEntryDrawers.has(entry)
-                && (isEntryEditorRendered(entry) || isEntryDrawerOpen(entry)));
-            // 접혀 있을 때는 제목 행만 유지하고, 실제 편집기가 화면에
-            // 나타난 순간에만 원문·번역·호출 조건 UI를 만든다.
-            if (!state.closingEntryDrawers.has(entry) && isEntryEditorRendered(entry)) enhanceEntry(entry);
-            placeResponsiveHeaderFields(entry);
+        // Let the native drawer toggle first. The expensive editor rebuild
+        // happens after the browser can paint the click, once per real opening.
+        if (state.closingEntryDrawers.has(entry)) {
+            setTimeout(() => {
+                if (entry.isConnected && state.closingEntryDrawers.has(entry)) {
+                    placeResponsiveHeaderFields(entry);
+                }
+            }, 700);
+            return;
+        }
+        let attempts = 0;
+        const syncOpening = () => {
+            if (!entry.isConnected || state.closingEntryDrawers.has(entry)) return;
+            const open = isEntryEditorRendered(entry);
+            entry.dataset.slbDrawerOpen = String(open || isEntryDrawerOpen(entry));
+            if (open) {
+                const edit = queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]']);
+                if (edit && (!edit.dataset.slbEnhanced || !edit.querySelector('.slb-tabbar'))) {
+                    enhanceEntry(entry);
+                }
+                placeResponsiveHeaderFields(entry);
+                if (edit && !edit.dataset.slbEnhanced && ++attempts < 3) {
+                    setTimeout(syncOpening, 120);
+                }
+            } else if (isEntryDrawerOpen(entry) && ++attempts < 3) {
+                setTimeout(syncOpening, 120);
+            }
         };
-        syncFromRender();
-        requestAnimationFrame(syncFromRender);
-        setTimeout(syncFromRender, 300);
-        setTimeout(syncFromRender, 700);
+        requestAnimationFrame(syncOpening);
     });
 }
 
@@ -8001,8 +8008,15 @@ function enhanceAll() {
                         if (currentBookName() === bookAtStart && !state.enhancing) scheduleEnhance();
                     }, delay);
                 } else if (retry.count === 3 && !retry.timer) {
-                    console.warn('[로어북 매니저] 일부 항목의 헤더 변환이 완료되지 않았습니다. 브라우저 콘솔의 항목 오류를 확인해주세요.');
                     retry.count = 4;
+                    const incomplete = entries.filter(entry => entry.isConnected && !isEntryHeaderReadyForReveal(entry));
+                    // Fail visibly rather than leaving lorebook rows inaccessible:
+                    // the native editor still works, and no lore data is modified.
+                    incomplete.forEach(entry => { entry.dataset.slbRenderFailed = 'true'; });
+                    finishWorldDrawerOpenLoading();
+                    if (!state.bookSwitch) setBookSwitchLoading(false);
+                    console.warn('[로어북 매니저] 항목 헤더 변환 실패', incomplete.map(getUid));
+                    notify('일부 로어북 항목의 화면 구성을 완료하지 못했습니다. 원본 편집 화면으로 표시합니다.', 'warning');
                 }
             }
         }
@@ -8086,14 +8100,26 @@ function enhanceAll() {
                 freshHeadersVerified = false;
                 console.error('[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
             }
+            // Hidden native rows become visible only after their own header is complete.
+            if (isEntryHeaderReadyForReveal(entry)) {
+                entry.dataset.slbDisplayReady = 'true';
+                delete entry.dataset.slbRenderFailed;
+            } else {
+                delete entry.dataset.slbDisplayReady;
+            }
             // 접힌 행은 편집기 DOM 자체가 없으므로 getClientRects를 호출하지
             // 않는다. 실제 편집기가 있는 소수의 열린 행만 렌더 여부를 확인한다.
-            const editor = queryCompatible(entry, [
-                '.world_entry_edit',
-                '.world-entry-edit',
-                '[data-role="entry-editor"]',
-            ]);
-            if (editor && isEntryEditorRendered(entry)) openedEntries.push(entry);
+            try {
+                const editor = queryCompatible(entry, [
+                    '.world_entry_edit',
+                    '.world-entry-edit',
+                    '[data-role="entry-editor"]',
+                ]);
+                if (editor && isEntryEditorRendered(entry)) openedEntries.push(entry);
+            } catch (error) {
+                freshHeadersVerified = false;
+                console.error('[로어북 매니저] 항목 편집기 발견 오류', getUid(entry), error);
+            }
             if (index > start && performance.now() >= deadline) {
                 index += 1;
                 break;
@@ -8333,15 +8359,28 @@ function bindCombinedEntryToggle() {
     };
     syncAction();
     button.dataset.slbBound = 'true';
+    let toggleRun = 0;
     button.addEventListener('click', event => {
         event.stopPropagation();
         const expand = button.dataset.slbAction === 'open';
-        for (const drawer of drawers()) {
-            // An already-correct drawer need not fire another toggle lifecycle.
-            if (isExpanded(drawer) === expand) continue;
-            toggleDrawer(drawer, expand);
-        }
+        const targets = Array.from(drawers()).filter(drawer => isExpanded(drawer) !== expand);
+        const run = ++toggleRun;
         nextAction(expand ? 'close' : 'open');
+        let cursor = 0;
+        const chunk = () => {
+            if (run !== toggleRun) return;
+            const deadline = performance.now() + 12;
+            let processed = 0;
+            while (cursor < targets.length && processed < 4) {
+                const drawer = targets[cursor++];
+                if (drawer.isConnected && isExpanded(drawer) !== expand) toggleDrawer(drawer, expand);
+                processed++;
+                if (processed >= 1 && performance.now() >= deadline) break;
+            }
+            if (cursor < targets.length) requestAnimationFrame(chunk);
+        };
+        // Start the first operation on click; yield before opening the rest.
+        chunk();
     });
     // Native buttons are not replaced, so ST and other extensions can still
     // trigger them. Their original callbacks update the combined action too.
@@ -8397,6 +8436,7 @@ function bindEvents() {
         // 이전 DOM을 잡아 기존 모드의 대기가 새 DOM을 기준으로 시작되지 않게 한다.
         const boundary = state.worldSelectTransitionBoundary;
         state.worldSelectTransitionBoundary = null;
+        document.getElementById('world_popup')?.classList.toggle('slb-no-book-selected', !currentBookName());
         beginBookSwitch(currentBookName(), boundary);
     }, { capture: true });
     worldSelect?.addEventListener('change', event => {
