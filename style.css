@@ -778,15 +778,6 @@
     opacity: 0.7;
 }
 
-/* Only an already-open native editor awaiting the existing hydration pass is
-   hidden. Its row, header and dimensions remain unchanged; failed conversion
-   clears the marker and leaves the native controls available. */
-#WorldInfo.slb-active #world_popup_entries_list
-    .world_entry[data-slb-editor-pending="true"]
-    .world_entry_edit:not([data-slb-enhanced]) {
-    visibility: hidden;
-}
-
 /* Prevent mixed native / manager rows during incremental enhancement.
    The entry becomes visible as soon as its own complete header is ready. */
 #WorldInfo.slb-active #world_popup_entries_list > .world_entry:not([data-slb-display-ready="true"]):not([data-slb-render-failed="true"]),

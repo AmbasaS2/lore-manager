@@ -25,7 +25,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.31';
+const VERSION = '1.4.85-ambasa.30';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -5397,11 +5397,8 @@ function bindEntryDrawerLifecycle(entry) {
         if (event.target !== drawer) return;
         const opening = isEntryDrawerOpen(entry); // Native icon is already toggled.
         entry.dataset.slbDrawerOpen = String(opening);
-        if (opening) {
-            state.closingEntryDrawers.delete(entry);
-            entry.dataset.slbEditorPending = 'true';
-        } else {
-            delete entry.dataset.slbEditorPending;
+        if (opening) state.closingEntryDrawers.delete(entry);
+        else {
             state.closingEntryDrawers.add(entry);
             const stash = entry.querySelector('.slb-deferred-header-fields');
             if (stash) {
@@ -5432,28 +5429,20 @@ function bindEntryDrawerLifecycle(entry) {
             else syncOpening();
         };
         const syncOpening = () => {
-            if (!entry.isConnected || state.closingEntryDrawers.has(entry)) {
-                delete entry.dataset.slbEditorPending;
-                return;
-            }
-            try {
-                const open = isEntryEditorRendered(entry);
-                entry.dataset.slbDrawerOpen = String(open || isEntryDrawerOpen(entry));
-                if (open) {
-                    const edit = queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]']);
-                    if (edit && (!edit.dataset.slbEnhanced || !edit.querySelector('.slb-tabbar'))) {
-                        enhanceEntry(entry);
-                    }
-                    placeResponsiveHeaderFields(entry);
-                    if (edit && !edit.dataset.slbEnhanced && ++attempts < 3) {
-                        setTimeout(retryOpening, 120);
-                    }
-                } else if (isEntryDrawerOpen(entry) && ++attempts < 3) {
+            if (!entry.isConnected || state.closingEntryDrawers.has(entry)) return;
+            const open = isEntryEditorRendered(entry);
+            entry.dataset.slbDrawerOpen = String(open || isEntryDrawerOpen(entry));
+            if (open) {
+                const edit = queryCompatible(entry, ['.world_entry_edit', '.world-entry-edit', '[data-role="entry-editor"]']);
+                if (edit && (!edit.dataset.slbEnhanced || !edit.querySelector('.slb-tabbar'))) {
+                    enhanceEntry(entry);
+                }
+                placeResponsiveHeaderFields(entry);
+                if (edit && !edit.dataset.slbEnhanced && ++attempts < 3) {
                     setTimeout(retryOpening, 120);
                 }
-            } finally {
-                // If conversion cannot complete, the native editor stays usable.
-                delete entry.dataset.slbEditorPending;
+            } else if (isEntryDrawerOpen(entry) && ++attempts < 3) {
+                setTimeout(retryOpening, 120);
             }
         };
         // Single click: normal next frame. Expand-all: shared bounded queue,
@@ -8179,7 +8168,6 @@ function beginBookSwitch(book, suppliedBoundary = null) {
     if (book && state.currentBook && state.currentBook !== book) {
         for (const row of renderedEntries()) {
             if (row.dataset.slbDisplayReady) delete row.dataset.slbDisplayReady;
-            if (row.dataset.slbEditorPending) delete row.dataset.slbEditorPending;
         }
     }
     const previous = state.bookSwitch;
@@ -8398,8 +8386,6 @@ function enhanceAll() {
                 if (isEntryEditorRendered(entry)) enhanceEntry(entry);
             } catch (error) {
                 console.error('[로어북 매니저] 항목 편집기 렌더 오류', getUid(entry), error);
-            } finally {
-                delete entry.dataset.slbEditorPending;
             }
             if (index > start && performance.now() >= deadline) {
                 index += 1;
@@ -8458,11 +8444,7 @@ function enhanceAll() {
                         '.world-entry-edit',
                         '[data-role="entry-editor"]',
                     ]);
-                    if (editor && isEntryEditorRendered(entry)) {
-                        // Withhold only this native form until the existing editor batch.
-                        entry.dataset.slbEditorPending = 'true';
-                        openedEntries.push(entry);
-                    }
+                    if (editor && isEntryEditorRendered(entry)) openedEntries.push(entry);
                 }
             } catch (error) {
                 freshHeadersVerified = false;
