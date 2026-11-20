@@ -23,7 +23,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.21';
+const VERSION = '1.4.85-ambasa.20';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -4133,12 +4133,15 @@ function createTokenStrip() {
 }
 
 function createEntryFilters() {
-    // Keep the existing native details filter values and add the visible button label.
+    // Native <details> provides an accessible toggle without a second select
+    // occupying another row. Only the single FA filter glyph is visible until
+    // the user opens the four existing (unchanged) ST filter values.
     const filter = createElement('details', 'slb-filter-details');
     filter.id = 'slb-entry-filters';
     filter.innerHTML = `
-        <summary class="menu_button slb-filter-trigger slb-bulk-mode-label" title="항목 필터" aria-label="항목 필터" aria-expanded="false">
-            <i class="fa-solid fa-filter" aria-hidden="true"></i><span>항목 필터</span>
+        <summary class="menu_button slb-filter-trigger" title="표시할 로어 항목 선택"
+                 aria-label="표시할 로어 항목 선택" aria-expanded="false">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
         </summary>
         <div class="slb-filter-options" role="group" aria-label="로어 항목 표시">
             <button type="button" class="slb-filter-option" data-filter="all">전체 보기</button>
@@ -4484,19 +4487,21 @@ function bindWorkspacePopupObserver(popup) {
         const tokenSection = document.getElementById('slb-token-summary-section');
         const filterSection = document.getElementById('slb-entry-filters-section');
         const selectionToolbar = document.getElementById('slb-entry-selection-toolbar');
+        const summaryBar = document.getElementById('slb-summary-toolbar');
         const workspaceMissing = !livePopup
             || !liveEntries
             || liveEntries.parentElement !== livePopup
             || !tokenSection
+            || !summaryBar
+            || summaryBar.parentElement !== livePopup
+            || tokenSection.parentElement !== summaryBar
             || !tokenSection.querySelector('#slb-token-strip')
             || !filterSection
             || !selectionToolbar
             || selectionToolbar.parentElement !== livePopup
-            || tokenSection.parentElement !== selectionToolbar
             || filterSection.parentElement !== selectionToolbar
-            || tokenSection.nextElementSibling !== filterSection
-            || filterSection.nextElementSibling !== selectionToolbar.querySelector(':scope > .slb-bulk-mode-label')
             || !filterSection.querySelector('#slb-entry-filters')
+            || summaryBar.nextElementSibling !== selectionToolbar
             || selectionToolbar.nextElementSibling !== liveEntries
             || state.workspace?.entries !== liveEntries;
 
@@ -4529,14 +4534,17 @@ function createWorkspace() {
 
     bindEntryFilterControls(filters);
     const selectionToolbar = entryBulkEditor.ensureToolbar(popup, entries);
-    // All optional actions share one compact row, with no reserved empty space.
-    if (selectionToolbar.firstElementChild !== tokenSection) selectionToolbar.prepend(tokenSection);
-    const bulkButton = selectionToolbar.querySelector(':scope > .slb-bulk-mode-label');
-    if (filterSection.parentElement !== selectionToolbar || filterSection.nextElementSibling !== bulkButton) {
-        selectionToolbar.insertBefore(filterSection, bulkButton);
+    // Separate rows: token totals stand alone; the small FA funnel belongs
+    // at the far right of the bulk-edit controls. Each visibility preference
+    // remains independent, including when no lorebook is currently selected.
+    let summaryBar = document.getElementById('slb-summary-toolbar');
+    if (!summaryBar) {
+        summaryBar = createElement('div', 'slb-summary-toolbar');
+        summaryBar.id = 'slb-summary-toolbar';
     }
-    document.getElementById('slb-summary-toolbar')?.remove();
-    popup.classList.toggle('slb-no-book-selected', !currentBookName());
+    if (tokenSection.parentElement !== summaryBar) summaryBar.append(tokenSection);
+    if (filterSection.parentElement !== selectionToolbar) selectionToolbar.append(filterSection);
+    if (summaryBar.nextElementSibling !== selectionToolbar) popup.insertBefore(summaryBar, selectionToolbar);
     bindWorkspaceEntries(entries);
     bindWorkspacePopupObserver(popup);
     syncFilterButtons();
@@ -8348,7 +8356,6 @@ function bindEvents() {
         // 이전 DOM을 잡아 기존 모드의 대기가 새 DOM을 기준으로 시작되지 않게 한다.
         const boundary = state.worldSelectTransitionBoundary;
         state.worldSelectTransitionBoundary = null;
-        document.getElementById('world_popup')?.classList.toggle('slb-no-book-selected', !currentBookName());
         beginBookSwitch(currentBookName(), boundary);
     }, { capture: true });
     worldSelect?.addEventListener('change', event => {

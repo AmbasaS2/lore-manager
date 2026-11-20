@@ -11,32 +11,34 @@ function fn(name){
  return m[0];
 }
 
-test('statistics, filter and bulk edit now share one optional row',()=>{
+test('token row and bulk-edit row separate controls while keeping both display settings',()=>{
  const w=new JSDOM('<div id="WorldInfo"><div id="world_popup"></div></div>',{runScripts:'outside-only'}).window;
  const stub='const createElement=(tag,cls,txt)=>{const e=document.createElement(tag);e.className=cls||"";if(txt)e.textContent=txt;return e};';
  w.eval(stub+'\n'+fn('createTokenStrip')+'\n'+fn('createEntryFilters')+'\n'+fn('createSummarySection')+
  '\nwindow.api={createTokenStrip,createEntryFilters,createSummarySection};');
  try{
-  const toolbar=w.document.createElement('div');toolbar.id='slb-entry-selection-toolbar';
-  const stats=w.api.createSummarySection('slb-token-summary-section','토큰',w.api.createTokenStrip());
-  const filter=w.api.createSummarySection('slb-entry-filters-section','',w.api.createEntryFilters());
-  const bulk=w.document.createElement('label');bulk.className='slb-bulk-mode-label';
-  toolbar.append(stats,filter,bulk);
-  w.document.getElementById('world_popup').append(toolbar);
-  assert.equal(toolbar.children.length,3);
-  assert.equal(stats.nextElementSibling,filter);
-  assert.equal(filter.nextElementSibling,bulk);
-  assert.equal(stats.querySelector('.slb-summary-label').textContent,'토큰');
-  assert.equal(toolbar.querySelectorAll('.slb-stat-icon').length,5);
-  assert.equal(filter.querySelector('summary').textContent.trim(),'항목 필터');
-  assert.equal(filter.querySelectorAll('button').length,4);
-  assert.match(js,/selectionToolbar\.prepend\(tokenSection\)/);
-  assert.match(js,/selectionToolbar\.insertBefore\(filterSection, bulkButton\)/);
-  assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar\s*\{[^}]*flex-flow:\s*row nowrap/s);
-  assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar > #slb-token-summary-section\s*\{[^}]*flex:\s*0 1 auto/s);
-  assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section\s*\{[^}]*margin:\s*0 0 0 auto/s);
+  const wrap=w.document.createElement('div');wrap.id='slb-summary-toolbar';
+  const bulk=w.document.createElement('div');bulk.id='slb-entry-selection-toolbar';
+  wrap.append(w.api.createSummarySection('slb-token-summary-section','토큰',w.api.createTokenStrip()));
+  bulk.append(w.api.createSummarySection('slb-entry-filters-section','',w.api.createEntryFilters()));
+  w.document.getElementById('world_popup').append(wrap,bulk);
+  assert.equal(wrap.children.length,1);
+  assert.equal(bulk.children.length,1);
+  assert.equal(wrap.querySelector('.slb-summary-label').textContent,'토큰');
+  assert.equal(bulk.querySelectorAll('.slb-summary-label').length,0);
+  assert.equal(wrap.querySelectorAll('.slb-stat-icon').length,5);
+  assert.equal(bulk.querySelector('summary .fa-filter')!==null,true);
+  assert.equal(bulk.querySelectorAll('#slb-entry-filters button').length,4);
+  assert.match(js,/if \(tokenSection\.parentElement !== summaryBar\) summaryBar\.append\(tokenSection\)/);
+  assert.match(js,/if \(filterSection\.parentElement !== selectionToolbar\) selectionToolbar\.append\(filterSection\)/);
+  assert.equal(w.document.getElementById('slb-entry-filters-section').parentElement.id,'slb-entry-selection-toolbar');
+  assert.match(css,/#WorldInfo\.slb-active #slb-summary-toolbar\s*\{[^}]*flex-flow:\s*row nowrap/s);
+  assert.match(css,/\.slb-summary-label\s*\{[^}]*font-weight:\s*400/s);
+  assert.match(css,/\.slb-token-strip strong\s*\{[^}]*font-weight:\s*400/s);
   assert.match(css,/\.slb-mobile-token-summary-hidden #slb-token-summary-section/);
   assert.match(css,/\.slb-mobile-entry-filters-hidden #slb-entry-filters-section/);
+  assert.match(css,/#WorldInfo\.slb-active\.slb-mobile-token-summary-hidden #slb-summary-toolbar/);
+  assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section\s*\{[^}]*margin:\s*0 0 0 auto/s);
  }finally{w.close();}
 });
 

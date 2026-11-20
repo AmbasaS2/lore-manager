@@ -404,9 +404,10 @@
 /* No book selected: show SillyTavern's original empty editor, not the
    extension's token, filter and bulk-edit controls (or their empty row).
    The native <hr> and all original ST controls remain untouched. */
-#WorldInfo.slb-active #world_popup.slb-no-book-selected > #slb-entry-selection-toolbar,
-#WorldInfo.slb-active #world_popup:has(#world_editor_select > option[value=""]:checked) > #slb-entry-selection-toolbar {
-    display: none !important;
+#WorldInfo.slb-active #world_popup:has(#world_editor_select > option[value=""]:checked) > :is(
+    #slb-summary-toolbar, #slb-entry-selection-toolbar
+) {
+    display: none;
 }
 
 #WorldInfo.slb-active #world_popup > .flex-container {
@@ -1954,12 +1955,30 @@
     margin: 0;
 }
 
-/* Optional token stats share the line with filter and bulk edit. */
-#WorldInfo.slb-active #slb-entry-selection-toolbar > #slb-token-summary-section {
-    flex: 0 1 auto;
-    width: auto;
+/* The token totals use their own row. The independently configurable
+   filter icon sits in the bulk-edit toolbar immediately below it. */
+#WorldInfo.slb-active #slb-summary-toolbar {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    width: 100%;
     min-width: 0;
+    min-height: 29px;
+    margin: 2px 0 3px;
+    padding: 0;
+}
+#WorldInfo.slb-active #slb-summary-toolbar > .slb-summary-row {
+    width: auto;
     margin: 0;
+}
+#WorldInfo.slb-active #slb-token-summary-section {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+#WorldInfo.slb-active.slb-mobile-token-summary-hidden #slb-summary-toolbar {
+    display: none;
 }
 
 /* A single token heading and compact control row. */
@@ -2017,14 +2036,15 @@
 #WorldInfo.slb-active .slb-summary-section .slb-token-strip::-webkit-scrollbar {
     display: none;
 }
-/* Labeled native details filter stays keyboard- and touch-operable. */
+/* FA funnel at far right of the bulk-edit toolbar. HTML details provides
+   keyboard and touch toggling without an observer or polling loop. */
 #WorldInfo.slb-active .slb-summary-filter-select {
     display: inline-flex;
     position: relative;
-    flex: 0 0 auto;
+    flex: 0 0 24px;
     align-items: center;
-    width: auto;
-    min-width: 0;
+    width: 24px;
+    min-width: 24px;
     height: 24px;
     min-height: 24px;
     margin: 0;
@@ -2034,25 +2054,24 @@
 #WorldInfo.slb-active .slb-filter-details {
     position: relative;
     display: block;
-    width: auto;
+    width: 24px;
     height: 24px;
-    min-width: 0;
+    min-width: 24px;
 }
 #WorldInfo.slb-active .slb-filter-trigger {
     display: inline-flex;
     box-sizing: border-box;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    width: auto;
-    min-width: 0;
+    width: 24px;
+    min-width: 24px;
     height: 24px;
     min-height: 24px;
     margin: 0;
-    padding: 1px 6px;
+    padding: 2px;
     font: inherit;
     font-size: 0.88em;
-    line-height: 1.15;
+    line-height: 1;
     cursor: pointer;
     list-style: none;
 }
@@ -3491,27 +3510,26 @@
     color: var(--SmartThemeBodyColor);
     overflow: visible;
 }
-/* Item filter immediately precedes bulk edit, after optional token stats. */
+/* The far-right action is a true child of the bulk-edit toolbar, not a
+   floating control positioned over the entries or token statistics. */
 #WorldInfo.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 0;
+    flex: 0 0 24px;
+    width: 24px;
+    min-width: 24px;
     min-height: 24px;
     height: 24px;
     margin: 0 0 0 auto;
     align-self: center;
 }
 
-/* Three independent visibility settings never reserve empty space. */
+/* Bulk edit is an optional fork feature, OFF unless explicitly enabled.
+   Keep the independent funnel at the right edge even when bulk edit is off. */
 #WorldInfo.slb-active.slb-bulk-edit-hidden #slb-entry-selection-toolbar > .slb-bulk-mode-label,
 #WorldInfo.slb-active.slb-bulk-edit-hidden #slb-entry-selection-toolbar > .slb-bulk-selection-tools {
     display: none;
 }
-#WorldInfo.slb-active.slb-mobile-entry-filters-hidden #slb-entry-selection-toolbar > .slb-bulk-mode-label {
-    margin-left: auto;
-}
-#WorldInfo.slb-active.slb-bulk-edit-hidden.slb-mobile-entry-filters-hidden.slb-mobile-token-summary-hidden #slb-entry-selection-toolbar {
-    display: none !important;
+#WorldInfo.slb-active.slb-bulk-edit-hidden.slb-mobile-entry-filters-hidden #slb-entry-selection-toolbar {
+    display: none;
 }
 
 #WorldInfo.slb-active #slb-entry-selection-toolbar .slb-bulk-mode-label {
