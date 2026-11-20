@@ -82,7 +82,7 @@ test('dynamic CSS no longer overrides current fonts, native popup scales consist
     assert.ok(critical.length<2400,'does not inject old 14KB stylesheet');
     assert.doesNotMatch(critical,/13px!important|\.8em!important|42px!important/);
     assert.match(critical,/visibility: visible !important/);
-    assert.match(css,/\.popup:has\(\.slb-translation-picker\)\s*\{[^}]*width:\s*min\(420px,\s*calc\(100dvw - 24px\)\)/);
+    assert.match(css,/\.popup:has\(\.slb-translation-picker\)\s*\{[^}]*width:\s*min\(380px,\s*calc\(100dvw - 24px\)\)/);
     assert.match(css,/\.popup:has\(\.slb-translation-picker\) \.popup-controls > \.menu_button\s*\{[^}]*min-height:\s*36px/s);
 });
 

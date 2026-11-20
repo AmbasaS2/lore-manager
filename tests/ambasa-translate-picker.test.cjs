@@ -38,6 +38,10 @@ test('native popup defaults to character-linked books and supports checkbox mult
   await w.api.open();
   let {form,popupOptions,started}=w.api.snapshot();
   assert.equal(form.querySelector('#slb-translate-world-show-all').checked,false);
+  assert.equal(form.querySelector('.slb-translation-picker-tools #slb-translate-world-select-all').textContent,'선택 해제',
+    'all linked books are initially checked, so the action is clear selection');
+  assert.equal(form.querySelector('.slb-translation-picker-tools #slb-translate-world-selected').textContent,'1개 로어북 선택됨');
+  assert.equal(form.querySelector('#slb-translate-world-list').style.maxHeight,'min(30dvh, 204px)');
   assert.deepEqual([...form.querySelectorAll('#slb-translate-world-list input')].map(i=>i.value),['Remus']);
   assert.equal(started.length,1); assert.deepEqual(JSON.parse(JSON.stringify(started[0])),{mode:'missing',book:'Remus'});
   assert.deepEqual(Array.from(popupOptions.customButtons,b=>b.result),[2,3]);

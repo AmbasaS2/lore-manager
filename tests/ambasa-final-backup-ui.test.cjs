@@ -112,7 +112,7 @@ test('existing explicit backup setting survives; picker and hints are single-sou
     assert.match(source,/autoBackupEnabled:\s*false/);
     assert.match(source,/if \(!\(key in settings\)\)/);
     assert.match(source,/settings\.autoBackupEnabled = Boolean\(settings\.autoBackupEnabled\)/);
-    assert.match(source,/form\.append\(fieldLabel, selectAllButton, selectedStatus, list, showAllLabel, status\)/);
+    assert.match(source,/form\.append\(fieldLabel, selectionTools, list, showAllLabel, status\)/);
     assert.doesNotMatch(extract('showLorebookTranslationPicker'),/slb-translation-picker-title/);
     assert.match(css,/\.popup:has\(\.slb-translation-picker\) \.popup-controls\s*\{[^}]*flex-direction:\s*column/s);
     assert.match(extract('addLoreInfoIcon'),/icon\.removeAttribute\('title'\)/);

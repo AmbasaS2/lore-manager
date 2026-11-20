@@ -25,7 +25,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.27';
+const VERSION = '1.4.85-ambasa.28';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3680,8 +3680,8 @@ async function showLorebookTranslationPicker() {
     list.id = 'slb-translate-world-list';
     list.setAttribute('role', 'group');
     list.setAttribute('aria-labelledby', fieldLabel.id);
-    // A native, scrollable checkbox list needs no new theme CSS rules.
-    list.style.maxHeight = 'min(42vh, 320px)';
+    // Keep the native checkbox list compact; additional books stay scrollable.
+    list.style.maxHeight = 'min(30dvh, 204px)';
     list.style.overflowY = 'auto';
     const selectAllButton = createElement('button', 'menu_button slb-translation-picker-select-all', '모두 선택');
     selectAllButton.type = 'button';
@@ -3754,7 +3754,11 @@ async function showLorebookTranslationPicker() {
         updateOptions();
     });
     updateOptions();
-    form.append(fieldLabel, selectAllButton, selectedStatus, list, showAllLabel, status);
+    // A dedicated flex row prevents themed button min-content sizing from
+    // collapsing "모두 선택" into a vertical stack inside the popup grid.
+    const selectionTools = createElement('div', 'slb-translation-picker-tools');
+    selectionTools.append(selectAllButton, selectedStatus);
+    form.append(fieldLabel, selectionTools, list, showAllLabel, status);
 
     const popup = new Popup(form, POPUP_TYPE.CONFIRM, '', {
         okButton: false,

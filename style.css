@@ -4306,7 +4306,7 @@
    custom fixed-width overlay or constrain the desktop panel. */
 .popup:has(.slb-translation-picker) {
     box-sizing: border-box;
-    width: min(420px, calc(100dvw - 24px));
+    width: min(380px, calc(100dvw - 24px));
     max-width: calc(100dvw - 24px);
     min-width: 0;
     font-size: max(13px, 0.95em);
@@ -4316,7 +4316,8 @@
     display: grid;
     box-sizing: border-box;
     min-width: 0;
-    width: min(100%, 420px);
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     color: var(--SmartThemeBodyColor, inherit);
     font: inherit;
@@ -4326,6 +4327,32 @@
     font: inherit;
     font-weight: 600;
     line-height: 1.35;
+}
+.slb-translation-picker-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.slb-translation-picker-tools > .slb-translation-picker-select-all {
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: auto !important;
+    min-width: 86px;
+    max-width: 100%;
+    min-height: 29px;
+    padding: 4px 11px;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    font: inherit;
+}
+.slb-translation-picker-selected {
+    white-space: nowrap;
+    opacity: 0.72;
 }
 .slb-translation-picker > select {
     box-sizing: border-box;
@@ -4357,7 +4384,7 @@
     align-items: stretch;
     box-sizing: border-box;
     width: 100%;
-    max-width: 420px;
+    max-width: 380px;
     margin-inline: auto;
     gap: 7px;
 }
