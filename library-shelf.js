@@ -32,6 +32,16 @@ export function canonicalLibraryBookNames(worldNames) {
         .filter(name => typeof name === 'string' && name.trim()))];
 }
 
+// ST stores uploaded images at user/images/*. Do not render external URLs,
+ // data: payloads or executable URLs from untrusted extension settings.
+export function safeLibraryImagePath(value) {
+    if (typeof value !== 'string') return '';
+    const path = value.startsWith('/') ? value : '/' + value;
+    if (!path.startsWith('/user/images/') || path.includes('..') || path.includes('\\')
+        || /[<>?#]/.test(path) || /[\r\n\0]/.test(path)) return '';
+    return path;
+}
+
 export function uniqueLibraryBooks(names, linkedNames) {
     const unique = [...new Set((names || []).map(String).map(value => value.trim()).filter(Boolean))];
     const linked = linkedNames instanceof Set ? linkedNames : null;
@@ -75,6 +85,9 @@ export function createStandaloneLibrary({
     getTags = () => [],
     getTagMap = null,
     setTags = async () => {},
+    getEntryImage = () => '',
+    uploadEntryImage = async () => {},
+    removeEntryImage = async () => {},
     getTheme,
     notify,
 }) {
@@ -100,6 +113,10 @@ export function createStandaloneLibrary({
     let tagSaving = false;
     let tagDraft = '';
     let tagInitial = '';
+    let tagPanelExpanded = false;
+    // Only the currently opened book can have a pending, explicitly selected
+    // image. These File objects are never stored in ST settings.
+    const pendingImages = new Map();
 
     function isOpen() { return Boolean(overlay?.isConnected); }
     function notifyStatus(message, type = 'info') {
@@ -109,7 +126,7 @@ export function createStandaloneLibrary({
     }
     function hasPendingEdit({ allowTags = false } = {}) {
         return Boolean((edit && edit.textarea && edit.textarea.value !== edit.initial)
-            || (!allowTags && currentBook && tagDraft !== tagInitial));
+            || (!allowTags && currentBook && (tagDraft !== tagInitial || pendingImages.size > 0)));
     }
     function discardOrStay({ allowTags = false } = {}) {
         if (saving || tagSaving) {
@@ -126,6 +143,7 @@ export function createStandaloneLibrary({
         overlay.remove();
         overlay = null;
         resetEdit();
+        pendingImages.clear();
         if (originalFocus?.isConnected) originalFocus.focus?.();
         return true;
     }
@@ -151,8 +169,9 @@ export function createStandaloneLibrary({
         heading.append(element(doc, 'small', '', '로어북 매니저 · 개인 서재'));
         top.append(heading, button(doc, 'slb-library-close', '×', 'close'));
         const navigation = element(doc, 'div', 'slb-library-navigation');
-        navigation.append(button(doc, '', '‹ 서재 목록', 'books'));
-        navigation.append(element(doc, 'span', 'slb-library-current', '연결된 로어북을 선택하세요.'));
+        const navTop = element(doc, 'div', 'slb-library-nav-top');
+        navTop.append(button(doc, '', '‹ 서재 목록', 'books'),
+            element(doc, 'span', 'slb-library-current', '연결된 로어북을 선택하세요.'));
         const filters = element(doc, 'div', 'slb-library-filters');
         const typeLabel = element(doc, 'label', '', '보기 방식');
         typeLabel.htmlFor = 'slb-library-book-type';
@@ -170,7 +189,9 @@ export function createStandaloneLibrary({
         search.autocomplete = 'off';
         search.placeholder = '제목·키워드·내용 검색';
         search.setAttribute('aria-label', '로어북 내 검색');
-        navigation.append(filters, search);
+        const navTools = element(doc, 'div', 'slb-library-nav-tools');
+        navTools.append(filters, search);
+        navigation.append(navTop, navTools);
         const body = element(doc, 'main', 'slb-library-body');
         const footer = element(doc, 'footer', 'slb-library-footer');
         const status = element(doc, 'span', '', '기존 로어북 원문과 번역 데이터를 사용합니다.');
@@ -199,6 +220,7 @@ export function createStandaloneLibrary({
         if (!isOpen()) return;
         resetEdit();
         currentBook = '';
+        pendingImages.clear();
         currentData = null;
         selectedUid = null;
         const nav = overlay.querySelector('.slb-library-navigation');
@@ -208,7 +230,11 @@ export function createStandaloneLibrary({
         body.replaceChildren();
         body.dataset.type = 'books';
 
-        const linked = uniqueLibraryBooks(bookNames, linkedNames).filter(book => allBooks || book.linked);
+        // No linked books: keep the whole library visible even if linked-only
+        // is checked. SillyTavern provides null when no character is selected.
+        const hasLinks = linkedNames instanceof Set && linkedNames.size > 0;
+        const linked = uniqueLibraryBooks(bookNames, linkedNames).filter(book =>
+            allBooks || !hasLinks || book.linked);
         const tagMap = typeof getTagMap === 'function' ? getTagMap() : null;
         const tagsFor = book => tagMap && typeof tagMap === 'object'
             ? normalizeLibraryTags(Object.hasOwn(tagMap, book) ? tagMap[book] : []) : bookTags(book);
@@ -222,14 +248,21 @@ export function createStandaloneLibrary({
             }
         }
         const head = element(doc, 'div', 'slb-library-books-head');
-        head.append(element(doc, 'span', 'slb-library-shelf-crest', '❦'),
-            button(doc, 'slb-library-book-filter', allBooks ? '연결된 책만 보기' : '모든 로어북 보기', 'all-books'));
+        const control = element(doc, 'label', 'slb-library-linked-control');
+        const checkbox = element(doc, 'input', 'slb-library-linked-checkbox');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'slb-library-linked-only';
+        checkbox.checked = !allBooks;
+        control.append(checkbox, element(doc, 'span', '', '현재 캐릭터에 연결된 책만 보기'));
+        const hint = element(doc, 'small', 'slb-library-linked-hint',
+            '연동된 로어북이 없으면 모든 책이 보여집니다');
+        head.append(control, hint);
         const tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
         for (const [key, name] of [
             ['all', '전체'], ['untagged', '미분류'], ...knownTags.map(tag => ['tag:' + tag, tag]),
         ]) {
-            const choice = button(doc, shelfTag === key ? 'is-active' : '', name, 'shelf-tag');
+            const choice = button(doc, 'slb-library-tag-tab' + (shelfTag === key ? ' is-active' : ''), name, 'shelf-tag');
             choice.dataset.filter = key;
             choice.setAttribute('aria-pressed', String(shelfTag === key));
             tagbar.append(choice);
@@ -279,22 +312,31 @@ export function createStandaloneLibrary({
         body.append(head, tagbar, shelf);
         const summary = element(doc, 'div', 'slb-library-shelf-summary');
         summary.append(element(doc, 'span', '', candidates.length + '권 중 ' + shown.length + '권 표시'));
-        if (candidates.length > shown.length) summary.append(
-            button(doc, '', '책 더 보기 (' + (candidates.length - shown.length) + '권)', 'shelf-more'));
+        if (candidates.length > shown.length) {
+            const more = button(doc, 'slb-library-shelf-more', '', 'shelf-more');
+            more.append(element(doc, 'span', 'slb-library-more-caption', '책 더 보기'),
+                element(doc, 'small', 'slb-library-more-remaining',
+                    (candidates.length - shown.length) + '권 남음'));
+            summary.append(more);
+        }
         body.append(summary);
         notifyStatus(candidates.length + '권');
     }
     function renderBookTagPanel() {
-        const row = element(doc, 'section', 'slb-library-book-meta');
+        // Native details/summary provides a lightweight toggle without observers,
+        // extra DOM reflow passes or a bespoke accordion state machine.
+        const row = element(doc, 'details', 'slb-library-book-meta');
         row.setAttribute('aria-label', '현재 로어북 태그');
-        const title = element(doc, 'div', 'slb-library-meta-label');
-        title.append(element(doc, 'span', 'slb-library-meta-emblem', '✥'),
-            element(doc, 'label', '', '책 태그'));
-        title.querySelector('label').htmlFor = 'slb-library-book-tag-input';
+        row.open = tagPanelExpanded;
+        row.addEventListener('toggle', () => {
+            if (row.isConnected) tagPanelExpanded = row.open;
+        });
+        const summary = element(doc, 'summary', 'slb-library-book-meta-summary');
         const chips = element(doc, 'div', 'slb-library-book-chips');
         const existing = bookTags(currentBook);
         if (!existing.length) chips.append(element(doc, 'span', 'slb-library-no-tags', '미분류'));
         else for (const tag of existing) chips.append(element(doc, 'span', 'slb-library-tag-chip', tag));
+        summary.append(chips);
         const field = element(doc, 'div', 'slb-library-book-tag-field');
         const input = element(doc, 'input', 'slb-library-book-tag-input');
         input.id = 'slb-library-book-tag-input';
@@ -308,7 +350,7 @@ export function createStandaloneLibrary({
         const save = button(doc, 'slb-library-book-tag-save', '태그 저장', 'book-tag-save');
         save.disabled = tagSaving || tagDraft === tagInitial;
         field.append(input, save);
-        row.append(title, chips, field);
+        row.append(summary, field);
         return row;
     }
     async function saveBookTags() {
@@ -357,6 +399,8 @@ export function createStandaloneLibrary({
         resetEdit();
         const version = ++loadVersion;
         currentBook = book;
+        pendingImages.clear();
+        tagPanelExpanded = false;
         tagInitial = bookTags(book).join(', ');
         tagDraft = tagInitial;
         currentData = null;
@@ -530,6 +574,35 @@ export function createStandaloneLibrary({
         editorTools.append(button(doc, 'slb-library-advanced', '⚙ 발동 설정', 'advanced', uid));
         tools.append(editorTools);
         article.append(tools);
+        // An entry's optional picture is display metadata, not injected lore
+        // content. It is constructed only for an opened detail, never the shelf.
+        const imagePath = safeLibraryImagePath(getEntryImage(currentBook, entry));
+        if (imagePath) {
+            const frame = element(doc, 'figure', 'slb-library-entry-image');
+            const img = element(doc, 'img', 'slb-library-entry-image-element');
+            img.src = imagePath;
+            img.alt = '로어 참고 이미지';
+            img.setAttribute('loading', 'lazy');
+            img.setAttribute('decoding', 'async');
+            frame.append(img);
+            article.append(frame);
+        }
+        const media = element(doc, 'div', 'slb-library-entry-image-controls');
+        const fileInput = element(doc, 'input', 'slb-library-image-file');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/png,image/jpeg,image/webp,image/gif';
+        fileInput.dataset.uid = uid;
+        fileInput.hidden = true;
+        fileInput.setAttribute('aria-label', '로어 이미지 파일 선택');
+        media.append(fileInput, button(doc, 'slb-library-image-pick',
+            imagePath ? '이미지 교체' : '이미지 추가', 'image-pick', uid));
+        const selectedImage = pendingImages.get(uid);
+        if (selectedImage) {
+            media.append(element(doc, 'small', 'slb-library-image-file-name', selectedImage.name));
+            media.append(button(doc, 'slb-library-image-save', '이미지 저장', 'image-save', uid));
+        }
+        if (imagePath) media.append(button(doc, 'slb-library-image-remove', '이미지 연결 해제', 'image-remove', uid));
+        article.append(media);
         const pages = element(doc, 'div', view === 'both' ? 'slb-library-pages slb-library-split' : 'slb-library-pages');
         if (view === 'both') pages.append(contentText(entry, 'source'), contentText(entry, 'translated'));
         else pages.append(contentText(entry, view));
@@ -549,6 +622,52 @@ export function createStandaloneLibrary({
             edit.textarea = input;
         }
         return article;
+    }
+    function replaceEntryDetail(uid) {
+        const current = [...(overlay?.querySelectorAll('.slb-library-detail') || [])]
+            .find(node => node.dataset.uid === String(uid));
+        const entry = entries.find(item => String(item.uid) === String(uid));
+        if (current && entry) current.replaceWith(renderDetail(entry, getType(currentBook) || 'general'));
+    }
+    function pickEntryImage(uid) {
+        const current = [...(overlay?.querySelectorAll('.slb-library-detail') || [])]
+            .find(node => node.dataset.uid === String(uid));
+        current?.querySelector('.slb-library-image-file')?.click();
+    }
+    async function saveEntryImage(uid) {
+        if (saving || !currentBook || !isOpen()) return;
+        const file = pendingImages.get(String(uid));
+        const entry = entries.find(item => String(item.uid) === String(uid));
+        if (!file || !entry) return;
+        saving = true;
+        notifyStatus('이미지를 저장하는 중입니다.');
+        try {
+            await uploadEntryImage(currentBook, entry, file);
+            pendingImages.delete(String(uid));
+            replaceEntryDetail(uid);
+            notifyStatus('이미지가 연결되었습니다.', 'success');
+        } catch (error) {
+            notifyStatus('이미지 저장 실패: ' + (error?.message || error), 'error');
+        } finally {
+            saving = false;
+        }
+    }
+    async function clearEntryImage(uid) {
+        if (saving || !currentBook || !isOpen()) return;
+        const entry = entries.find(item => String(item.uid) === String(uid));
+        if (!entry || !safeLibraryImagePath(getEntryImage(currentBook, entry))) return;
+        if (!doc.defaultView.confirm('이 로어에서 이미지 연결을 해제하시겠습니까? 서버의 원본 이미지 파일은 삭제하지 않습니다.')) return;
+        saving = true;
+        try {
+            await removeEntryImage(currentBook, entry);
+            pendingImages.delete(String(uid));
+            replaceEntryDetail(uid);
+            notifyStatus('이미지 연결이 해제되었습니다.', 'success');
+        } catch (error) {
+            notifyStatus('이미지 연결 해제 실패: ' + (error?.message || error), 'error');
+        } finally {
+            saving = false;
+        }
     }
     function showEntry(uid) {
         if (!discardOrStay({ allowTags: true })) return;
@@ -661,11 +780,6 @@ export function createStandaloneLibrary({
             if (!discardOrStay()) return;
             loadVersion += 1;
             bookList();
-        } else if (action === 'all-books') {
-            allBooks = !allBooks;
-            shelfLimit = 24;
-            shelfTag = 'all';
-            bookList();
         } else if (action === 'shelf-tag') {
             shelfTag = target.dataset.filter || 'all';
             shelfLimit = 24;
@@ -677,6 +791,12 @@ export function createStandaloneLibrary({
             void selectBook(target.dataset.book);
         } else if (action === 'book-tag-save') {
             void saveBookTags();
+        } else if (action === 'image-pick') {
+            pickEntryImage(uid);
+        } else if (action === 'image-save') {
+            void saveEntryImage(uid);
+        } else if (action === 'image-remove') {
+            void clearEntryImage(uid);
         } else if (action === 'entry') showEntry(uid);
         else if (action === 'more') {
             visibleLimit += getType(currentBook) === 'memory' ? 12 : 24;
@@ -697,6 +817,26 @@ export function createStandaloneLibrary({
         }
     }
     function onChange(event) {
+        if (event.target?.classList?.contains('slb-library-image-file')) {
+            const uid = event.target.dataset.uid;
+            const file = event.target.files?.[0];
+            if (!file) return;
+            if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)
+                || file.size > 5 * 1024 * 1024 || file.size < 1) {
+                notifyStatus('PNG, JPG, WEBP 또는 GIF 형식의 5MB 이하 이미지를 선택하세요.', 'warning');
+                return;
+            }
+            pendingImages.set(String(uid), file);
+            replaceEntryDetail(uid);
+            return;
+        }
+        if (event.target?.id === 'slb-library-linked-only') {
+            allBooks = !event.target.checked;
+            shelfLimit = 24;
+            shelfTag = 'all';
+            bookList();
+            return;
+        }
         if (event.target?.id !== 'slb-library-book-type') return;
         if (!discardOrStay({ allowTags: true })) {
             event.target.value = getType(currentBook);
@@ -734,12 +874,14 @@ export function createStandaloneLibrary({
         originalFocus = doc.activeElement;
         bookNames = listBooks();
         linkedNames = linkedBooks();
-        allBooks = !linkedNames;
+        allBooks = false;
         shelfTag = 'all';
         shelfLimit = 24;
         tagSaving = false;
         tagDraft = '';
         tagInitial = '';
+        tagPanelExpanded = false;
+        pendingImages.clear();
         currentBook = '';
         currentData = null;
         entryReadViews = new Map();

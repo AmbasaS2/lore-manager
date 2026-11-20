@@ -72,8 +72,8 @@
     cursor: pointer;
     min-height: 34px;
     border: 1px solid var(--ll-line);
-    border-radius: 5px;
-    padding: 5px 12px;
+    border-radius: 9px;
+    padding: 6px 12px;
     background: var(--ll-paper-light);
     color: var(--ll-ink);
     width: auto;
@@ -127,17 +127,25 @@
 }
 #slb-library-overlay .slb-library-navigation {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 18px;
-    background: var(--ll-surface);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 11px 18px 12px;
+    background: linear-gradient(180deg, var(--ll-surface), var(--ll-warm));
     border-bottom: 1px solid var(--ll-line);
     flex: 0 0 auto;
 }
-#slb-library-overlay .slb-library-navigation:not(.slb-library-has-book) > button,
-#slb-library-overlay .slb-library-navigation:not(.slb-library-has-book) > .slb-library-filters,
-#slb-library-overlay .slb-library-navigation:not(.slb-library-has-book) > input { display: none; }
+#slb-library-overlay .slb-library-nav-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-nav-top > button {
+    flex: 0 0 auto;
+}
+#slb-library-overlay .slb-library-navigation:not(.slb-library-has-book) .slb-library-nav-top > button,
+#slb-library-overlay .slb-library-navigation:not(.slb-library-has-book) .slb-library-nav-tools { display: none; }
 #slb-library-overlay .slb-library-current {
     min-width: 0;
     flex: 1;
@@ -146,19 +154,38 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-#slb-library-overlay .slb-library-filters { display: flex; gap: 6px; align-items: center; }
+#slb-library-overlay .slb-library-nav-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-filters label { white-space: nowrap; font-size: 12px; }
 #slb-library-overlay #slb-library-book-type,
 #slb-library-overlay #slb-library-search {
+    display: block;
+    width: 100%;
+    max-width: none;
     min-width: 0;
-    min-height: 35px;
+    height: 39px;
+    min-height: 39px;
     border: 1px solid var(--ll-line);
-    border-radius: 4px;
-    padding: 5px 10px;
+    border-radius: 10px;
+    padding: 7px 11px;
     background: var(--ll-paper-light);
     color: var(--ll-ink);
+    box-shadow: 0 1px 3px rgba(52, 33, 17, .07);
 }
-#slb-library-overlay #slb-library-book-type { max-width: 200px; }
-#slb-library-overlay #slb-library-search { width: min(230px, 28%); }
+#slb-library-overlay #slb-library-book-type { flex: 1; }
+#slb-library-overlay #slb-library-search::placeholder { color: var(--ll-muted); opacity: .8; }
 #slb-library-overlay .slb-library-body {
     flex: 1 1 auto;
     min-height: 0;
@@ -182,31 +209,43 @@
 #slb-library-overlay .slb-library-footer small { opacity: .8; }
 #slb-library-overlay .slb-library-books-head {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 13px;
-    padding: 0 0 9px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin-bottom: 16px;
+    padding: 0 0 13px;
     border-bottom: 1px solid var(--ll-line);
 }
-#slb-library-overlay .slb-library-shelf-crest {
-    color: var(--ll-brass);
-    font-size: 23px;
-    line-height: 1;
-    text-shadow: 1px 2px 2px rgba(68, 37, 12, .2);
+#slb-library-overlay .slb-library-linked-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.5;
 }
-/* Bookcase view: CSS-only spines, native theme fonts, and horizontal scrolling.
-   No book content is fetched to draw the shelf. */
-#slb-library-overlay .slb-library-books-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+#slb-library-overlay .slb-library-linked-checkbox {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: var(--ll-brass);
+    cursor: pointer;
+    flex: 0 0 17px;
 }
-#slb-library-overlay .slb-library-books-actions .is-active,
-#slb-library-overlay .slb-library-tagbar .is-active {
-    background: var(--ll-leather);
+#slb-library-overlay .slb-library-linked-hint {
+    display: block;
+    color: var(--ll-muted);
+    padding-left: 26px;
+    font-size: 11px;
+    line-height: 1.45;
+}
+/* Bookcase controls: engraved catalog tabs; no book content is fetched. */
+#slb-library-overlay .slb-library-tagbar button.is-active {
+    background: linear-gradient(160deg, var(--ll-leather), #715135);
     color: #f7e8c8;
+    border-color: var(--ll-brass);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
 }
 #slb-library-overlay .slb-library-tagbar {
     display: flex;
@@ -219,14 +258,18 @@
     margin: 0 0 13px;
 }
 #slb-library-overlay .slb-library-tagbar button {
-    padding: 5px 12px;
-    border-radius: 18px;
-    min-height: 30px;
+    padding: 7px 15px 6px;
+    border: 1px solid var(--ll-line);
+    border-top: 3px solid var(--ll-brass);
+    border-radius: 10px 10px 5px 5px;
+    min-height: 35px;
     max-width: min(220px, 60vw);
     flex: 0 0 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    background: linear-gradient(180deg, var(--ll-paper-light), var(--ll-warm));
+    box-shadow: 1px 2px 4px rgba(58, 40, 23, .08);
 }
 #slb-library-overlay .slb-library-bookshelf {
     position: relative;
@@ -413,12 +456,31 @@
 }
 #slb-library-overlay .slb-library-shelf-summary {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     color: var(--ll-muted);
-    padding: 12px 3px;
+    padding: 13px 3px 4px;
+    font-size: 12px;
 }
+#slb-library-overlay button.slb-library-shelf-more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-height: 45px;
+    min-width: 135px;
+    margin-left: auto;
+    padding: 7px 23px;
+    border-radius: 10px;
+    border: 1px solid var(--ll-brass);
+    background: linear-gradient(175deg, var(--ll-paper-light), var(--ll-warm));
+    box-shadow: 0 2px 0 rgba(81, 57, 31, .15), inset 0 1px rgba(255,255,255,.55);
+}
+#slb-library-overlay .slb-library-more-caption { font-weight: 700; }
+#slb-library-overlay .slb-library-more-remaining { color: var(--ll-muted); font-size: 10px; }
 #slb-library-overlay .slb-library-shelf-empty {
     grid-column: 1 / -1;
     color: #fbecd0;
@@ -449,36 +511,36 @@
     background: var(--ll-paper-light);
 }
 /* A permanent tag field inside the opened book, separate from the bookcase. */
+/* Compact, native disclosure: just the existing tag (or 미분류) when closed. */
 #slb-library-overlay .slb-library-book-meta {
-    display: grid;
-    grid-template-columns: minmax(110px, .55fr) minmax(0, 1fr) minmax(190px, 1.3fr);
-    align-items: center;
-    gap: 9px 12px;
-    padding: 11px 13px;
+    display: block;
     margin: -5px 0 16px;
     border: 1px solid var(--ll-line);
-    border-left: 4px solid var(--ll-brass);
-    border-radius: 4px;
+    border-radius: 11px;
     background: var(--ll-paper-light);
+    overflow: hidden;
 }
-#slb-library-overlay .slb-library-meta-label {
+#slb-library-overlay .slb-library-book-meta-summary {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: var(--ll-ink);
-    min-width: 0;
-    font-weight: 600;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 39px;
+    padding: 8px 12px;
+    cursor: pointer;
+    list-style: none;
+    text-align: left;
 }
-#slb-library-overlay .slb-library-meta-emblem {
-    display: grid;
-    place-items: center;
-    flex: 0 0 27px;
-    height: 27px;
-    background: var(--ll-warm);
-    border: 1px solid var(--ll-line);
-    border-radius: 50%;
+#slb-library-overlay .slb-library-book-meta-summary::-webkit-details-marker { display: none; }
+#slb-library-overlay .slb-library-book-meta-summary::after {
+    content: '⌄';
     color: var(--ll-brass);
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 18px;
+    line-height: 1;
 }
+#slb-library-overlay .slb-library-book-meta[open] > .slb-library-book-meta-summary::after { content: '⌃'; }
 #slb-library-overlay .slb-library-book-chips {
     min-width: 0;
     display: flex;
@@ -500,31 +562,32 @@
 }
 #slb-library-overlay .slb-library-book-tag-field {
     display: flex;
-    min-width: 0;
     align-items: center;
-    gap: 7px;
+    gap: 9px;
+    min-width: 0;
+    padding: 11px 12px;
+    border-top: 1px solid var(--ll-line);
 }
 #slb-library-overlay #slb-library-book-tag-input {
     min-width: 0;
     width: 100%;
     flex: 1;
+    min-height: 38px;
     background: var(--ll-paper);
     border: 1px solid var(--ll-line);
-    padding: 7px 9px;
-    border-radius: 4px;
-    min-height: 36px;
+    border-radius: 9px;
+    padding: 7px 11px;
 }
 #slb-library-overlay button.slb-library-book-tag-save {
     flex: 0 0 auto;
     white-space: nowrap;
+    border-radius: 9px;
     background: var(--ll-leather);
     color: #f7e8c8;
 }
-@media (max-width: 820px) {
-    #slb-library-overlay .slb-library-book-meta {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 7px;
-    }
+@media (max-width: 450px) {
+    #slb-library-overlay .slb-library-book-tag-field { flex-direction: column; align-items: stretch; }
+    #slb-library-overlay button.slb-library-book-tag-save { align-self: flex-end; }
 }
 #slb-library-overlay .slb-library-catalog {
     display: grid;
@@ -590,6 +653,56 @@
     color: #f7e8c8;
 }
 #slb-library-overlay button.slb-library-advanced { border-color: var(--ll-brass); }
+/* Optional per-entry illustration. Loaded lazily only after entry expansion;
+   paths are stored separately from WorldInfo and translation JSON. */
+#slb-library-overlay .slb-library-entry-image {
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: 1px solid var(--ll-line);
+    border-radius: 12px;
+    background: linear-gradient(160deg, var(--ll-paper-light), var(--ll-warm));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+    overflow: hidden;
+}
+#slb-library-overlay .slb-library-entry-image-element {
+    display: block;
+    max-width: 100%;
+    max-height: 270px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 9px;
+    box-shadow: 0 4px 12px rgba(44, 24, 15, .13);
+}
+#slb-library-overlay .slb-library-entry-image-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 13px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--ll-line);
+}
+#slb-library-overlay .slb-library-image-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40%;
+    color: var(--ll-muted);
+    font-size: 11px;
+}
+#slb-library-overlay button.slb-library-image-save {
+    background: var(--ll-leather);
+    color: #f7e8c8;
+    border-color: var(--ll-brass);
+}
+#slb-library-overlay button.slb-library-image-pick,
+#slb-library-overlay button.slb-library-image-remove {
+    background: var(--ll-paper);
+}
 #slb-library-overlay .slb-library-pages { display: grid; gap: 12px; min-width: 0; }
 #slb-library-overlay .slb-library-pages.slb-library-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 #slb-library-overlay .slb-library-reading {
@@ -759,14 +872,12 @@
     #slb-library-overlay .slb-library-top { padding: 11px 13px; }
     #slb-library-overlay .slb-library-heading h2 { font-size: 18px; }
     #slb-library-overlay .slb-library-heading small { font-size: 10px; }
-    #slb-library-overlay .slb-library-navigation { padding: 9px 12px; gap: 7px; }
-    #slb-library-overlay .slb-library-current { flex: 1 1 calc(100% - 115px); }
-    #slb-library-overlay .slb-library-filters { flex: 1; }
+    #slb-library-overlay .slb-library-navigation { padding: 9px 12px 11px; gap: 8px; }
+    #slb-library-overlay .slb-library-filters { width: 100%; }
     #slb-library-overlay .slb-library-filters label { display: none; }
-    #slb-library-overlay #slb-library-book-type { max-width: none; width: 100%; }
-    #slb-library-overlay #slb-library-search { width: 48%; }
+    #slb-library-overlay .slb-library-nav-tools { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 7px; }
     #slb-library-overlay .slb-library-body { padding: 14px 12px; }
-    #slb-library-overlay .slb-library-books-head { align-items: center; flex-direction: row; gap: 7px; }
+    #slb-library-overlay .slb-library-books-head { align-items: flex-start; flex-direction: column; gap: 3px; }
     #slb-library-overlay .slb-library-books-head h3 { font-size: 21px; }
     #slb-library-overlay .slb-library-tagbar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; }
     #slb-library-overlay .slb-library-book-spines { grid-template-columns: repeat(auto-fill, 47px); }

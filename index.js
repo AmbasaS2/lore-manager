@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.39';
+const VERSION = '1.4.85-ambasa.40';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -118,6 +118,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     managerMode: MANAGER_MODE_STANDARD,
     libraryBookTypes: {},
     libraryBookTags: {},
+    libraryEntryImages: {},
     libraryTheme: 'antique',
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
@@ -347,6 +348,8 @@ function getSettings() {
         || Array.isArray(settings.libraryBookTypes)) settings.libraryBookTypes = {};
     if (!settings.libraryBookTags || typeof settings.libraryBookTags !== 'object'
         || Array.isArray(settings.libraryBookTags)) settings.libraryBookTags = {};
+    if (!settings.libraryEntryImages || typeof settings.libraryEntryImages !== 'object'
+        || Array.isArray(settings.libraryEntryImages)) settings.libraryEntryImages = {};
     if (!['antique', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
@@ -9129,6 +9132,81 @@ function openLibraryAdvanced(book, uid) {
     }, 12000);
 }
 
+// Each lore UID may optionally reference one image stored in ST's existing
+// user images folder. No base64 data or markup is ever written to lorebook JSON
+// or extension settings; only a short same-origin image path.
+function libraryImagePath(book, uid) {
+    const all = getSettings().libraryEntryImages;
+    const images = Object.hasOwn(all, book) ? all[book] : null;
+    return images && typeof images === 'object'
+        && Object.hasOwn(images, String(uid)) ? String(images[String(uid)] || '') : '';
+}
+
+async function saveLibraryEntryImagePath(book, uid, path) {
+    const all = getSettings().libraryEntryImages;
+    const oldBook = Object.hasOwn(all, book) ? all[book] : undefined;
+    const nextBook = oldBook && typeof oldBook === 'object' && !Array.isArray(oldBook)
+        ? Object.assign(Object.create(null), oldBook) : Object.create(null);
+    if (path) nextBook[String(uid)] = path;
+    else delete nextBook[String(uid)];
+    Object.defineProperty(all, book, {
+        value: nextBook, writable: true, enumerable: true, configurable: true,
+    });
+    try {
+        await saveSettings();
+    } catch (error) {
+        if (oldBook !== undefined) {
+            Object.defineProperty(all, book, {
+                value: oldBook, writable: true, enumerable: true, configurable: true,
+            });
+        } else delete all[book];
+        throw error;
+    }
+}
+
+function safeLibraryUploadedPath(path) {
+    if (typeof path !== 'string') return '';
+    const value = path.startsWith('/') ? path : '/' + path;
+    // Images are uploaded only to ST's own /user/images folder. Explicitly
+    // exclude external URLs, traversal, query parameters and JS/data URIs.
+    if (!value.startsWith('/user/images/') || value.includes('..')
+        || value.includes('\\') || /[<>?#\r\n]/.test(value)) return '';
+    return value;
+}
+
+async function uploadLibraryEntryImage(book, entry, file) {
+    const formats = {
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+    };
+    const format = formats[file?.type];
+    if (!format || !file?.size || file.size > 5 * 1024 * 1024) {
+        throw new Error('PNG, JPG, WEBP 또는 GIF 형식의 5MB 이하 이미지를 선택하세요.');
+    }
+    const base64DataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('이미지 파일을 읽지 못했습니다.'));
+        reader.readAsDataURL(file);
+    });
+    const base64 = base64DataUrl.split(',')[1];
+    if (!base64) throw new Error('이미지 파일을 읽지 못했습니다.');
+    const filename = 'slb-lore-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    const response = await fetch('/api/images/upload', {
+        method: 'POST',
+        headers: getRequestHeaders(),
+        body: JSON.stringify({ image: base64, format, filename }),
+    });
+    if (!response.ok) throw new Error('실리태번 이미지 서버에 저장하지 못했습니다.');
+    const data = await response.json();
+    const path = safeLibraryUploadedPath(data?.path);
+    if (!path) throw new Error('이미지 저장 경로가 올바르지 않습니다.');
+    await saveLibraryEntryImagePath(book, entry.uid, path);
+    return path;
+}
+
 function initStandaloneLibrary() {
     if (standaloneLibrary) return standaloneLibrary;
     standaloneLibrary = createStandaloneLibrary({
@@ -9164,6 +9242,9 @@ function initStandaloneLibrary() {
             return Object.hasOwn(all, book) ? all[book] : [];
         },
         getTagMap: () => getSettings().libraryBookTags,
+        getEntryImage: (book, entry) => libraryImagePath(book, entry.uid),
+        uploadEntryImage: uploadLibraryEntryImage,
+        removeEntryImage: (book, entry) => saveLibraryEntryImagePath(book, entry.uid, ''),
         setTags: async (book, tags) => {
             const all = getSettings().libraryBookTags;
             const existed = Object.hasOwn(all, book);

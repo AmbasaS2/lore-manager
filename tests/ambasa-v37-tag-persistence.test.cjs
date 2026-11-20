@@ -4,9 +4,11 @@ const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const source=readFileSync(join(__dirname,'../index.js'),'utf8');
 const a=source.indexOf('        getTags: book => {');
-const b=source.indexOf("        getTheme: () => 'antique',",a);
-assert.ok(a>0 && b>a,'production book-tags callbacks exist');
-const production=source.slice(a,b);
+const imageStart=source.indexOf("        getEntryImage:",a);
+const tagSetter=source.indexOf("        setTags: async (book, tags) => {",imageStart);
+const b=source.indexOf("        getTheme: () => 'antique',",tagSetter);
+assert.ok(a>0 && imageStart>a && tagSetter>imageStart && b>tagSetter,'production book-tags callbacks exist');
+const production=source.slice(a,imageStart)+source.slice(tagSetter,b);
 function make({fail=false}={}){
  const settings={libraryBookTags:{}};
  let saved=0;
