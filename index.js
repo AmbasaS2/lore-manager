@@ -20,11 +20,12 @@ import { createTranslationFallbackLookup } from './translation-lookup.js';
 import { createLoreTranslationStorage } from './translation-storage.js';
 import { translateLoreWithValidation } from './lore-translation.js';
 import { translateLoreFieldsBatch } from './lore-translation-batch.js';
+import { planLoreEntryGroups, translateLoreEntryGroup } from './lore-entry-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.26';
+const VERSION = '1.4.85-ambasa.27';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -4178,7 +4179,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         };
         let checkpoint = Promise.resolve();
         showProgress();
-        await mapLimit(entries, concurrency, async entry => {
+        const processEntry = async (entry, preparedGroupResult = null) => {
             if (!independent && currentBookName() !== book && state.bulkTranslation === job) {
                 cancelBulkTranslation({ silent: true });
             }
@@ -4207,11 +4208,29 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                 ));
                 if (job.cancelled || state.bulkTranslation !== job
                     || (!independent && currentBookName() !== book)) return;
-                const results = await awaitCancelableTranslation(
-                    () => translateLoreFieldsForEntry(sources, fields, pair.translationLanguage,
-                        { signal: job.abortController.signal }),
-                    job.abortController.signal,
-                );
+                // Bundled responses are tied to the exact pre-request source,
+                // language, field set, and record identity. A live edit or
+                // unexpected metadata change invalidates this item's answer.
+                if (preparedGroupResult) {
+                    const expected = preparedGroupResult.snapshot;
+                    const sameFields = JSON.stringify(fields) === JSON.stringify(expected.fields);
+                    const sameSources = JSON.stringify(sources) === JSON.stringify(expected.sources);
+                    if (!sameFields || !sameSources || previous !== expected.previous
+                        || translationBefore !== expected.translationBefore
+                        || pair.sourceLanguage !== expected.sourceLanguage
+                        || pair.translationLanguage !== expected.targetLanguage) {
+                        skipped += 1;
+                        return;
+                    }
+                    if (preparedGroupResult.error) throw preparedGroupResult.error;
+                }
+                const results = preparedGroupResult
+                    ? preparedGroupResult.results
+                    : await awaitCancelableTranslation(
+                        () => translateLoreFieldsForEntry(sources, fields, pair.translationLanguage,
+                            { signal: job.abortController.signal }),
+                        job.abortController.signal,
+                    );
                 if (fields.some(field => !results[field]?.trim())) {
                     throw new Error('선택한 번역 결과 중 비어 있는 항목이 있습니다.');
                 }
@@ -4274,7 +4293,86 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
             } finally {
                 showProgress();
             }
-        });
+        };
+        // Only model-backed whole-book/missing-only jobs opt in. Selected-row
+        // operations retain their previous concurrency and Google Translate
+        // preserves its macro masking and independently queued chunks.
+        if (mode !== 'selected' && getSettings().translationProvider === 'profile') {
+            const settings = getSettings();
+            const maxCombinedChars = Math.max(550, Math.min(6000,
+                Math.floor((settings.aiOutputTokens || 8192) * 0.70)));
+            const planned = entries.map(entry => {
+                const uid = String(entry.uid);
+                const open = currentBookName() === book
+                    ? renderedEntries().find(element => getUid(element) === uid) : null;
+                const ui = open?.querySelector('.world_entry_edit')?.slbTranslationUI;
+                const pair = ui
+                    ? { sourceLanguage: ui.sourceLanguage, translationLanguage: ui.translationLanguage }
+                    : getEntryLanguagePair(book, uid);
+                const sources = getEntryTranslationSources(entry, ui, open);
+                const previous = getSettings().translations[translationKey(book, uid)];
+                const translationBefore = ui?.translation.value;
+                const fields = selectedTranslationFields()
+                    .filter(field => sources[field].trim())
+                    .filter(field => mode !== 'missing' || (field === 'content'
+                        ? !(translationBefore?.trim()
+                            || previous?.language === pair.translationLanguage && previous?.text?.trim())
+                        : !currentMetadataTranslation(
+                            previous?.language === pair.translationLanguage ? previous : null,
+                            field, sources[field])));
+                return { id: uid, entry, sources, fields, previous, translationBefore,
+                    sourceLanguage: pair.sourceLanguage, targetLanguage: pair.translationLanguage };
+            });
+            const groups = planLoreEntryGroups(planned, { maxItems: 3, maxCombinedChars });
+            // A bounded sequential queue avoids flooding rate-limited models.
+            // Responses are applied and saved group by group, not all at once.
+            for (const group of groups) {
+                if (job.cancelled || state.bulkTranslation !== job) return;
+                if (!independent && currentBookName() !== book) {
+                    cancelBulkTranslation({ silent: true });
+                    return;
+                }
+                if (group.length === 1) {
+                    await processEntry(group[0].entry);
+                    continue;
+                }
+                let grouped;
+                try {
+                    grouped = await awaitCancelableTranslation(
+                        () => translateLoreEntryGroup({
+                            items: group, targetLanguage: group[0].targetLanguage,
+                            instructions: settings.translationPrompt || '',
+                            signal: job.abortController.signal,
+                            request: prompt => requestWithProfile(prompt, null, job.abortController.signal),
+                            fallback: (item, invalidFields) => translateLoreFieldsForEntry(
+                                item.sources, invalidFields, item.targetLanguage,
+                                { signal: job.abortController.signal }),
+                            onWarning: warning => {
+                                if (!job.abortController.signal.aborted) {
+                                    console.warn('[로어북 매니저] 여러 항목 묶음 번역 복구', warning);
+                                }
+                            },
+                        }), job.abortController.signal,
+                    );
+                } catch (error) {
+                    if (job.cancelled || state.bulkTranslation !== job) return;
+                    console.warn('[로어북 매니저] 묶음 번역 요청 실패 · 항목별 복구', error);
+                    // An unparseable or failed group must never discard a
+                    // previously paid translation or write to a wrong UID.
+                    for (const item of group) {
+                        if (job.cancelled || state.bulkTranslation !== job) return;
+                        await processEntry(item.entry);
+                    }
+                    continue;
+                }
+                for (const item of group) {
+                    if (job.cancelled || state.bulkTranslation !== job) return;
+                    await processEntry(item.entry, { ...grouped[item.id], snapshot: item });
+                }
+            }
+        } else {
+            await mapLimit(entries, concurrency, entry => processEntry(entry));
+        }
         if (job.cancelled || state.bulkTranslation !== job) return;
         await translationFiles.flushBook(book);
         if (job.cancelled || state.bulkTranslation !== job) return;

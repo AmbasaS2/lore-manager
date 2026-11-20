@@ -8,7 +8,8 @@ const code = readFileSync(require('node:path').join(__dirname, '../index.js'), '
 const fn = name => code.match(new RegExp(`^(?:async )?function ${name}\\([^]*?^}`, 'm'))[0];
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const key = (book, uid) => `${book}:${uid}`;
-function fixture() {
+const entryGroupImporter=import(require('node:url').pathToFileURL(require('node:path').join(__dirname,'../lore-entry-batch.js')).href);
+function fixture(groupModule = null) {
     const dom = new JSDOM('<div id="rows"></div>');
     const data = { entries: Object.fromEntries([0, 1, 2, 3].map(uid => [uid, { uid, content: `source ${uid}` }])),
         originalData: { entries: [0, 1, 2, 3].map(uid => ({ uid })) } };
@@ -16,6 +17,17 @@ function fixture() {
     const settings = { hideOriginalWhenTranslated: true, translations: {}, entryLanguagePairs: {} };
     const events = [], requests = [], rows = [];
     let translate = async source => `translated ${source}`;
+    const groupRequests=[];
+    let groupResponse = async prompt => {
+        const data=JSON.parse(prompt.split('=== SOURCE ENTRY JSON ===\n')[1]);
+        const entries={};
+        for(const [uid,item] of Object.entries(data.entries)) {
+            entries[uid]={sourceTag:item.sourceTag};
+            for(const [name,value] of Object.entries(item.fields))
+                entries[uid][name]='translated '+value;
+        }
+        return JSON.stringify({entries});
+    };
     let save = async () => { events.push('save'); };
     let debounceCalls = 0, backupCalls = 0;
     const context = vm.createContext({
@@ -49,6 +61,9 @@ function fixture() {
         worldInfoFilter: { onDataChanged: () => events.push('redraw') }, renderTokenSummary() {},
         notify: (...args) => events.push(args), updateBulkTranslationStatus() {},
         translationKey: key, canTranslate: () => true, entryLanguageBadge: language => language,
+        planLoreEntryGroups: groupModule?.planLoreEntryGroups || (items=>items.map(item=>[item])),
+        translateLoreEntryGroup: groupModule?.translateLoreEntryGroup || (()=>{throw Error('group transport not configured')}),
+        requestWithProfile:async prompt=>{groupRequests.push(prompt);return groupResponse(prompt)},
         jQuery: makeJQuery(dom.window), setTimeout, getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
         entryData: uid => data.entries[uid],
         updateNavigatorEntry() {}, scheduleSourceTranslation() {},
@@ -70,7 +85,8 @@ function fixture() {
         result.translationPane = result.translation.parentElement;
         result.source.value = data.entries[uid].content; edit.slbTranslationUI = result; return result;
     }
-    return { context, data, settings, events, requests, ui, selection: { book: 'A', uids: ['0', '2', '3'] },
+    return { context, data, settings, events, requests, groupRequests, ui, selection: { book: 'A', uids: ['0', '2', '3'] },
+        groupResponse: handler=>{groupResponse=handler},
         confirm: handler => { confirm = handler; }, translate: handler => { translate = handler; },
         save: handler => { save = handler; }, invalidate: () => { current = false; }, switchBook: () => { book = 'B'; },
         counters: () => ({ debounceCalls, backupCalls }),
@@ -950,5 +966,152 @@ test('an unavailable second book counts as a failure but does not erase the firs
         assert.equal(f.settings.translations[key('B','0')],undefined);
         assert.equal(f.settings.translations[key('C','0')].text,'translated source 0');
         assert.equal(f.context.state.bulkTranslation,null);
+    }finally{f.close()}
+});
+
+test('32 and 33 short lore entries use 11 total model requests with three-entry grouping',async()=>{
+    const groupModule=await entryGroupImporter;
+    for(const size of [32,33]){
+        const f=fixture(groupModule);
+        try {
+            f.settings.translationProvider='profile';
+            f.settings.aiOutputTokens=8192;
+            f.data.entries=Object.fromEntries(Array.from({length:size},(_,uid)=>[
+                String(uid),{uid,content:'Remus and Catherine entered room '+uid+'.'}]));
+            const result=await f.context.translateCurrentLorebook('all',null,'A');
+            assert.equal(result.succeeded,size);
+            assert.equal(result.failed,0);
+            assert.equal(f.groupRequests.length,11);
+            assert.equal(f.requests.length,0,'both 32 and 33 end in a two-or-three entry group');
+            assert.equal(f.groupRequests.length+f.requests.length,11);
+            for(let uid=0;uid<size;uid++){
+                const stored=f.settings.translations[key('A',uid)];
+                assert.ok(stored?.text.includes('translated Remus and Catherine entered room '+uid+'.'),'UID '+uid);
+            }
+            assert.equal(f.context.state.bulkTranslation,null);
+            assert.equal(f.events.filter(e=>e==='file-flush').length,Math.floor(size/5)+1,
+                'existing every-five-saves checkpoints and final flush are preserved');
+        } finally {f.close()}
+    }
+});
+
+test('a failed field in a three-entry group retries only that field without overwriting the other entries',async()=>{
+    const groupModule=await entryGroupImporter;
+    const f=fixture(groupModule);
+    try {
+        f.settings.translationProvider='profile';
+        const normal=async prompt=>{
+            const data=JSON.parse(prompt.split('=== SOURCE ENTRY JSON ===\n')[1]);
+            const entries={};
+            for(const [uid,item] of Object.entries(data.entries)){
+                entries[uid]={sourceTag:item.sourceTag};
+                for(const [name,value] of Object.entries(item.fields))
+                    entries[uid][name]='translated '+value;
+            }
+            return {entries};
+        };
+        f.groupResponse(async prompt=>{
+            const result=await normal(prompt);
+            delete result.entries['1'];
+            return JSON.stringify(result);
+        });
+        const result=await f.context.translateCurrentLorebook('all',null,'A');
+        assert.equal(result.succeeded,4);
+        assert.equal(result.failed,0);
+        assert.equal(f.groupRequests.length,1);
+        assert.equal(f.requests.length,2,'one missing item recovery plus the fourth solo item');
+        for(let uid=0;uid<4;uid++){
+            assert.equal(f.settings.translations[key('A',uid)].text,'translated source '+uid);
+        }
+    }finally{f.close()}
+});
+
+test('a source edit while grouped model request is in flight does not save a stale translation to that UID',async()=>{
+    const groupModule=await entryGroupImporter;
+    const f=fixture(groupModule);
+    try{
+        f.settings.translationProvider='profile';
+        let release;
+        f.groupResponse(prompt=>new Promise(resolve=>{
+            const data=JSON.parse(prompt.split('=== SOURCE ENTRY JSON ===\n')[1]);
+            const entries={};
+            for(const [uid,item] of Object.entries(data.entries)){
+                entries[uid]={sourceTag:item.sourceTag};
+                for(const [name,value] of Object.entries(item.fields))
+                    entries[uid][name]='translated '+value;
+            }
+            release=()=>resolve(JSON.stringify({entries}));
+        }));
+        const pending=f.context.translateCurrentLorebook('all',null,'A');
+        await flush();
+        assert.equal(f.groupRequests.length,1);
+        f.data.entries[0].content='changed by user while model runs';
+        release();
+        const outcome=await pending;
+        assert.equal(outcome.skipped,1);
+        assert.equal(outcome.succeeded,3);
+        assert.equal(f.settings.translations['A:0'],undefined);
+        for(const uid of [1,2,3])assert.equal(f.settings.translations[key('A',uid)].text,'translated source '+uid);
+    }finally{f.close()}
+});
+
+test('canceling one three-item API request discards its late model reply and does not start next groups',async()=>{
+    const groupModule=await entryGroupImporter;
+    const f=fixture(groupModule);
+    try{
+        f.settings.translationProvider='profile';
+        let release;
+        f.groupResponse(prompt=>new Promise(resolve=>{
+            const data=JSON.parse(prompt.split('=== SOURCE ENTRY JSON ===\n')[1]);
+            const entries={};
+            for(const [uid,item] of Object.entries(data.entries)){
+                entries[uid]={sourceTag:item.sourceTag};
+                for(const [name,value] of Object.entries(item.fields))entries[uid][name]='translated '+value;
+            }
+            release=()=>resolve(JSON.stringify({entries}));
+        }));
+        const pending=f.context.translateCurrentLorebook('all',null,'A');
+        await flush();
+        assert.equal(f.groupRequests.length,1);
+        assert.equal(f.context.cancelBulkTranslation(),true);
+        await pending;
+        assert.equal(f.context.state.bulkTranslation,null);
+        assert.deepEqual(Object.keys(f.settings.translations),[]);
+        release();
+        await flush();
+        assert.deepEqual(Object.keys(f.settings.translations),[]);
+        assert.equal(f.requests.length,0,'no solo fallback launches after cancellation');
+    } finally{f.close()}
+});
+
+test('multi-book full translation reuses three-entry grouping separately for each book',async()=>{
+    const groupModule=await entryGroupImporter;
+    const f=fixture(groupModule);
+    try{
+        f.settings.translationProvider='profile';
+        const result=await f.context.translateMultipleLorebooks(['A','B'],'all');
+        assert.equal(result.booksCompleted,2);
+        assert.equal(result.succeeded,8);
+        assert.equal(result.failed,0);
+        assert.equal(f.groupRequests.length,2);
+        assert.equal(f.requests.length,2,'one leftover singleton per book');
+        assert.equal(f.events.filter(e=>e==='file-flush').length,2);
+        assert.equal(f.context.state.bulkTranslation,null);
+    }finally{f.close()}
+});
+
+test('Google translation and selected-entry tasks preserve their original single-entry API flow',async()=>{
+    const groupModule=await entryGroupImporter;
+    const f=fixture(groupModule);
+    try{
+        f.settings.translationProvider='google';
+        await f.context.translateCurrentLorebook('all',null,'A');
+        assert.equal(f.groupRequests.length,0);
+        assert.equal(f.requests.length,4);
+        f.requests.length=0;
+        f.settings.translationProvider='profile';
+        await f.context.translateCurrentLorebook('selected',f.selection);
+        assert.equal(f.groupRequests.length,0);
+        assert.equal(f.requests.length,3);
     }finally{f.close()}
 });
