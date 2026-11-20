@@ -25,7 +25,7 @@ import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.28';
+const VERSION = '1.4.85-ambasa.29';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -4056,7 +4056,7 @@ function syncMetadataTranslations(entry, options = {}) {
 
 function hasEntryTranslation(book, entry) {
     const uid = String(entry.uid);
-    const open = currentBookName() === book
+    const open = currentBookName() === book && !state.bookSwitch
         ? renderedEntries().find(element => getUid(element) === uid) : null;
     const ui = open?.querySelector('.world_entry_edit')?.slbTranslationUI;
     const sources = getEntryTranslationSources(entry, ui, open);
@@ -4191,7 +4191,9 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
             const uid = String(entry.uid);
             try {
                 if (data.entries[uid] !== entry) { skipped += 1; return; }
-                const open = currentBookName() === book
+                // The selector may already show B while native rows still belong to A.
+                // Translation must never use the outgoing book's UI during that boundary.
+                const open = currentBookName() === book && !state.bookSwitch
                     ? renderedEntries().find(element => getUid(element) === uid) : null;
                 const ui = open?.querySelector('.world_entry_edit')?.slbTranslationUI;
                 const source = ui?.source.value ?? entry.content;
@@ -4252,7 +4254,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                     skipped += 1;
                     return;
                 }
-                const liveRow = currentBookName() === book
+                const liveRow = currentBookName() === book && !state.bookSwitch
                     ? renderedEntries().find(row => getUid(row) === uid) : null;
                 const liveUI = liveRow?.querySelector('.world_entry_edit')?.slbTranslationUI;
                 const latestRow = liveRow;
@@ -4279,7 +4281,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                     });
                 }
                 saveMetadataTranslations(book, uid, pair, sources, results);
-                const liveEntry = currentBookName() === book
+                const liveEntry = currentBookName() === book && !state.bookSwitch
                     ? renderedEntries().find(row => getUid(row) === uid) : null;
                 if (liveEntry) syncMetadataTranslations(liveEntry);
                 if (liveUI) liveUI.status.textContent = `${jobLabel}으로 선택한 번역본을 저장했습니다.`;
@@ -4307,7 +4309,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                 Math.floor((settings.aiOutputTokens || 8192) * 0.70)));
             const planned = entries.map(entry => {
                 const uid = String(entry.uid);
-                const open = currentBookName() === book
+                const open = currentBookName() === book && !state.bookSwitch
                     ? renderedEntries().find(element => getUid(element) === uid) : null;
                 const ui = open?.querySelector('.world_entry_edit')?.slbTranslationUI;
                 const pair = ui
@@ -8158,7 +8160,7 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 
 function beginBookSwitch(book, suppliedBoundary = null) {
     if (book) loadTranslationBook(book);
-    if (state.bulkTranslation) cancelBulkTranslation({ silent: true });
+    if (state.bulkTranslation && !state.bulkTranslation.independent) cancelBulkTranslation({ silent: true });
     // Do not hydrate editor UI from the previous book after its rows change.
     if (state.bulkEditorHydrationRaf) cancelAnimationFrame(state.bulkEditorHydrationRaf);
     state.bulkEditorHydrationRaf = 0;

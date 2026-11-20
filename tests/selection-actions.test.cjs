@@ -88,7 +88,7 @@ function fixture(groupModule = null) {
     return { context, data, settings, events, requests, groupRequests, ui, selection: { book: 'A', uids: ['0', '2', '3'] },
         groupResponse: handler=>{groupResponse=handler},
         confirm: handler => { confirm = handler; }, translate: handler => { translate = handler; },
-        save: handler => { save = handler; }, invalidate: () => { current = false; }, switchBook: () => { book = 'B'; },
+        save: handler => { save = handler; }, invalidate: () => { current = false; }, switchBook: (next = 'B') => { book = next; },
         counters: () => ({ debounceCalls, backupCalls }),
         close: () => dom.window.close() };
 }
@@ -1113,5 +1113,94 @@ test('Google translation and selected-entry tasks preserve their original single
         await f.context.translateCurrentLorebook('selected',f.selection);
         assert.equal(f.groupRequests.length,0);
         assert.equal(f.requests.length,3);
+    }finally{f.close()}
+});
+
+test('independent translation never reads or writes stale A rows while selected B is still rendering',async()=>{
+    const f=fixture();
+    try{
+        const staleA=f.ui(0);
+        staleA.source.value='A unsaved editor content';
+        f.data.entries[0].content='B server source 0';
+        f.switchBook();
+        f.context.state.bookSwitch={book:'B',ready:false};
+        const result=await f.context.translateCurrentLorebook('all',null,'B');
+        assert.equal(result.succeeded,4);
+        assert.equal(f.requests[0][0],'B server source 0',
+            'translate the selected book JSON, not a previous book textarea');
+        assert.equal(f.settings.translations['B:0'].text,'translated B server source 0');
+        assert.equal(f.settings.translations['A:0'],undefined);
+        assert.equal(staleA.translation.value,'','old book UI must not be written');
+    }finally{f.close()}
+});
+
+test('25 and 240 entries translate without reading any outgoing-book DOM during B loading',async()=>{
+    for(const count of [25,240]){
+        const f=fixture();
+        try{
+            f.data.entries=Object.fromEntries(Array.from({length:count},(_,uid)=>[
+                String(uid),{uid,content:'B source '+uid},
+            ]));
+            const staleRows=Array.from({length:count},(_,uid)=>({
+                dataset:{uid:String(uid)},
+                querySelector:()=>null,
+            }));
+            let listPasses=0,inspectedRows=0;
+            f.context.renderedEntries=()=>{
+                listPasses++;
+                inspectedRows+=staleRows.length;
+                return staleRows;
+            };
+            f.switchBook();
+            f.context.state.bookSwitch={book:'B',ready:false};
+            const result=await f.context.translateCurrentLorebook('missing',null,'B');
+            assert.equal(result.succeeded,count);
+            assert.equal(listPasses,0, count+' items must not query stale row list');
+            assert.equal(inspectedRows,0, count+' items must not enumerate stale rows');
+        }finally{f.close()}
+    }
+});
+
+test('A -> B -> C during one multi-book job keeps all three book-local records isolated',async()=>{
+    const f=fixture();
+    try{
+        const staleA=f.ui(0);
+        const dataFor=book=>book==='A'?f.data:{
+            entries:Object.fromEntries(Array.from({length:4},(_,uid)=>[
+                String(uid),{uid,content:book+' source '+uid},
+            ])),
+        };
+        f.context.loadWorldInfo=async book=>dataFor(book);
+        const pendingGates=new Map();
+        f.translate(source=>{
+            if(source==='source 0' || source==='B source 0'){
+                return new Promise(resolve=>pendingGates.set(source,resolve));
+            }
+            return 'translated '+source;
+        });
+        const pending=f.context.translateMultipleLorebooks(['A','B','C'],'all');
+        await flush();
+        assert.ok(pendingGates.has('source 0'),'A translation began');
+        f.switchBook('B');
+        f.context.state.bookSwitch={book:'B',ready:false};
+        pendingGates.get('source 0')('translated source 0');
+        for(let i=0;i<12 && !pendingGates.has('B source 0');i++)await flush();
+        assert.ok(pendingGates.has('B source 0'),'B must proceed after A');
+        f.switchBook('C');
+        f.context.state.bookSwitch={book:'C',ready:false};
+        pendingGates.get('B source 0')('translated B source 0');
+        const result=await pending;
+        assert.equal(result.booksCompleted,3);
+        assert.equal(result.succeeded,12);
+        for(const book of ['A','B','C']){
+            for(let uid=0;uid<4;uid++){
+                const source=book==='A'?'source '+uid:book+' source '+uid;
+                assert.equal(f.settings.translations[key(book,uid)].text,'translated '+source);
+                assert.equal(f.settings.translations[key(book,uid)].book,book);
+            }
+        }
+        assert.equal(staleA.translation.value,'','previous book editor stays untouched');
+        assert.equal(f.events.filter(event=>event==='file-flush').length,3);
+        assert.equal(f.context.state.bulkTranslation,null);
     }finally{f.close()}
 });
