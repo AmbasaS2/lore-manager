@@ -449,52 +449,60 @@ test('one book can belong to multiple tag shelves, filtering uses settings metad
     }finally{f.dom.window.close()}
 });
 
-test('tag edit mode changes only book tag settings; normal spine click still opens original book', async()=>{
+test('book tags are edited directly inside the opened book and never in the shelf',async()=>{
     const f=fixture({linked:null});
     try{
         const lib=await f.build();lib.open();
-        f.click('[data-action="tag-mode"]');
-        assert.equal(f.w.document.querySelector('.slb-library-tag-hint')!==null,true);
-        assert.equal(f.w.document.querySelector('.slb-library-book-spine').getAttribute('aria-label'),'Memory Peter · 태그 편집');
-        f.click('[data-action="select-book"][data-book="Memory Peter"]');
-        const tagInput=f.w.document.querySelector('#slb-library-tag-input');
-        assert.ok(tagInput,'inline antique editor opens within the shelf');
-        assert.equal(f.tagSaves.length,0,'opening editor does not persist anything');
-        tagInput.value='기억,  세계관,기억';
-        f.click('[data-action="tag-save"]');
+        assert.equal(f.w.document.querySelector('[data-action="tag-mode"]'),null);
+        await f.load('Memory Peter');
+        const tag=f.w.document.querySelector('#slb-library-book-tag-input');
+        assert.ok(tag,'tag input visible without an extra edit click');
+        assert.equal(tag.value,'');
+        assert.equal(f.w.document.querySelector('[data-action="book-tag-save"]').disabled,true);
+        tag.value='기억,  세계관, 기억';
+        tag.dispatchEvent(new f.w.Event('input',{bubbles:true}));
+        assert.equal(f.w.document.querySelector('[data-action="book-tag-save"]').disabled,false);
+        assert.equal(f.tagSaves.length,0,'typing tags does not save');
+        f.click('[data-action="book-tag-save"]');
         await new Promise(resolve=>setImmediate(resolve));
         assert.deepEqual(f.tagsByBook['Memory Peter'],['기억','세계관']);
         assert.equal(f.tagSaves.length,1);
-        assert.equal(f.calls.loaded.length,0,'tag editing must not open or save a lorebook');
-        assert.equal(f.calls.translations.length,0);
+        assert.equal(f.calls.sources.length,0);
         assert.equal(f.calls.ai.length,0);
-        f.click('[data-action="tag-mode"]');
-        f.click('[data-action="select-book"][data-book="Memory Peter"]');
-        await new Promise(resolve=>setImmediate(resolve));
         assert.deepEqual(f.calls.loaded,['Memory Peter']);
+        f.click('[data-action="books"]');
+        assert.equal(f.w.document.querySelectorAll('.slb-library-tag-chip').length,0);
+        f.click('[data-action="shelf-tag"][data-filter="tag:기억"]');
+        assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(node=>node.dataset.book),['Memory Peter']);
     }finally{f.dom.window.close()}
 });
 
-test('cancelled, invalid or unchanged tag input does not call settings save',async()=>{
+test('invalid or unchanged book tags cannot save, and dirty tag field prevents accidental leaving',async()=>{
     const f=fixture({linked:null});
     try{
         f.tagsByBook['Memory Peter']=['기억'];
         const lib=await f.build();lib.open();
-        f.click('[data-action="tag-mode"]');
-        f.click('[data-action="select-book"][data-book="Memory Peter"]');
-        assert.equal(f.w.document.querySelector('#slb-library-tag-input').value,'기억');
-        f.click('[data-action="tag-save"]');
-        await new Promise(resolve=>setImmediate(resolve));
-        f.click('[data-action="select-book"][data-book="Memory Peter"]');
-        f.w.document.querySelector('#slb-library-tag-input').value=Array.from({length:9},(_,i)=>'tag'+i).join(',');
-        f.click('[data-action="tag-save"]');
-        await new Promise(resolve=>setImmediate(resolve));
-        assert.ok(f.w.document.querySelector('#slb-library-tag-input'),'invalid input remains editable');
-        f.click('[data-action="tag-cancel"]');
-        f.click('[data-action="select-book"][data-book="Memory Peter"]');
-        f.w.document.querySelector('#slb-library-tag-input').value='변경 중';
-        f.click('[data-action="tag-cancel"]');
+        await f.load();
+        let input=f.w.document.querySelector('#slb-library-book-tag-input');
+        assert.equal(input.value,'기억');
+        assert.equal(f.w.document.querySelector('[data-action="book-tag-save"]').disabled,true);
+        f.click('[data-action="book-tag-save"]');
         assert.equal(f.tagSaves.length,0);
+        input.value=Array.from({length:9},(_,i)=>'tag'+i).join(',');
+        input.dispatchEvent(new f.w.Event('input',{bubbles:true}));
+        f.click('[data-action="book-tag-save"]');
+        await new Promise(resolve=>setImmediate(resolve));
+        assert.equal(f.tagSaves.length,0);
+        assert.ok(f.w.document.querySelector('#slb-library-book-tag-input'),'invalid input stays editable');
+        let asked=0;
+        f.w.confirm=()=>{asked++;return false};
+        f.click('[data-action="books"]');
+        assert.equal(asked,1);
+        assert.equal(f.w.document.querySelector('.slb-library-body').dataset.type,'general');
+        assert.equal(f.w.document.querySelector('#slb-library-book-tag-input').value,input.value);
+        f.w.confirm=()=>true;
+        f.click('[data-action="books"]');
+        assert.equal(f.w.document.querySelector('.slb-library-body').dataset.type,'books');
         assert.deepEqual(f.tagsByBook['Memory Peter'],['기억']);
     }finally{f.dom.window.close()}
 });
@@ -539,22 +547,26 @@ test('book spines use Unicode-aware vertical writing and inherit user theme font
     assert.deepEqual(normalizeLibraryTags(['기억','뉴욕','기억',' ',null]),['기억','뉴욕']);
 });
 
-test('unsaved inline tag editing keeps the shelf open when exit is declined',async()=>{
+test('unsaved book tags survive same-book controls and keep the modal open when exit is declined',async()=>{
     const f=fixture({linked:null});
     try{
         const lib=await f.build();lib.open();
-        f.click('[data-action="tag-mode"]');
-        f.click('[data-action="select-book"][data-book="Memory Peter"]');
-        const input=f.w.document.querySelector('#slb-library-tag-input');
-        input.value='아직 미저장';
-        let asks=0;
-        f.w.confirm=()=>{asks++;return false};
+        await f.load();
+        f.click('[data-action="entry"][data-uid="0"]');
+        const input=f.w.document.querySelector('#slb-library-book-tag-input');
+        input.value='미저장 태그';
+        input.dispatchEvent(new f.w.Event('input',{bubbles:true}));
+        f.click('[data-action="toggle-view"]');
+        assert.equal(f.w.document.querySelector('#slb-library-book-tag-input').value,'미저장 태그',
+            'recreating the book reading pane preserves typed tag draft');
+        let confirms=0;
+        f.w.confirm=()=>{confirms++;return false};
         f.click('[data-action="close"]');
+        assert.equal(confirms,1);
         assert.equal(lib.isOpen(),true);
-        assert.equal(f.w.document.querySelector('#slb-library-tag-input').value,'아직 미저장');
-        assert.equal(asks,1);
+        assert.equal(f.w.document.querySelector('#slb-library-book-tag-input').value,'미저장 태그');
         assert.equal(f.tagSaves.length,0);
-        f.click('[data-action="tag-cancel"]');
+        f.w.confirm=()=>true;
         f.click('[data-action="close"]');
         assert.equal(lib.isOpen(),false);
     }finally{f.dom.window.close()}

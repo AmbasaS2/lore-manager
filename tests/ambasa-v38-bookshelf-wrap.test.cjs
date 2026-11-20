@@ -42,7 +42,8 @@ test('each wrapped row includes a wooden shelf; empty books keep full width', ()
 test('wrapping changes CSS only and keeps tag, translation and font inheritance', () => {
   assert.match(shelf,/slb-library-book-spines/);
   assert.match(shelf,/getTagMap/);
-  assert.match(shelf,/function editBookTags\(/);
+  assert.match(shelf,/function saveBookTags\(/);
+  assert.match(shelf,/function renderBookTagPanel\(/);
   assert.match(shelf,/function selectBook\(/);
   assert.match(js,/saveWorldInfo\(book,\s*fresh,\s*true\)/);
   assert.match(css,/writing-mode:\s*vertical-rl/);

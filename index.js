@@ -22,11 +22,11 @@ import { translateLoreWithValidation } from './lore-translation.js';
 import { translateLoreFieldsBatch } from './lore-translation-batch.js';
 import { planLoreEntryGroups, translateLoreEntryGroup } from './lore-entry-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
-import { createStandaloneLibrary, LIBRARY_BOOK_TYPES } from './library-shelf.js';
+import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames } from './library-shelf.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.38';
+const VERSION = '1.4.85-ambasa.39';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -9133,7 +9133,8 @@ function initStandaloneLibrary() {
     if (standaloneLibrary) return standaloneLibrary;
     standaloneLibrary = createStandaloneLibrary({
         document,
-        listBooks: () => [...new Set(existingLorebookNames())],
+        // ST's canonical list excludes the empty-value native select placeholder.
+        listBooks: () => canonicalLibraryBookNames(world_names),
         linkedBooks: () => currentCharacterLinkedBooks(),
         loadBook: book => loadWorldInfo(book),
         loadTranslations: async book => {
@@ -9152,6 +9153,7 @@ function initStandaloneLibrary() {
         translateOne: translateLibraryEntry,
         openAdvanced: openLibraryAdvanced,
         getType: libraryTypeFor,
+        getTypeMap: () => getSettings().libraryBookTypes,
         setType: (book, type) => {
             if (!Object.hasOwn(LIBRARY_BOOK_TYPES, type)) return;
             getSettings().libraryBookTypes[book] = type;
