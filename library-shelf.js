@@ -98,7 +98,6 @@ export function createStandaloneLibrary({
     let entries = [];
     let selectedUid = null;
     let entryReadViews = new Map();
-    let entrySingleViews = new Map();
     let query = '';
     let visibleLimit = 24;
     let allBooks = false;
@@ -410,7 +409,6 @@ export function createStandaloneLibrary({
         query = '';
         visibleLimit = getType(book) === 'memory' ? 12 : 24;
         entryReadViews = new Map();
-        entrySingleViews = new Map();
         const body = overlay?.querySelector('.slb-library-body');
         if (!body) return;
         overlay.querySelector('.slb-library-navigation').classList.add('slb-library-has-book');
@@ -429,7 +427,7 @@ export function createStandaloneLibrary({
             entries = orderedLoreEntries(data);
             buildSearchIndex();
             renderBook();
-            notifyStatus(entries.length + '개 항목 · 원본 순서 유지');
+            notifyStatus(entries.length + '개 항목');
         } catch (error) {
             if (!isOpen() || version !== loadVersion) return;
             body.replaceChildren(element(doc, 'p', 'slb-library-empty', '로어북 불러오기 실패: ' + (error.message || error)));
@@ -464,10 +462,14 @@ export function createStandaloneLibrary({
         body.dataset.type = type;
         body.replaceChildren();
         const found = filtered();
-        const intro = element(doc, 'div', 'slb-library-section-head');
-        intro.append(element(doc, 'span', '', LIBRARY_BOOK_TYPES[type]));
-        intro.append(element(doc, 'small', '', found.length + '개 항목 · 저장된 순서'));
-        body.append(intro, renderBookTagPanel());
+        // The selected view type is already shown in the navigation select;
+        // the content area does not repeat the same label.
+        if (!(type === 'general' && selectedUid && found.some(item => String(item.uid) === selectedUid))) {
+            const intro = element(doc, 'div', 'slb-library-section-head');
+            intro.append(element(doc, 'small', '', found.length + '개 항목'));
+            body.append(intro);
+        }
+        body.append(renderBookTagPanel());
         if (!found.length) {
             body.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
             return;
@@ -478,21 +480,43 @@ export function createStandaloneLibrary({
         else renderCatalog(body, found);
     }
     function renderCatalog(body, found) {
-        const grid = element(doc, 'div', 'slb-library-catalog');
+        // A title-only stack OR the selected record. Never render both.
+        const selectedIndex = found.findIndex(item => String(item.uid) === selectedUid);
+        if (selectedIndex >= 0) {
+            const nav = element(doc, 'div', 'slb-library-catalog-detail-nav');
+            nav.append(button(doc, '', '‹ 카드함', 'catalog-back'));
+            nav.append(element(doc, 'span', 'slb-library-catalog-position',
+                String(selectedIndex + 1).padStart(2, '0') + ' / ' + String(found.length).padStart(2, '0')));
+            body.append(nav, renderDetail(found[selectedIndex], 'general'));
+            const pager = element(doc, 'div', 'slb-library-catalog-pager');
+            const prev = button(doc, '', '‹ 이전', 'catalog-prev');
+            prev.disabled = selectedIndex === 0;
+            const next = button(doc, '', '다음 ›', 'catalog-next');
+            next.disabled = selectedIndex === found.length - 1;
+            pager.append(prev, element(doc, 'small', '', 'RECORD'), next);
+            body.append(pager);
+            return;
+        }
+        const stack = element(doc, 'div', 'slb-library-catalog');
         for (const entry of found.slice(0, visibleLimit)) {
             const uid = String(entry.uid);
-            const node = button(doc, 'slb-library-catalog-card', '', 'entry', uid);
-            if (uid === selectedUid) node.classList.add('is-selected');
-            node.append(element(doc, 'small', 'slb-library-card-index', 'FILE / ' + (entry.displayIndex ?? entry.uid)));
-            node.append(element(doc, 'strong', '', titleOf(entry)));
-            const snippet = String(entry.content || '').replace(/\s+/g, ' ').slice(0, 125);
-            node.append(element(doc, 'p', '', snippet || '내용 없음'));
-            node.append(element(doc, 'span', 'slb-library-card-hint', uid === selectedUid ? '접기 −' : '펼치기 +'));
-            grid.append(node);
-            if (uid === selectedUid) grid.append(renderDetail(entry, 'general'));
+            const item = button(doc, 'slb-library-catalog-card', '', 'entry', uid);
+            item.append(element(doc, 'strong', '', titleOf(entry)));
+            stack.append(item);
         }
-        body.append(grid);
-        if (found.length > visibleLimit) body.append(button(doc, 'slb-library-more', '카드 더 보기 (' + (found.length - visibleLimit) + '개 남음)', 'more'));
+        body.append(stack);
+        if (found.length > visibleLimit) body.append(button(doc, 'slb-library-more',
+            '카드 더 보기 (' + (found.length - visibleLimit) + '개)', 'more'));
+    }
+    function shiftCatalog(direction) {
+        const found = filtered();
+        const current = found.findIndex(item => String(item.uid) === selectedUid);
+        if (current < 0) return;
+        const next = current + direction;
+        if (next < 0 || next >= found.length || !discardOrStay({ allowTags: true })) return;
+        resetEdit();
+        selectedUid = String(found[next].uid);
+        renderBook();
     }
     function renderDiary(body, found) {
         const journal = element(doc, 'div', 'slb-library-journal');
@@ -543,9 +567,9 @@ export function createStandaloneLibrary({
         const pair = info.pair || { sourceLanguage: 'English', translationLanguage: 'Korean' };
         const lang = format === 'source' ? pair.sourceLanguage : pair.translationLanguage;
         section.append(element(doc, 'small', 'slb-library-language-mark', format === 'source'
-            ? '원문 · ' + lang : translated ? '번역 · ' + lang : '번역 없음 · 원문 표시'));
+            ? '원문 · ' + lang : translated ? '번역 · ' + lang : '번역 없음'));
         section.append(element(doc, 'div', 'slb-library-prose', format === 'source'
-            ? (source || '원문이 비어 있습니다.') : (translated || source || '내용 없음')));
+            ? (source || '원문이 비어 있습니다.') : (translated || '저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다.')));
         if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', '원문 변경 이전에 저장된 번역입니다. 필요한 경우 다시 번역하세요.'));
         return section;
     }
@@ -560,18 +584,18 @@ export function createStandaloneLibrary({
             if (type === 'people') header.prepend(element(doc, 'span', 'slb-library-avatar', (titleOf(entry).trim()[0] || '?').toUpperCase()));
             article.append(header);
         }
-        const view = entryReadViews.get(uid) || 'translated';
-        const lastSingle = entrySingleViews.get(uid) || 'translated';
+        const record = translationFor(currentBook, entry) || {};
+        const hasTranslation = Boolean(String(record.text || ''));
+        const view = entryReadViews.get(uid) || (hasTranslation ? 'translated' : 'source');
         const tools = element(doc, 'div', 'slb-library-reader-tools');
-        const toggle = button(doc, 'slb-library-view-toggle', view === 'translated' ? '원문 보기' : '번역 보기', 'toggle-view', uid);
-        if (view === 'both') toggle.textContent = lastSingle === 'translated' ? '원문 보기' : '번역 보기';
-        tools.append(toggle, button(doc, view === 'both' ? 'is-active' : '', '나란히', 'both', uid));
+        const toggle = button(doc, 'slb-library-view-toggle',
+            view === 'translated' ? '원문 보기' : '번역 보기', 'toggle-view', uid);
+        tools.append(toggle);
         const editorTools = element(doc, 'div', 'slb-library-editor-tools');
-        editorTools.append(button(doc, '', '원문 수정', 'edit-source', uid));
-        const info = translationFor(currentBook, entry) || {};
-        editorTools.append(button(doc, '', info.text ? '번역 수정' : '번역 작성', 'edit-translated', uid));
+        editorTools.append(button(doc, '', '수정', 'edit', uid));
         editorTools.append(button(doc, '', 'AI 번역', 'translate', uid));
-        editorTools.append(button(doc, 'slb-library-advanced', '⚙ 발동 설정', 'advanced', uid));
+        editorTools.append(button(doc, 'slb-library-advanced',
+            '로어북 바로가기', 'advanced', uid));
         tools.append(editorTools);
         article.append(tools);
         // An entry's optional picture is display metadata, not injected lore
@@ -603,9 +627,8 @@ export function createStandaloneLibrary({
         }
         if (imagePath) media.append(button(doc, 'slb-library-image-remove', '이미지 연결 해제', 'image-remove', uid));
         article.append(media);
-        const pages = element(doc, 'div', view === 'both' ? 'slb-library-pages slb-library-split' : 'slb-library-pages');
-        if (view === 'both') pages.append(contentText(entry, 'source'), contentText(entry, 'translated'));
-        else pages.append(contentText(entry, view));
+        const pages = element(doc, 'div', 'slb-library-pages');
+        pages.append(contentText(entry, view));
         article.append(pages);
         if (edit && edit.uid === uid) {
             const editor = element(doc, 'section', 'slb-library-edit-panel');
@@ -672,16 +695,21 @@ export function createStandaloneLibrary({
     function showEntry(uid) {
         if (!discardOrStay({ allowTags: true })) return;
         resetEdit();
-        selectedUid = selectedUid === String(uid) && getType(currentBook) === 'general' ? null : String(uid);
+        selectedUid = String(uid);
         renderBook();
         const selected = overlay?.querySelector('.slb-library-detail[data-uid="' + String(uid).replace(/[^a-zA-Z0-9_-]/g, '') + '"]');
         if (selected) selected.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
     }
-    function showEdit(uid, kind) {
+    function showEdit(uid) {
         if (!discardOrStay({ allowTags: true })) return;
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!entry) return;
         const current = translationFor(currentBook, entry) || {};
+        // If there is no saved translation the reader displays the source.
+        // Therefore the single Edit action must never write a phantom
+        // translated record while showing source text.
+        const kind = (entryReadViews.get(String(uid)) || (current.text ? 'translated' : 'source'))
+            === 'translated' ? 'translated' : 'source';
         edit = {
             uid: String(uid),
             kind,
@@ -740,7 +768,6 @@ export function createStandaloneLibrary({
         try {
             await translateOne(currentBook, entry);
             entryReadViews.set(String(uid), 'translated');
-            entrySingleViews.set(String(uid), 'translated');
             renderBook();
             notifyStatus('AI 번역이 저장되었습니다.', 'success');
         } catch (error) {
@@ -751,24 +778,12 @@ export function createStandaloneLibrary({
     }
     function toggleView(uid) {
         if (!discardOrStay({ allowTags: true })) return;
+        const entry = entries.find(item => String(item.uid) === String(uid));
+        if (!entry) return;
         resetEdit();
-        const current = entryReadViews.get(String(uid)) || 'translated';
-        const previous = current === 'both' ? (entrySingleViews.get(String(uid)) || 'translated') : current;
-        const next = previous === 'source' ? 'translated' : 'source';
-        entryReadViews.set(String(uid), next);
-        entrySingleViews.set(String(uid), next);
-        renderBook();
-    }
-    function toggleBoth(uid) {
-        if (!discardOrStay({ allowTags: true })) return;
-        resetEdit();
-        const current = entryReadViews.get(String(uid)) || 'translated';
-        if (current === 'both') {
-            entryReadViews.set(String(uid), entrySingleViews.get(String(uid)) || 'translated');
-        } else {
-            entrySingleViews.set(String(uid), current);
-            entryReadViews.set(String(uid), 'both');
-        }
+        const current = entryReadViews.get(String(uid))
+            || (String(translationFor(currentBook, entry)?.text || '') ? 'translated' : 'source');
+        entryReadViews.set(String(uid), current === 'source' ? 'translated' : 'source');
         renderBook();
     }
     async function onClick(event) {
@@ -797,13 +812,19 @@ export function createStandaloneLibrary({
             void saveEntryImage(uid);
         } else if (action === 'image-remove') {
             void clearEntryImage(uid);
-        } else if (action === 'entry') showEntry(uid);
+        } else if (action === 'catalog-back') {
+            if (!discardOrStay({ allowTags: true })) return;
+            resetEdit();
+            selectedUid = null;
+            renderBook();
+        } else if (action === 'catalog-prev') shiftCatalog(-1);
+        else if (action === 'catalog-next') shiftCatalog(1);
+        else if (action === 'entry') showEntry(uid);
         else if (action === 'more') {
             visibleLimit += getType(currentBook) === 'memory' ? 12 : 24;
             renderBook();
         } else if (action === 'toggle-view') toggleView(uid);
-        else if (action === 'both') toggleBoth(uid);
-        else if (action === 'edit-source' || action === 'edit-translated') showEdit(uid, action === 'edit-source' ? 'source' : 'translated');
+        else if (action === 'edit') showEdit(uid);
         else if (action === 'cancel-edit') {
             if (!discardOrStay({ allowTags: true })) return;
             resetEdit();
@@ -885,7 +906,6 @@ export function createStandaloneLibrary({
         currentBook = '';
         currentData = null;
         entryReadViews = new Map();
-        entrySingleViews = new Map();
         selectedUid = null;
         query = '';
         saving = false;

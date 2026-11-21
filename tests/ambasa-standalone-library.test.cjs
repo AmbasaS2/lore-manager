@@ -128,7 +128,7 @@ test('start screen shows linked lorebooks only, with explicit all-books option; 
     } finally { f.dom.window.close(); }
 });
 
-test('catalog expands only its selected card and reads translated, original or side by side', async () => {
+test('catalog shows title-only overlapping stack OR one detail, with back/next/previous', async () => {
     const f = fixture();
     try {
         const lib = await f.build();
@@ -136,16 +136,25 @@ test('catalog expands only its selected card and reads translated, original or s
         await f.load();
         assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 3);
         assert.equal(f.w.document.querySelectorAll('.slb-library-detail').length, 0);
+        assert.equal(f.w.document.querySelector('.slb-library-section-head').textContent, '3개 항목');
+        assert.equal(f.w.document.querySelector('.slb-library-catalog-card p'), null, 'cards contain only title');
+        const firstTitle=f.w.document.querySelector('.slb-library-catalog-card').textContent;
+        assert.equal(firstTitle, '번역 제목 0');
         f.click('[data-action="entry"][data-uid="0"]');
+        assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 0,
+            'list disappears while selected record is open');
         assert.equal(f.w.document.querySelectorAll('.slb-library-detail').length, 1);
+        assert.equal(f.w.document.querySelector('.slb-library-catalog-position').textContent, '01 / 03');
         assert.match(f.w.document.querySelector('.slb-library-prose').textContent, /한국어 번역 첫째/);
+        assert.equal(f.w.document.querySelectorAll('[data-action="both"]').length, 0);
         f.click('[data-action="toggle-view"]');
         assert.match(f.w.document.querySelector('.slb-library-prose').textContent, /Original line 0/);
-        f.click('[data-action="both"]');
-        assert.equal(f.w.document.querySelectorAll('.slb-library-reading').length, 2);
-        f.click('[data-action="both"]');
-        assert.equal(f.w.document.querySelectorAll('.slb-library-reading').length, 1);
-        f.click('[data-action="entry"][data-uid="0"]');
+        f.click('[data-action="catalog-next"]');
+        assert.equal(f.w.document.querySelector('.slb-library-catalog-position').textContent, '02 / 03');
+        f.click('[data-action="catalog-prev"]');
+        assert.equal(f.w.document.querySelector('.slb-library-catalog-position').textContent, '01 / 03');
+        f.click('[data-action="catalog-back"]');
+        assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 3);
         assert.equal(f.w.document.querySelectorAll('.slb-library-detail').length, 0);
     } finally { f.dom.window.close(); }
 });
@@ -211,7 +220,8 @@ test('source edit saves only after explicit button, preserves original activatio
         lib.open();
         await f.load();
         f.click('[data-action="entry"][data-uid="0"]');
-        f.click('[data-action="edit-source"]');
+        f.click('[data-action="toggle-view"]');
+        f.click('[data-action="edit"]');
         const area = f.w.document.querySelector('.slb-library-editor-text');
         assert.ok(area);
         area.value = 'New content';
@@ -234,7 +244,7 @@ test('unsaved editing asks before closing; cancel stays in modal and preserves t
         lib.open();
         await f.load();
         f.click('[data-action="entry"][data-uid="1"]');
-        f.click('[data-action="edit-source"]');
+        f.click('[data-action="edit"]');
         const area = f.w.document.querySelector('.slb-library-editor-text');
         area.value = 'not saved';
         let prompts = 0;
@@ -257,7 +267,7 @@ test('manual translation edit never saves the source and passes the previous tex
         lib.open();
         await f.load();
         f.click('[data-action="entry"][data-uid="0"]');
-        f.click('[data-action="edit-translated"]');
+        f.click('[data-action="edit"]');
         f.w.document.querySelector('.slb-library-editor-text').value = '새로 쓴 번역';
         f.click('[data-action="save-edit"]');
         await new Promise(resolve => setImmediate(resolve));
@@ -314,10 +324,10 @@ test('untrusted lorebook text stays literal; modal does not inject markup or run
     } finally { f.dom.window.close(); }
 });
 
-test('library CSS is isolated, enforces mobile fullscreen and desktop split view', () => {
+test('library CSS is isolated, enforces mobile fullscreen and removes dual reading view', () => {
     assert.match(css, /#slb-library-overlay .slb-library-shell\s*\{/);
     assert.match(css, /height:\s*100dvh/);
-    assert.match(css, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    assert.doesNotMatch(css, /slb-library-split/);
     assert.match(css, /@media \(max-width:\s*760px\)/);
     assert.doesNotMatch(css, /#WorldInfo/);
     assert.match(index, /new URL\('\.\/library-shelf\.css', import\.meta\.url\)/);
@@ -332,8 +342,10 @@ test('translation with no saved record can be created manually with no paid AI c
         await f.load();
         f.click('[data-action="entry"][data-uid="2"]');
         assert.match(f.w.document.querySelector('.slb-library-prose').textContent, /Original line 2/,
-            'missing translation exposes the original rather than an empty page');
-        f.click('[data-action="edit-translated"]');
+            'missing translation defaults to the original rather than a blank page');
+        f.click('[data-action="toggle-view"]');
+        assert.match(f.w.document.querySelector('.slb-library-prose').textContent, /저장된 번역본이 없습니다/);
+        f.click('[data-action="edit"]');
         const input = f.w.document.querySelector('.slb-library-editor-text');
         assert.equal(input.value, '');
         input.value = '수동 번역 내용';
@@ -390,7 +402,7 @@ test('old asynchronous book response cannot replace a newly selected book or cor
     } finally { f.dom.window.close(); }
 });
 
-test('in the continuous diary each entry switches source and translation independently', async () => {
+test('diary entry source/translation buttons act on their own entries without side by side', async () => {
     const f = fixture({ count: 3, type: 'memory' });
     try {
         const lib = await f.build();
@@ -399,15 +411,16 @@ test('in the continuous diary each entry switches source and translation indepen
         const pages = [...f.w.document.querySelectorAll('.slb-library-diary-page')];
         assert.equal(pages.length, 3);
         assert.equal(pages[0].querySelector('.slb-library-reading').dataset.readView, 'translated');
-        assert.equal(pages[1].querySelector('.slb-library-reading').dataset.readView, 'translated');
+        assert.equal(pages[1].querySelector('.slb-library-reading').dataset.readView, 'source');
         pages[0].querySelector('[data-action="toggle-view"]').click();
-        const updated = [...f.w.document.querySelectorAll('.slb-library-diary-page')];
+        let updated = [...f.w.document.querySelectorAll('.slb-library-diary-page')];
+        assert.equal(updated[0].querySelector('.slb-library-reading').dataset.readView, 'source');
+        assert.equal(updated[1].querySelector('.slb-library-reading').dataset.readView, 'source');
+        updated[1].querySelector('[data-action="toggle-view"]').click();
+        updated = [...f.w.document.querySelectorAll('.slb-library-diary-page')];
         assert.equal(updated[0].querySelector('.slb-library-reading').dataset.readView, 'source');
         assert.equal(updated[1].querySelector('.slb-library-reading').dataset.readView, 'translated');
-        updated[1].querySelector('[data-action="both"]').click();
-        const after = [...f.w.document.querySelectorAll('.slb-library-diary-page')];
-        assert.equal(after[0].querySelectorAll('.slb-library-reading').length, 1);
-        assert.equal(after[1].querySelectorAll('.slb-library-reading').length, 2);
+        assert.equal(f.w.document.querySelectorAll('[data-action="both"]').length, 0);
         assert.equal(f.calls.ai.length, 0);
     } finally { f.dom.window.close(); }
 });
