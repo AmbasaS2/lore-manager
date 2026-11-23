@@ -132,6 +132,7 @@ export function createStandaloneLibrary({
     let diaryTocPage = 0;
     let allBooks = false;
     let loadVersion = 0;
+    let externalOpenSerial = 0;
     let edit = null;
     let saving = false;
     let searchIndex = new Map();
@@ -1627,7 +1628,7 @@ export function createStandaloneLibrary({
             if (freshSave) freshSave.disabled = tagDraft === tagInitial;
         }
     }
-    async function selectBook(book) {
+    async function selectBook(book, preloadedData = null) {
         if (!bookNames.includes(book) || !discardOrStay()) return;
         resetEdit();
         closeReaderTools();
@@ -1665,7 +1666,7 @@ export function createStandaloneLibrary({
         notifyStatus('선택한 로어북 파일을 불러오는 중입니다.');
         try {
             // Translation loading does not trigger an AI call or retranslate.
-            const [data] = await Promise.all([loadBook(book), loadTranslations(book)]);
+            const [data] = await Promise.all([preloadedData ? Promise.resolve(preloadedData) : loadBook(book), loadTranslations(book)]);
             if (!isOpen() || version !== loadVersion || currentBook !== book) return;
             if (!data?.entries) throw new Error('로어북 데이터가 비어 있거나 올바르지 않습니다.');
             currentData = data;
@@ -2542,6 +2543,62 @@ export function createStandaloneLibrary({
             }
         }
     }
+    // Stable, opt-in entry opener for other extensions. Uses the saved WorldInfo
+    // book name + UID, never a displayed/translated title or positional index.
+    // A missing entry must not leave an empty modal behind.
+    async function openEntry(book, uid) {
+        const serial = ++externalOpenSerial;
+        const name = typeof book === 'string' ? book : '';
+        const entryUid = typeof uid === 'string' || typeof uid === 'number' ? String(uid) : '';
+        if (!name || !/^\\d+$/.test(entryUid) || !listBooks().includes(name)) return false;
+        let data;
+        try {
+            data = isOpen() && currentBook === name && currentData ? currentData : await loadBook(name);
+        } catch {
+            return false;
+        }
+        if (serial !== externalOpenSerial || !data?.entries ||
+            !Object.values(data.entries).some(entry => String(entry?.uid) === entryUid &&
+                typeof entry?.content === 'string')) return false;
+
+        const wasOpen = isOpen();
+        if (!wasOpen) open();
+        else if (minimized) setMinimized(false);
+        if (!isOpen()) return false;
+        if (currentBook !== name || !currentData) {
+            await selectBook(name, data);
+            if (serial !== externalOpenSerial || !isOpen() || currentBook !== name || !currentData) {
+                if (!wasOpen && serial === externalOpenSerial) close();
+                return false;
+            }
+        } else if (!discardOrStay({ allowTags: true })) {
+            return false;
+        }
+        if (serial !== externalOpenSerial) return false;
+        resetEdit();
+        closeReaderTools();
+        // A previous search or a 5-item page may hide the requested record.
+        // Reset view-only filters and navigate to the exact UID in every reader.
+        query = '';
+        const search = overlay.querySelector('#slb-library-search');
+        if (search) search.value = '';
+        readerSearchOpen = false;
+        overlay.querySelector('.slb-library-navigation')?.classList.remove('is-search-open');
+        overlay.querySelector('[data-action="reader-search-toggle"]')?.setAttribute('aria-expanded', 'false');
+        const index = filtered().findIndex(entry => String(entry.uid) === entryUid);
+        if (index < 0) {
+            if (!wasOpen) close();
+            return false;
+        }
+        const page = Math.floor(index / libraryPageSize());
+        selectedUid = entryUid;
+        catalogPage = diaryTocPage = worldTocPage = peoplePage = page;
+        diaryIndex = index;
+        renderBook();
+        overlay.querySelector('.slb-library-detail[data-uid="' + entryUid + '"]')
+            ?.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
+        return true;
+    }
     function open() {
         if (isOpen()) {
             if (minimized) setMinimized(false);
@@ -2629,5 +2686,5 @@ export function createStandaloneLibrary({
         syncAppearanceControls();
         if (previous !== overlay.dataset.libraryTheme && !currentBook) { shelfType = 'all'; bookList(); }
     }
-    return { open, close, isOpen, refreshTranslations, onExternalWorldUpdate, updateTheme };
+    return { open, openEntry, close, isOpen, refreshTranslations, onExternalWorldUpdate, updateTheme };
 }
