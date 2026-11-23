@@ -99,7 +99,7 @@ test('an unsaved edit can reject external navigation without losing the draft', 
         const edit = f.q('[data-action="edit"]');
         assert.ok(edit);
         edit.click();
-        const textarea = f.q('textarea.slb-library-editor, .slb-library-edit textarea, textarea[data-uid]');
+        const textarea = f.q('textarea.slb-library-editor-text');
         assert.ok(textarea, 'editable source textarea');
         textarea.value = 'Unsaved user draft';
         f.win.confirm = () => false;
