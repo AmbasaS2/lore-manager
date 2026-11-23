@@ -35,6 +35,7 @@ function fixture({count=240, readyCount=count-1}={}) {
         'const createAIBar=()=>{};',
         'const createBulkLorebookExportControls=()=>{};',
         'const createWorkspace=()=>{};',
+        'const syncNativePageCache=()=>{};',
         'const hideNativeHeaderRows=()=>{};',
         'const renderedEntries=()=>rows;',
         'const currentBookName=()=>"B";',
@@ -183,6 +184,7 @@ test('switching books cancels stale editor hydration without modifying native da
       "const isFoldyLinkedMode=()=>false;",
       "const markFoldyLinkedPreparing=()=>{};",
       "const loadTranslationBook=()=>{};",
+      "const releaseNativePageCache=()=>{};",
       func('beginBookSwitch'),
       "window.api={run:beginBookSwitch,rows,state,cancellations};",
     ].join('\n');

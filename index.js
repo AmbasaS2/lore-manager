@@ -24,11 +24,12 @@ import { translateLoreFieldsBatch } from './lore-translation-batch.js';
 import { planLoreEntryGroups, translateLoreEntryGroup } from './lore-entry-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
 import { prepareFirstNativePageHeaders } from './native-page-fastpath.js';
+import { attachNativePageCache } from './native-page-cache.js';
 import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames } from './library-shelf.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.59';
+const VERSION = '1.4.85-ambasa.60';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -166,6 +167,9 @@ let libraryStylesPromise = null;
 
 function refreshTranslationFromLoadedBook(book) {
     if (!book || currentBookName() !== book || getSettings().managerMode === 'native') return;
+    // A late translation read can change visible content of detached editors.
+    // Drop stale cached pages; do not rewrite translation or source files.
+    releaseNativePageCache();
     // Called once when a requested book (or matching legacy fallback) finishes
     // its network read. Never poll the page for translations.
     for (const entry of renderedEntries()) {
@@ -190,6 +194,7 @@ function loadTranslationBook(book) {
     });
 }
 function saveBookTranslations(book) {
+    if (book === currentBookName()) releaseNativePageCache();
     translationFiles.scheduleSave(book);
 }
 const GOOGLE_LANGUAGE_CODES = Object.freeze({
@@ -206,6 +211,7 @@ const state = {
     observer: null,
     workspaceObserver: null,
     workspaceObserverTarget: null,
+    nativePageCache: null,
     refreshTimer: null,
     enhancing: false,
     enhancePending: false,
@@ -844,6 +850,9 @@ function applyManagerMode(requestedMode, {
 } = {}) {
     const settings = getSettings();
     const previousMode = state.managerMode;
+    if (requestedMode !== MANAGER_MODE_STANDARD || previousMode !== MANAGER_MODE_STANDARD) {
+        releaseNativePageCache();
+    }
     let mode = requestedMode === MANAGER_MODE_FOLDY
         ? MANAGER_MODE_FOLDY
         : requestedMode === MANAGER_MODE_NATIVE ? MANAGER_MODE_NATIVE : MANAGER_MODE_STANDARD;
@@ -4725,6 +4734,9 @@ function handleWorkspaceEntryInput(event) {
     if (!(event.target instanceof Element)) return;
     const entry = event.target.closest('.world_entry');
     if (!entry) return;
+    // An edit/select change can start a debounced ST save. Never retain
+    // earlier page forms across a data update that is still in flight.
+    state.nativePageCache?.markDirty();
     const uid = getUid(entry);
     const isStateSelector = event.target.matches([
         'select[name="entryStateSelector"]',
@@ -4752,6 +4764,7 @@ function handleWorkspaceEntryClick(event) {
     const killSwitch = event.target.closest('[name="entryKillSwitch"]');
     if (!killSwitch) return;
     const entry = killSwitch.closest('.world_entry');
+    state.nativePageCache?.markDirty();
     // SillyTavern changes its data and classes synchronously in the target
     // click handler. Read that new state after the event reaches us.
     setTimeout(() => syncEntryActiveState(entry), 0);
@@ -4950,6 +4963,7 @@ function bindWorkspaceEntries(entries) {
     jQuery(entries)
         .off('sortstart.slb sortstop.slb')
         .on('sortstart.slb', () => {
+            releaseNativePageCache();
             state.sorting = true;
         })
         .on('sortstop.slb', () => {
@@ -5111,6 +5125,53 @@ function syncFilterButtons() {
         trigger.title = title;
         trigger.setAttribute('aria-label', title);
     }
+}
+
+function releaseNativePageCache() {
+    state.nativePageCache?.dispose?.();
+    state.nativePageCache = null;
+}
+
+function nativePageSignature() {
+    return [
+        currentBookName(),
+        document.getElementById('world_info_sort_order')?.value ?? '',
+        document.getElementById('world_info_search')?.value ?? '',
+        getSettings().entryFilter ?? 'all',
+    ].join('\u241e');
+}
+
+function syncNativePageCache() {
+    if (state.managerMode !== MANAGER_MODE_STANDARD || isFoldyLinkedMode()
+        || state.bookSwitch || state.worldDrawerOpening || state.sorting
+        || !isWorldInfoDrawerOpen() || !currentBookName()
+        || state.currentBook !== currentBookName() || !state.currentBookData?.entries) {
+        releaseNativePageCache();
+        return;
+    }
+    const pager = jQuery('#world_info_pagination');
+    const list = jQuery('#world_popup_entries_list');
+    const plugin = pager.data('pagination');
+    const previous = state.nativePageCache;
+    if (previous && (previous.paginationData !== plugin
+        || previous.list !== list[0] || previous.book !== currentBookName())) {
+        releaseNativePageCache();
+    }
+    if (state.nativePageCache || !plugin?.initialized || !list.length) return;
+    const book = currentBookName();
+    const bookData = state.currentBookData;
+    state.nativePageCache = attachNativePageCache({
+        pagination: pager, list, jQuery, book,
+        maxPages: 2, maxRows: 50,
+        signature: nativePageSignature,
+        isAllowed: () => state.managerMode === MANAGER_MODE_STANDARD
+            && !isFoldyLinkedMode() && !state.bookSwitch
+            && !state.worldDrawerOpening && !state.sorting && !state.enhancing
+            && !state.bulkTranslation && !state.backupRestoreInProgress
+            && isWorldInfoDrawerOpen() && currentBookName() === book
+            && state.currentBookData === bookData
+            && !document.querySelector('.select2-container--open'),
+    });
 }
 
 function renderedEntries() {
@@ -8202,6 +8263,10 @@ function hydrateCurrentBookDataAfterReveal(book) {
         .then(data => {
             if (currentBookName() !== book || !data?.entries) return;
             renderTokenSummary(book, data);
+            // First-visit data hydration can finish after the initial
+            // enhanceAll() pass. Attach to the already-ready native pager now,
+            // without polling or rebuilding any row.
+            if (!state.enhancing && hasCompleteVisibleEntryHeaders()) syncNativePageCache();
         })
         .catch(error => console.warn('[로어북 매니저] 로어북 데이터 동기화 실패', error))
         .finally(() => {
@@ -8393,6 +8458,7 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
 }
 
 function beginBookSwitch(book, suppliedBoundary = null) {
+    releaseNativePageCache();
     if (state.managerMode === 'native') return;
     if (book) loadTranslationBook(book);
     if (state.bulkTranslation && !state.bulkTranslation.independent) cancelBulkTranslation({ silent: true });
@@ -8579,6 +8645,7 @@ function enhanceAll() {
         // Only an incomplete page gets bounded retries; successful pages
         // do not incur another timer or a polling loop.
         if (listRevealed) {
+            syncNativePageCache();
             if (state.incompleteHeaderRetry?.timer) clearTimeout(state.incompleteHeaderRetry.timer);
             state.incompleteHeaderRetry = null;
         } else if (!needsAnotherEnhancePass && currentBookName() === bookAtStart && entries.length) {
@@ -8983,6 +9050,15 @@ function bindEvents() {
     bindLoreInfoEvents();
     const worldSelect = document.getElementById('world_editor_select');
     bindConnectedWorldFilter();
+    // Use existing native UI events to invalidate page DOM snapshots before
+    // ST refreshes its pagination, with no additional observer or timer.
+    for (const [id, type] of [
+        ['world_info_search', 'input'],
+        ['world_info_sort_order', 'change'],
+        ['world_info_pagination', 'change'],
+        ['world_refresh', 'click'],
+        ['world_popup_new', 'click'],
+    ]) document.getElementById(id)?.addEventListener(type, releaseNativePageCache, true);
     const worldInfoDrawerToggle = document.querySelector('#WI-SP-button > .drawer-toggle');
     window.addEventListener('pointerdown', primeFoldyFolderDeleteDrawerGuard, true);
     window.addEventListener('touchstart', primeFoldyFolderDeleteDrawerGuard, { capture: true, passive: true });
@@ -9012,6 +9088,7 @@ function bindEvents() {
         }
     }, { capture: true, passive: true });
     worldSelect?.addEventListener('change', () => {
+        releaseNativePageCache();
         if (isNativeLorebookMode()) return;
         // target-capture는 SillyTavern의 기존 target-bubble change 핸들러보다
         // 먼저 실행된다. pointerdown이 없는 프로그램 전환도 이 경계에서
@@ -9053,6 +9130,7 @@ function bindEvents() {
     });
     worldInfoDrawerToggle?.addEventListener('click', () => {
         if (isNativeLorebookMode()) return;
+        if (!isWorldInfoDrawerOpen()) releaseNativePageCache();
         // 키보드/프로그램 클릭처럼 pointerdown이 없는 열기도 보완한다.
         if (isWorldInfoDrawerOpen() && !hasCompleteVisibleEntryHeaders()) {
             beginWorldDrawerOpenLoading();
@@ -9082,6 +9160,7 @@ function bindEvents() {
 
     if (event_types.WORLDINFO_UPDATED) {
         eventSource.on(event_types.WORLDINFO_UPDATED, (name, data) => {
+            if (name === currentBookName()) releaseNativePageCache();
             standaloneLibrary?.onExternalWorldUpdate(name, data);
             if (name !== currentBookName() || isNativeLorebookMode()) return;
             // 주입 방식·위치 같은 메타데이터 저장에도 이 이벤트가 발생한다.

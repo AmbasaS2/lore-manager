@@ -1,5 +1,15 @@
 # 로어북 매니저 · AmbasaS2 베타 변경 기록
 
+## v1.4.85-ambasa.60 · 2026-11-23 · 통합 로어북 관리 페이지 방문 화면 재사용(한정 2장)
+
+- **정본/요청:** 실제 GitHub `main` `.59` `b705ac6b2bd3f0a25aa10259f29c54eab3e31a95`에서 시작. 사용자는 **독립 서재가 아니라 통합 로어북 관리 탭**에서 펼친 항목을 보다가 페이지를 넘길 때 네이티브 ST가 기존 DOM/이벤트를 지우고 새로 만들어 버리는 로딩을 없애길 요청. 사용자 Windows 현재 ST 버전·브라우저 실기기와 설치된 commit은 직접 확인 불가.
+- **확인한 원인/동작:** SillyTavern release `world-info.js`의 `displayWorldEntries`는 기본 `pagination.js 2.6.0`의 callback에서 `clearEntryList`로 이전 행을 삭제하고 `getWorldEntry`로 새 편집기 DOM을 생성한다. 처음 방문하는 페이지는 반드시 **한 번** 생성되어야 하지만, 같은 책에서 **이미 방문한 페이지를 왕복할 때** 다시 생성할 필요는 없다는 사용성 요구를 반영.
+- **핵심 구현:** 새로운 `native-page-cache.js`의 `attachNativePageCache`를 네이티브 pagination.js의 기존 `beforePaging` hook에 연결(실리태번 코어 수정·교체 없음). 조건이 맞으면 이전 페이지의 실제 DOM을 `jQuery.detach()`로 보관(이벤트·Select2 상태/편집 영역 노드 보존)하고, 재방문하는 페이지는 기존 pagination 모델·번호·현재 페이지 데이터를 **기존 plugin 이벤트와 custom callback으로 갱신**하되 ST 기본 전체 HTML 렌더 callback을 건너뜀. 테스트 중 공개 `pagination('go', page, callback)` 래퍼가 callback 인자를 무시하는 것을 실제 ST 라이브러리에서 확인해, plugin의 `__pagination-go` 이벤트에 `[page, callback]`을 전달하는 방법으로 정확히 연결. 1→2 최초 방문은 네이티브 생성, 2→1→2 왕복은 양쪽 실제 DOM 재사용.
+- **안전장치:** **표준 통합 모드·같은 책·같은 네이티브 목록/페이지 플러그인·완성된 UI**에서만 사용; 캐시는 최근 2페이지, 각 50항목 이하로 제한. 펼친 편집기의 이벤트·입력값을 복사하거나 새로 고치지 않음. 사용자 입력/값 변경/주입 상태 클릭, 번역 저장·비동기 번역 로드, 세계관 원본 갱신, 검색·정렬·항목 필터·페이지 크기 변경, 새 항목 생성/새로고침, 다른 책 이동, native/Foldy 모드 전환, 종료·데이터 복구/일괄 번역 중에는 캐시 무효화·사용 중지하고 ST 기존 렌더 사용. 외부 plugin이 `beforePaging` hook을 소유하면 이 최적화 중단. 예상 못 한 pagination 버전/이벤트로 복원 실패해도 **원래 ST 렌더 callback으로 fallback**. 세션 종료시 본인 hook만 해제해 누적되지 않으며, 폐기된 Select2·drawer 이벤트도 ST와 유사하게 정리.
+- **검증:** Node22/JSDOM 기존 기능 + 신규 `tests/ambasa-v60-native-page-cache.test.mjs` 및 `tests/ambasa-v60-native-page-cache-lifecycle.test.cjs` **463/463 PASS**(기존 446 + 신규 17). 별도로 공개 SillyTavern release의 **실제 pagination.js 2.6.0**을 로컬 JSDOM에 적용한 비교시험 **10/10 PASS** (1→2 최초 신규 10행 생성, 2→1→2 추가 생성 0행, 같은 DOM·버튼 핸들러/textarea 값 보존). mock plugin self-contained 계약 테스트도 PASS. 기존 JSDOM 추출 테스트 5개는 캐시 lifecycle 함수를 no-op으로 명시하여 원래 성능·저장 경계를 계속 검증. `node --check`와 `git diff --check` 확인. 실제 Windows ST Chrome/모바일 Safari **사용감·페이지 이동 시간·독립 외부 확장과의 호환성은 미실측**.
+- **변경 범위:** `index.js`의 import/표준-mode page cache lifecycle/기존 입력·설정·책 전환·저장 이벤트에 기존 캐시 무효화만 추가, `manifest.json`, 이 이력, 신규 순수 helper와 테스트. `library-shelf.js`/.css·.59의 16종 UI·태그·검색/5/10/20·번역 JSON·표지·로어북 원본·UID/순서·프롬프트는 수정하지 않음. 신규 observer/interval/requestAnimationFrame/폴링/자동 AI 요청 없음.
+- **회귀/되돌리기:** 처음 방문/데이터 변경 후에는 반드시 한 번 네이티브 로딩이 남고, 데이터가 변경되지 않은 **왕복 페이지**에 한해서만 전면 재구성을 제거한다. 느려짐·ST 기본 편집 저장 오류·타 확장 이벤트 충돌/번역 꼬임 또는 표시 문제가 발생하면 `.59` `b705ac6b2bd3f0a25aa10259f29c54eab3e31a95`의 확장 코드만 이전으로 복원. 사용자 데이터/확장 설정·번역·이미지 파일 삭제/재설치 금지.
+
 ## v1.4.85-ambasa.59 · 2026-11-23 · 네 테마 × 네 유형의 리더 제목·태그·목차 중복 UI 정리
 
 - **최신 정본/사용자 피드백:** GitHub main `.58` `1d2d5955165daa011ab4d6d1a93db89e3ca74161`, manifest `1.4.85-ambasa.58`에서 수정. 좁은 창에서 제목/태그가 잘리고, 클래식의 `CATALOGUE · DRAWER 01` 등 영문 장식과 `카드파일 · INDEX` 등 중복 종류명이 세로 공간을 낭비함. 사용자는 **클래식 카드파일만이 아니라 4개 테마 × 카드파일/메모리/백과사전/인물록 16개 조합 전체**를 같은 원칙으로 정리하도록 정정.

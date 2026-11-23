@@ -44,6 +44,7 @@ function bookFixture({count=25,editorFails=false}={}){
         'const createAIBar=()=>{};',
         'const createBulkLorebookExportControls=()=>{};',
         'const createWorkspace=()=>{};',
+        'const syncNativePageCache=()=>{};',
         'const hideNativeHeaderRows=()=>{};',
         'const renderedEntries=()=>rows;',
         'const currentBookName=()=>"A";',
@@ -187,6 +188,7 @@ test('book change clears old editor marker in the existing row-invalidation scan
         'const captureBookSwitchBoundary=()=>({capturedAt:Date.now(),mode:"standard",book:"Old",previousRows:[],previousRowSet:new Set(),previousRowSnapshot:[],previousHeader:null});',
         'const scheduleBookSwitchReadyCheck=()=>{};',
         'const scheduleEnhance=()=>{};',
+        'const releaseNativePageCache=()=>{};',
         production('beginBookSwitch'),
         'window.api={run:beginBookSwitch,read:()=>scans};',
     ].join('\n'));

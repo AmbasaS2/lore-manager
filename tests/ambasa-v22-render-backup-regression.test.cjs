@@ -113,6 +113,7 @@ test('one malformed row cannot abort the rest of a 25-row enhancement batch',()=
         'const createAIBar=()=>{};',
         'const createBulkLorebookExportControls=()=>{};',
         'const createWorkspace=()=>{};',
+        'const syncNativePageCache=()=>{};',
         'const hideNativeHeaderRows=()=>{};',
         'const renderedEntries=()=>rows;',
         'const currentBookName=()=>"B";',

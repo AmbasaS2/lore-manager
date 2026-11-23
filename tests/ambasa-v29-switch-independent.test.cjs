@@ -58,6 +58,7 @@ function fixture(independent=true) {
         prod('isStableBookSwitchCandidate'),
         prod('isCurrentBookDomReady'),
         prod('scheduleBookSwitchReadyCheck'),
+        "const releaseNativePageCache=()=>{};",
         prod('beginBookSwitch'),
         prod('finishBookSwitch'),
         prod('revealCompletedEntryList'),
