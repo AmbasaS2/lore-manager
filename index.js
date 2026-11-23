@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.65';
+const VERSION = '1.4.85-ambasa.66';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -128,6 +128,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryLinkedOnly: true,
     libraryListPageSize: 5,
     libraryListOrder: 'normal',
+    libraryWindowSizes: {},
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -377,6 +378,8 @@ function getSettings() {
         ? Number(settings.libraryListPageSize) : 5;
     if (!['normal', 'reverse', 'title-asc', 'title-desc'].includes(settings.libraryListOrder))
         settings.libraryListOrder = 'normal';
+    if (!settings.libraryWindowSizes || typeof settings.libraryWindowSizes !== 'object'
+        || Array.isArray(settings.libraryWindowSizes)) settings.libraryWindowSizes = {};
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -9577,6 +9580,23 @@ function initStandaloneLibrary() {
             const settings = getSettings(), previous = settings.libraryTheme;
             settings.libraryTheme = theme;
             try { await saveSettings(); } catch (error) { settings.libraryTheme = previous; throw error; }
+        },
+        getWindowSize: narrow => {
+            const value = getSettings().libraryWindowSizes[narrow ? 'narrow' : 'wide'];
+            return value && Number.isFinite(value.width) && value.width > 0
+                && Number.isFinite(value.height) && value.height > 0
+                ? { width: value.width, height: value.height } : null;
+        },
+        setWindowSize: (size, narrow) => {
+            if (!size || !Number.isFinite(size.width) || size.width <= 0
+                || !Number.isFinite(size.height) || size.height <= 0) return;
+            // Explicit pointer-up/keyboard resizing only. Never save sizes
+            // clamped by mobile keyboards or OS viewport changes.
+            const settings = getSettings();
+            settings.libraryWindowSizes[narrow ? 'narrow' : 'wide'] = {
+                width: Math.round(size.width), height: Math.round(size.height),
+            };
+            saveSettingsDebounced();
         },
         getListPageSize: () => getSettings().libraryListPageSize,
         setListPageSize: async value => {
