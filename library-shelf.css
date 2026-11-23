@@ -5926,3 +5926,59 @@
         width: min(290px, calc(100cqw - 46px));
     }
 }
+
+/* ambasa.61: identical title-bar controls, irrespective of theme or action. */
+#slb-library-overlay .slb-library-top .slb-library-header-actions > button.slb-library-settings-button,
+#slb-library-overlay .slb-library-top .slb-library-header-actions > button.slb-library-minimize-button,
+#slb-library-overlay .slb-library-top .slb-library-header-actions > button.slb-library-close {
+    box-sizing: border-box !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 27px !important;
+    width: 27px !important;
+    min-width: 27px !important;
+    max-width: 27px !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    max-height: 27px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid currentColor !important;
+    border-radius: 6px !important;
+    background: transparent;
+    color: inherit !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+    font-size: .85em !important;
+    line-height: 1 !important;
+}
+#slb-library-overlay .slb-library-top .slb-library-header-actions > button .fa-solid {
+    pointer-events: none;
+}
+
+/* First / previous / numeric jump / next / last.
+   The existing small page-size and sort selectors may wrap under the pager
+   on narrow shells; four navigation arrows themselves stay on one line. */
+#slb-library-overlay .slb-library-page-navigation {
+    gap: 4px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-page-navigation > button:not(.slb-library-page-jump) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex: 0 0 23px;
+    width: 23px;
+    min-width: 23px;
+    max-width: 23px;
+    height: 27px;
+    min-height: 27px;
+    max-height: 27px;
+    margin: 0;
+    padding: 0;
+    font-size: 12px !important;
+    line-height: 1 !important;
+}

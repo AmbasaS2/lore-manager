@@ -263,7 +263,15 @@ export function createStandaloneLibrary({
             if (!editor.hidden) finishPageJump(input, true);
         });
         editor.append(input, element(doc, 'small', '', '/ ' + pageCount));
-        group.append(previous, jump, editor, next);
+        const first = button(doc, 'slb-library-page-edge', '«', prefix + '-first');
+        first.disabled = page <= 1;
+        first.setAttribute('aria-label', '첫 페이지');
+        first.setAttribute('title', '첫 페이지');
+        const last = button(doc, 'slb-library-page-edge', '»', prefix + '-last');
+        last.disabled = page >= pageCount;
+        last.setAttribute('aria-label', '마지막 페이지');
+        last.setAttribute('title', '마지막 페이지');
+        group.append(first, previous, jump, editor, next, last);
         return group;
     }
     function openPageJump(buttonNode) {
@@ -2390,15 +2398,19 @@ export function createStandaloneLibrary({
             renderBook();
         } else if (['catalog-menu', 'memory-menu', 'people-menu'].includes(action)) {
             toggleContents(action, target);
-        } else if (['catalog-list-prev', 'catalog-list-next', 'memory-list-prev',
-                    'memory-list-next'].includes(action)) {
+        } else if (/^(catalog-list|memory-list)-(first|prev|next|last)$/.test(action)) {
             if (!discardOrStay({ allowTags: true })) return;
+            const direction = action.endsWith('-first') ? 'first'
+                : action.endsWith('-last') ? 'last' : action.endsWith('-next') ? 'next' : 'prev';
+            const lastPage = pageData(filtered().length, 0).pageCount - 1;
+            const jumpTo = current => direction === 'first' ? 0
+                : direction === 'last' ? lastPage : current + (direction === 'next' ? 1 : -1);
             if (action.startsWith('catalog-list-')) {
-                catalogPage += action.endsWith('-next') ? 1 : -1;
+                catalogPage = Math.max(0, Math.min(jumpTo(catalogPage), lastPage));
                 // A clean reader always previews a row from the visible page.
                 if (['mac', 'blackberry'].includes(libraryTheme())) selectedUid = null;
             } else {
-                diaryTocPage += action.endsWith('-next') ? 1 : -1;
+                diaryTocPage = Math.max(0, Math.min(jumpTo(diaryTocPage), lastPage));
             }
             renderBook();
         } else if (action === 'diary-entry') {
@@ -2420,9 +2432,12 @@ export function createStandaloneLibrary({
             diaryTocPage = Math.floor(diaryIndex / libraryPageSize());
             resetEdit();
             renderBook();
-        } else if (action === 'world-prev' || action === 'world-next') {
+        } else if (/^world-(first|prev|next|last)$/.test(action)) {
             if (!discardOrStay({ allowTags: true })) return;
-            worldTocPage += action === 'world-next' ? 1 : -1;
+            const lastPage = pageData(filtered().length, 0).pageCount - 1;
+            worldTocPage = action === 'world-first' ? 0
+                : action === 'world-last' ? lastPage
+                : Math.max(0, Math.min(worldTocPage + (action === 'world-next' ? 1 : -1), lastPage));
             renderBook();
         } else if (action === 'world-menu') {
             worldIndexOpen = !worldIndexOpen;
@@ -2432,9 +2447,12 @@ export function createStandaloneLibrary({
             target.title = worldIndexOpen ? '목차 접기' : '목차 펼치기';
             const icon = target.querySelector('.fa-solid');
             if (icon) icon.className = 'fa-solid fa-chevron-' + (worldIndexOpen ? 'up' : 'down');
-        } else if (action === 'people-prev' || action === 'people-next') {
+        } else if (/^people-(first|prev|next|last)$/.test(action)) {
             if (!discardOrStay({ allowTags: true })) return;
-            peoplePage += action === 'people-next' ? 1 : -1;
+            const lastPage = pageData(filtered().length, 0).pageCount - 1;
+            peoplePage = action === 'people-first' ? 0
+                : action === 'people-last' ? lastPage
+                : Math.max(0, Math.min(peoplePage + (action === 'people-next' ? 1 : -1), lastPage));
             renderBook();
         } else if (action === 'people-back') {
             if (!discardOrStay({ allowTags: true })) return;
