@@ -3232,3 +3232,298 @@
     flex: 1 1 148px;
     max-width: 148px;
 }
+
+/* v47: four stable visual identities, chosen by the SAVED book type.
+   Shelf order is allowed to vary shade only within the same identity. */
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-world {
+    --ll-spine-color: #1e314a;
+    --ll-spine-ink: #f0e7d4;
+    background: linear-gradient(90deg, #080d1799, transparent 29%, #ffffff15 72%, #090e1c55),
+        var(--ll-spine-color);
+    border: 1px solid #9e957f;
+    border-left: 6px solid #192b41;
+    border-top: 3px double #e0d0ab;
+    border-bottom: 3px double #e0d0ab;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-world.slb-library-type-variant-1 {
+    --ll-spine-color: #303a47;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-world.slb-library-type-variant-2 {
+    --ll-spine-color: #2a4356;
+}
+#slb-library-overlay .slb-library-spine-type-world .slb-library-spine-ornament {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px #ffffff20;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-memory {
+    --ll-spine-color: #c4bbab;
+    --ll-spine-ink: #302f2a;
+    background: repeating-linear-gradient(0deg, #00000007 0 1px, transparent 1px 3px),
+        var(--ll-spine-color);
+    border: 1px solid #948f86;
+    border-left: 6px double #786f66;
+    border-bottom: 2px solid #a65f56;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-memory.slb-library-type-variant-1 {
+    --ll-spine-color: #8b9aa8;
+    --ll-spine-ink: #172c42;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-memory.slb-library-type-variant-2 {
+    --ll-spine-color: #d7d0c5;
+}
+#slb-library-overlay .slb-library-spine-type-memory::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    bottom: 0;
+    top: auto;
+    width: 3px;
+    height: 34px;
+    background: #b6594c;
+    opacity: .85;
+    border-radius: 0 0 2px 2px;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-people {
+    --ll-spine-color: #283e35;
+    --ll-spine-ink: #f2eddf;
+    background: linear-gradient(90deg, #0005, transparent 34%, #fff2 69%, #0003),
+        var(--ll-spine-color);
+    border: 1px solid #829081;
+    border-left: 5px solid #1b2b24;
+    border-bottom: 2px solid #d5d0bf;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-people.slb-library-type-variant-1 {
+    --ll-spine-color: #30343b;
+    --ll-spine-ink: #f1efeb;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-people.slb-library-type-variant-2 {
+    --ll-spine-color: #435462;
+}
+#slb-library-overlay .slb-library-spine-type-people::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 21px;
+    bottom: auto;
+    width: 5px;
+    height: 27px;
+    border: 1px solid #0002;
+    border-radius: 3px 0 0 3px;
+    background: #ddd9cc;
+    opacity: 1;
+}
+#slb-library-overlay .slb-library-spine-type-people .slb-library-spine-bottom {
+    padding: 1px 2px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-weight: 700;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-general {
+    --ll-spine-color: #e2dace;
+    --ll-spine-ink: #252b32;
+    background: repeating-linear-gradient(90deg, #0000000b 0 1px, transparent 1px 4px),
+        var(--ll-spine-color);
+    border: 1px solid #a39e95;
+    border-left: 6px solid #94948c;
+    border-top: 5px solid #616b74;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-general.slb-library-type-variant-1 {
+    --ll-spine-color: #626b72;
+    --ll-spine-ink: #f6f3e9;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-general.slb-library-type-variant-2 {
+    --ll-spine-color: #34363a;
+    --ll-spine-ink: #f1eee6;
+}
+#slb-library-overlay .slb-library-spine-type-general .slb-library-spine-ornament {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 23px;
+    padding: 1px 2px;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+}
+#slb-library-overlay .slb-library-book-spine.slb-library-spine-type-general .slb-library-spine-title,
+#slb-library-overlay .slb-library-book-spine.slb-library-spine-type-world .slb-library-spine-title,
+#slb-library-overlay .slb-library-book-spine.slb-library-spine-type-memory .slb-library-spine-title,
+#slb-library-overlay .slb-library-book-spine.slb-library-spine-type-people .slb-library-spine-title {
+    color: var(--ll-spine-ink);
+}
+
+/* Digital covers use type templates rather than rotating arbitrary graphic
+   designs. The user's uploaded image remains on top (z-index:2). */
+#slb-library-overlay .slb-library-cover-art::before,
+#slb-library-overlay .slb-library-cover-art::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+    opacity: 1;
+    pointer-events: none;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world {
+    --ll-cover-color: #20334e;
+    --ll-cover-ink: #f6efe0;
+    background: linear-gradient(125deg, #ffffff14, transparent 43%, #050c1b29),
+        var(--ll-cover-color);
+    border: 1px solid #899bb0;
+    border-left: 5px solid #17293e;
+    border-top: 3px double #c2bcae;
+    border-bottom: 3px double #c2bcae;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world.slb-library-type-variant-1 {
+    --ll-cover-color: #30445a;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world.slb-library-type-variant-2 {
+    --ll-cover-color: #3057a0;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world::before {
+    inset: 9px 8px;
+    width: auto;
+    height: auto;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+    opacity: .3;
+    background: transparent;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world::after {
+    width: 61%;
+    height: auto;
+    aspect-ratio: 1;
+    left: 19%;
+    top: 27%;
+    right: auto;
+    bottom: auto;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 9px #ffffff08, 0 0 0 6px #ffffff09;
+    opacity: .32;
+    background: transparent;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world .slb-library-cover-mark {
+    border: 1px solid currentColor;
+    border-radius: 50%;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory {
+    --ll-cover-color: #e1d8c9;
+    --ll-cover-ink: #343230;
+    background: repeating-linear-gradient(90deg, #00000006 0 1px, transparent 1px 3px),
+        var(--ll-cover-color);
+    border: 1px solid #a6a19a;
+    border-left: 6px double #8e8176;
+    border-radius: 3px 6px 6px 2px;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory.slb-library-type-variant-1 {
+    --ll-cover-color: #b7c3ce;
+    --ll-cover-ink: #24384c;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory.slb-library-type-variant-2 {
+    --ll-cover-color: #d4553a;
+    --ll-cover-ink: #fffefa;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory::before {
+    top: 0;
+    bottom: 0;
+    right: 12%;
+    left: auto;
+    width: 4px;
+    height: auto;
+    background: #a9574a;
+    opacity: .7;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory::after {
+    inset: 18% 14% 20%;
+    width: auto;
+    height: auto;
+    background: repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 12px);
+    opacity: .11;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory .slb-library-cover-mark {
+    padding-bottom: 2px;
+    border-bottom: 1px solid currentColor;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people {
+    --ll-cover-color: #234b38;
+    --ll-cover-ink: #f5efe6;
+    background: linear-gradient(100deg, #0000001c, transparent 48%),
+        var(--ll-cover-color);
+    border: 1px solid #69796b;
+    border-left: 5px solid #1b3027;
+    border-radius: 3px 4px 4px 3px;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people.slb-library-type-variant-1 {
+    --ll-cover-color: #343841;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people.slb-library-type-variant-2 {
+    --ll-cover-color: #536475;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people::before {
+    right: 0;
+    left: auto;
+    top: 26%;
+    width: 11%;
+    height: 39%;
+    background: repeating-linear-gradient(0deg, currentColor 0 8px, transparent 8px 11px);
+    border-radius: 3px 0 0 3px;
+    opacity: .29;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people::after {
+    inset: 13px 10px;
+    width: auto;
+    height: auto;
+    border: 1px solid currentColor;
+    opacity: .27;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people .slb-library-cover-mark {
+    min-height: 21px;
+    padding: 2px 4px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: .73em;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general {
+    --ll-cover-color: #f1ece3;
+    --ll-cover-ink: #2b3036;
+    background: var(--ll-cover-color);
+    border: 1px solid #aab1b5;
+    border-top: 5px solid #65727a;
+    border-left: 4px solid #818b90;
+    border-radius: 2px 4px 4px 2px;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general.slb-library-type-variant-1 {
+    --ll-cover-color: #dae2ea;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general.slb-library-type-variant-2 {
+    --ll-cover-color: #32373d;
+    --ll-cover-ink: #f4f2ec;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general::before {
+    inset: 21% 12% auto;
+    width: auto;
+    height: 29%;
+    border: 1px solid currentColor;
+    border-left: 4px solid currentColor;
+    opacity: .23;
+    background: transparent;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general::after {
+    inset: 61% 18% auto;
+    width: auto;
+    height: 12%;
+    background: repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 6px);
+    opacity: .2;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general .slb-library-cover-mark {
+    border: 1px solid currentColor;
+    border-radius: 1px;
+}

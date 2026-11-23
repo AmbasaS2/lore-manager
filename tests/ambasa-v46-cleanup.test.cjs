@@ -120,7 +120,7 @@ test('cover layout uses distinct saved-type variants instead of just arbitrary c
    const cover=f.q('.slb-library-cover-art');
    assert.ok(cover.classList.contains('slb-library-cover-type-'+type));
    assert.equal(cover.querySelector('.slb-library-cover-mark').textContent,
-      {general:'▤',memory:'✧',world:'✥',people:'A–Z'}[type]);
+      {general:'F',memory:'J',world:'W',people:'A–Z'}[type]);
    assert.match(css,new RegExp('\\.slb-library-cover-art\\.slb-library-cover-type-'+type+'\\s*\\{'));
    assert.equal(f.stat.load,0);
   }finally{f.dom.window.close()}

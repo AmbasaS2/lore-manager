@@ -179,16 +179,17 @@ test('resize grip responds to pointer deltas without using observers or reloadin
    const shell=f.q('.slb-library-shell');
    const grip=f.q('.slb-library-resize-grip');
    assert.ok(grip);
-   shell.getBoundingClientRect=()=>({left:20,top:30,width:600,height:530});
+   shell.getBoundingClientRect=()=>({left:210,top:105,width:600,height:530});
    const down=new f.w.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:560,clientY:500});
    grip.dispatchEvent(down);
    const move=new f.w.MouseEvent('pointermove',{bubbles:true,clientX:650,clientY:540});
    f.w.dispatchEvent(move);
    assert.equal(shell.style.width,'780px');
    assert.equal(shell.style.height,'610px');
-   assert.equal(shell.style.left,'50%');
-   assert.equal(shell.style.top,'50%');
-   assert.equal(shell.style.transform,'translate(-50%, -50%)');
+   assert.equal(shell.style.position,'fixed');
+   assert.equal(shell.style.left,'120px');
+   assert.equal(shell.style.top,'65px');
+   assert.equal(shell.style.transform,'none');
    f.w.dispatchEvent(new f.w.MouseEvent('pointerup',{bubbles:true,clientX:650,clientY:540}));
    assert.equal(f.stats.bookReads,0);
  }finally{f.dom.window.close()}
