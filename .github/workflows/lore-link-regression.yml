@@ -11,5 +11,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-save --no-package-lock jsdom@26
+      - run: npm install --no-save --no-package-lock jsdom@26 jquery@3
       - run: node --test tests/*.test.cjs
