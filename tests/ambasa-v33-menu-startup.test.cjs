@@ -20,6 +20,7 @@ function fixture(html) {
         "const jQuery = callback => callback();",
         "const createElement = (tag, className = '', text = '') => { const el = document.createElement(tag); if(className) el.className=className; if(text) el.textContent=text; return el; };",
         "const openStandaloneLibrary = () => window.__opened++;",
+        "const openStandaloneLibraryEntry = async () => false;",
         "const init = () => { window.__initCalled++; /* world info not ready: defers */ };",
         "window.__opened=0; window.__initCalled=0;",
         menu,
