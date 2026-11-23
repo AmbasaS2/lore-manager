@@ -110,6 +110,8 @@ export function createStandaloneLibrary({
     removeBookCover = async () => {},
     getTheme = () => 'antique',
     setTheme = async () => {},
+    getWindowSize = () => null,
+    setWindowSize = () => {},
     getListPageSize = () => 5,
     setListPageSize = async () => {},
     getListOrder = () => 'normal',
@@ -883,6 +885,18 @@ export function createStandaloneLibrary({
             win.visualViewport?.removeEventListener?.('scroll', placeOnViewportChange);
         };
     }
+    // Save only an explicitly completed resize, never on initial layout,
+    // mobile keyboard changes, viewport clamping, or minimize/restore.
+    function rememberWindowSize() {
+        if (!floatingSize) return;
+        const size = { width: floatingSize.width, height: floatingSize.height };
+        if (!Number.isFinite(size.width) || !Number.isFinite(size.height)) return;
+        try {
+            setWindowSize(size, visibleLibraryViewport().width <= 760);
+        } catch {
+            notifyStatus('서재 창 크기를 저장하지 못했습니다.', 'warning');
+        }
+    }
     function beginResize(event) {
         if (event.button !== 0 && event.pointerType !== 'touch') return;
         const shell = overlay?.querySelector('.slb-library-shell');
@@ -896,12 +910,15 @@ export function createStandaloneLibrary({
         const centerX = rect.width ? rect.left + rect.width / 2 : vp.left + vp.width / 2;
         const centerY = rect.height ? rect.top + rect.height / 2 : vp.top + vp.height / 2;
         const startX = event.clientX, startY = event.clientY;
+        let resized = false;
         // The initial fixed coordinates exactly preserve the current rectangle.
         placeFloatingShell(shell, width, height, centerX, centerY);
         const grip = event.currentTarget;
         const win = doc.defaultView;
         const onMove = move => {
             if (move.pointerId !== event.pointerId) return;
+            if (move.clientX === startX && move.clientY === startY) return;
+            resized = true;
             placeFloatingShell(shell,
                 width + 2 * (move.clientX - startX),
                 height + 2 * (move.clientY - startY),
@@ -911,6 +928,7 @@ export function createStandaloneLibrary({
             if (move && move.pointerId !== event.pointerId) return;
             resizeCleanup?.();
             resizeCleanup = null;
+            if (resized && move?.type === 'pointerup') rememberWindowSize();
             refreshAfterResize();
         };
         resizeCleanup = () => {
@@ -942,6 +960,7 @@ export function createStandaloneLibrary({
             width + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0),
             height + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0),
             centerX, centerY);
+        rememberWindowSize();
         refreshAfterResize();
     }
     // This editor is mounted only when a user explicitly opens a cover
@@ -2654,9 +2673,10 @@ export function createStandaloneLibrary({
         // pixels *before* any drag, avoiding a positioning-mode jump.
         const vp = visibleLibraryViewport();
         const rect = shell.getBoundingClientRect();
+        const preferred = getWindowSize(vp.width <= 760);
         placeFloatingShell(shell,
-            Math.min(460, vp.width - 20),
-            rect.height || Math.min(785, vp.height - 32),
+            preferred?.width ?? Math.min(460, vp.width - 20),
+            preferred?.height ?? (rect.height || Math.min(785, vp.height - 32)),
             vp.left + vp.width / 2, vp.top + vp.height / 2);
         bindLibraryViewport();
         syncAppearanceControls();
