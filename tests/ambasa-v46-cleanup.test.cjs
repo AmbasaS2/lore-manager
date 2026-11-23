@@ -136,7 +136,7 @@ test('world search displays readable stable index numbers when filtered',async()
   search.value='Entry 9';
   search.dispatchEvent(new f.w.Event('input',{bubbles:true}));
   assert.deepEqual(f.qa('.slb-library-index-initial').map(e=>e.textContent),['10']);
-  assert.equal(f.q('.slb-library-world-menu').textContent,'목차');
+  assert.equal(f.q('.slb-library-world-menu').textContent,'목차 접기');
   assert.match(css,/\.slb-library-index-initial\s*\{[^}]*color:\s*#384655/s);
  }finally{f.dom.window.close()}
 });
@@ -147,7 +147,7 @@ test('people search uses concise names and opens one profile',async()=>{
   await f.load();
   assert.equal(f.q('#slb-library-search').placeholder,'검색');
   assert.equal(f.q('.slb-library-people-search'),null,'search is unified at the top');
-  assert.equal(f.qa('.slb-library-person-row').length,12);
+  assert.equal(f.qa('.slb-library-person-row').length,5);
   f.click('[data-action="entry"][data-uid="1"]');
   assert.equal(f.qa('.slb-library-person-row').length,0);
   assert.equal(f.q('.slb-library-detail-people').dataset.uid,'1');

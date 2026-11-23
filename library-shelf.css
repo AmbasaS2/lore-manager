@@ -4685,3 +4685,194 @@
         display: none !important;
     }
 }
+
+/* v50: de-ornamented, rectangular book tops; preserve type bindings and the
+   physical three-tier shelf, without the gravestone-like arched shoulders. */
+#slb-library-overlay button.slb-library-book-spine {
+    border-radius: 2px 4px 1px 1px;
+}
+#slb-library-overlay button.slb-library-book-spine::before {
+    border-radius: 1px;
+}
+
+/* Every shelf and reader uses a compact Font Awesome magnifier trigger.
+   The real search field is exposed only on demand, not duplicated. */
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-books-head {
+    flex: 0 0 29px !important;
+    width: 29px !important;
+    min-width: 29px !important;
+    margin-left: auto;
+    position: relative;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-shelf-search-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 29px;
+    min-width: 29px;
+    max-width: 29px;
+    height: 29px;
+    min-height: 29px;
+    padding: 0;
+    font-size: .86em;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-shelf-search {
+    display: none !important;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar.is-search-open .slb-library-shelf-search {
+    display: block !important;
+    position: absolute;
+    z-index: 12;
+    top: calc(100% + 4px);
+    right: 0;
+    width: min(210px, 78vw);
+    max-width: min(210px, 78vw);
+    min-width: min(150px, 78vw);
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 5px 9px !important;
+    border: 1px solid var(--ll-line);
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    box-shadow: 0 5px 17px #00000024;
+}
+#slb-library-overlay .slb-library-shelf-search-icon,
+#slb-library-overlay .slb-library-shelf-toolbar.is-search-open .slb-library-shelf-search-icon {
+    display: none !important;
+}
+#slb-library-overlay .slb-library-navigation.slb-library-has-book .slb-library-reader-search-toggle {
+    display: inline-grid !important;
+    place-items: center;
+    flex: 0 0 29px;
+    width: 29px;
+    min-width: 29px;
+    max-width: 29px;
+    height: 29px;
+    min-height: 29px;
+    padding: 0;
+    font-size: .88em;
+}
+#slb-library-overlay .slb-library-navigation.slb-library-has-book #slb-library-search {
+    display: none !important;
+}
+#slb-library-overlay .slb-library-navigation.slb-library-has-book.is-search-open #slb-library-search {
+    display: block !important;
+    position: absolute;
+    z-index: 9;
+    top: calc(100% + 3px);
+    right: 10px;
+    flex: 0 0 auto;
+    width: min(200px, calc(100% - 20px));
+    max-width: min(200px, calc(100% - 20px));
+    min-width: 0;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 5px 9px !important;
+    border: 1px solid var(--ll-line);
+    background: var(--ll-paper-light);
+    box-shadow: 0 4px 15px #0000001c;
+}
+#slb-library-overlay .slb-library-search-word { display: none !important; }
+
+/* Keep the translated/source switch and ellipsis next to each other on the
+   right across all four themes, including BlackBerry and E-book readers. */
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: flex-end !important;
+    gap: 5px;
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools > .slb-library-view-toggle {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools > button.slb-library-more-tools {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Bounded, comfortably sized pagination for both encyclopedia and people.
+   No long vertically scrolling name list in any reader skin. */
+#slb-library-overlay .slb-library-world-pages,
+#slb-library-overlay .slb-library-people-pages {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 35px;
+    width: 100%;
+    margin: 8px 0 0;
+    padding: 6px 0 0;
+    border-top: 1px solid var(--ll-line);
+    color: var(--ll-muted);
+}
+#slb-library-overlay .slb-library-world-pages button,
+#slb-library-overlay .slb-library-people-pages button {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    min-width: 34px;
+    min-height: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: 1.25em;
+    font-weight: 650;
+    line-height: 1;
+}
+#slb-library-overlay .slb-library-world-pages button:disabled,
+#slb-library-overlay .slb-library-people-pages button:disabled {
+    opacity: .34;
+    cursor: default;
+}
+#slb-library-overlay .slb-library-world-pages small,
+#slb-library-overlay .slb-library-people-pages small {
+    font-size: .85em;
+    font-variant-numeric: tabular-nums;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-people-list,
+#slb-library-overlay .slb-library-reader-clean .slb-library-people-list {
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100%;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-person-directory {
+    min-width: 0;
+    max-width: 100%;
+}
+#slb-library-overlay .slb-library-reader-frame button.slb-library-person-row {
+    min-height: 44px;
+    padding: 6px 9px;
+    gap: 9px;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-person-initial {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-world-menu {
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-reader-clean .slb-library-clean-list-row .slb-library-clean-list-icon {
+    display: none;
+}
+
+/* On BlackBerry, all five people and the previous/next pager must be visible
+   together above the static keyboard. Longer profile prose still scrolls
+   inside the device screen, never inside the five-name list. */
+#slb-library-overlay .slb-library-reader-blackberry .slb-library-app-reading-screen {
+    max-height: min(53dvh, 420px);
+}
+
+/* Long bilingual character names may occupy two lines. Reserve enough of the
+   Blackberry screen for five readable rows AND the pager above its keyboard. */
+#slb-library-overlay .slb-library-reader-blackberry .slb-library-app-reading-screen {
+    max-height: min(57dvh, 450px);
+}
