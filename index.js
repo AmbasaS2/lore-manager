@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.64';
+const VERSION = '1.4.85-ambasa.65';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -9628,6 +9628,20 @@ async function openStandaloneLibrary() {
     }
 }
 
+// Opt-in, versioned API consumed on click by WorldInfo Info. No observer,
+// automatic AI request, DOM emulation, or static dependency on that extension.
+async function openStandaloneLibraryEntry({ book, uid } = {}) {
+    if (typeof book !== 'string' || !world_names.includes(book) ||
+        !/^\d+$/.test(String(uid ?? ''))) return false;
+    try {
+        await ensureLibraryStyles();
+        return await initStandaloneLibrary().openEntry(book, uid);
+    } catch (error) {
+        console.warn('[로어북 매니저] 로어북 서가 외부 이동 실패', error);
+        return false;
+    }
+}
+
 function bindStandaloneLibraryMenu() {
     const menu = document.getElementById('extensionsMenu');
     if (!menu || document.getElementById('slb-library-menu-container')) return;
@@ -9768,6 +9782,12 @@ jQuery(() => {
         return;
     }
     window.__slbLoreManagerActive = VERSION;
+    // Only the active manager instance exposes this small, navigation-only
+    // bridge. WorldInfo Info can load earlier and discover it at click time.
+    window.__slbLoreLibraryBridge = Object.freeze({
+        apiVersion: 1,
+        openEntry: openStandaloneLibraryEntry,
+    });
     // The wand menu belongs to ST, not to the WorldInfo editor. Register
     // independently: the editor may initialize later or stop before its
     // ordinary settings/render setup completes.
