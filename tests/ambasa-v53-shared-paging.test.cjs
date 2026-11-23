@@ -209,13 +209,14 @@ test('tag badge stays next to book title in all sixteen theme/type combinations 
             const f = await fixture({ theme, kind, n: 36 });
             try {
                 await f.load();
-                const nav = f.q('.slb-library-nav-top');
-                const title = f.q('.slb-library-current');
-                const tags = f.q('.slb-library-nav-tags > .slb-library-book-meta');
-                assert.ok(nav.contains(title) && nav.contains(tags));
-                assert.equal(title.nextElementSibling, f.q('.slb-library-nav-tags'));
+                const line = f.q('.slb-library-reader-bookline');
+                const title = f.q('.slb-library-reader-book-title');
+                const tags = f.q('.slb-library-reader-book-tags > .slb-library-book-meta');
+                assert.ok(line.contains(title) && line.contains(tags));
+                assert.equal(title.textContent, 'The Book');
+                assert.equal(title.nextElementSibling, f.q('.slb-library-reader-book-tags'));
                 assert.equal(f.all('details.slb-library-book-meta').length, 1);
-                assert.equal(f.q('.slb-library-reader-inner .slb-library-book-meta'), null);
+                assert.equal(f.q('.slb-library-nav-tags .slb-library-book-meta'), null);
                 const input = f.q('#slb-library-book-tag-input');
                 input.value = 'world, draft';
                 input.dispatchEvent(new f.win.Event('input', { bubbles: true }));

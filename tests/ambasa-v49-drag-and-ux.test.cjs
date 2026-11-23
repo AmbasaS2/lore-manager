@@ -115,7 +115,7 @@ test('classic journal and encyclopedia keep tag beside title with independent bo
   const f=await fixture({kind,nEntries:22});
   try{
    await f.load();
-   assert.ok(f.q('.slb-library-nav-tags > .slb-library-book-meta'));
+   assert.ok(f.q('.slb-library-reader-book-tags > .slb-library-book-meta'));
    assert.equal(f.q('.slb-library-reader-meta-row'),null);
    if(kind==='memory'){
     assert.ok(f.q('[data-action="memory-menu"]'));

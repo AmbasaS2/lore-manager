@@ -126,11 +126,11 @@ test('TOC heading contains count and toggles without a re-render or changing tag
             const heading = f.q('[data-action="world-menu"]');
             assert.ok(heading);
             assert.ok(heading.classList.contains('slb-library-index-heading'));
-            assert.match(heading.textContent, /목차 · CONTENTS/);
+            assert.match(heading.textContent, /CONTENTS/);
             assert.match(heading.textContent, /7개 항목/);
             assert.equal(heading.getAttribute('aria-expanded'), 'true');
             assert.equal(f.qa('.slb-library-section-head').length, 0, 'count is not duplicated above reader');
-            assert.ok(f.q('.slb-library-nav-tags > details.slb-library-book-meta'));
+            assert.ok(f.q('.slb-library-reader-book-tags > details.slb-library-book-meta'));
             assert.equal(f.q('.slb-library-reader-meta-row'), null);
             assert.equal(f.qa('.slb-library-index-item').length, 5);
             const record = f.q('.slb-library-detail-world');
@@ -152,7 +152,7 @@ test('tag menu lists existing tags, reuses them without writes, stays detached f
     const f = await fixture({ theme: 'ebook', kind: 'world' });
     try {
         await f.load();
-        const row = f.q('.slb-library-nav-tags');
+        const row = f.q('.slb-library-reader-book-tags');
         const tags = f.q('details.slb-library-book-meta');
         const toc = f.q('[data-action="world-menu"]');
         assert.ok(tags && !tags.open);
@@ -165,7 +165,7 @@ test('tag menu lists existing tags, reuses them without writes, stays detached f
         assert.equal(f.q('#slb-library-book-tag-input').value, 'alpha, beta');
         assert.equal(f.q('[data-action="book-tag-suggest"][data-tag="beta"]').getAttribute('aria-pressed'), 'true');
         assert.equal(f.stats.writes, 0);
-        assert.equal(f.q('.slb-library-nav-tags'), row);
+        assert.equal(f.q('.slb-library-reader-book-tags'), row);
         assert.equal(f.q('[data-action="world-menu"]'), toc);
         f.click('[data-action="book-tag-save"]');
         await tick();

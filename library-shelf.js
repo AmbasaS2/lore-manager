@@ -1727,13 +1727,22 @@ export function createStandaloneLibrary({
         const translation = translationFor(currentBook, entry);
         return translation?.title?.trim() || name || '항목 #' + entry.uid;
     }
-    function cleanReaderChrome(type) {
-        const title = LIBRARY_BOOK_TYPES[type];
+    function readerBookLine() {
+        // The book name and its existing tag editor occupy a single real
+        // header in every skin. No redundant book type or decorative copy.
+        const line = element(doc, 'div', 'slb-library-reader-bookline');
+        const title = element(doc, 'strong', 'slb-library-reader-book-title', currentBook);
+        title.title = currentBook;
+        const tags = element(doc, 'div', 'slb-library-reader-book-tags');
+        line.append(title, tags);
+        return line;
+    }
+    function cleanReaderChrome() {
         const chrome = element(doc, 'div', 'slb-library-clean-chrome');
         const dots = element(doc, 'span', 'slb-library-window-dots');
         dots.setAttribute('aria-hidden', 'true');
         dots.append(element(doc, 'i'), element(doc, 'i'), element(doc, 'i'));
-        chrome.append(dots, element(doc, 'strong', '', title));
+        chrome.append(dots, readerBookLine());
         return chrome;
     }
     function blackBerryKeys() {
@@ -1760,7 +1769,7 @@ export function createStandaloneLibrary({
         frame.dataset.libraryMode = mode;
         const inner = element(doc, 'div', 'slb-library-reader-inner');
         if (mode === 'mac') {
-            frame.append(cleanReaderChrome(type));
+            frame.append(cleanReaderChrome());
             const workspace = element(doc, 'div', 'slb-library-clean-workspace');
             // The book-type picker already exists above the reader; duplicating
             // it in a left COLLECTIONS rail wastes space on narrow windows.
@@ -1770,25 +1779,18 @@ export function createStandaloneLibrary({
             const top = element(doc, 'div', 'slb-library-app-device-head');
             const led = element(doc, 'span', 'slb-library-app-device-led', '•');
             led.setAttribute('aria-hidden', 'true');
-            top.append(led, element(doc, 'strong', '', LIBRARY_BOOK_TYPES[type]),
+            top.append(led, readerBookLine(),
                 element(doc, 'span', 'slb-library-device-signal', '▰ ▰'));
             const screen = element(doc, 'div', 'slb-library-app-reading-screen');
             screen.append(inner);
             frame.append(top, screen, blackBerryKeys());
         } else if (mode === 'ebook') {
             const paper = element(doc, 'div', 'slb-library-ebook-paper');
-            paper.append(inner);
+            paper.append(readerBookLine(), inner);
             frame.append(paper);
         } else {
             const banner = element(doc, 'div', 'slb-library-classic-banner');
-            const heading = {
-                general: 'CATALOGUE · DRAWER 01',
-                memory: 'PERSONAL JOURNAL · VOL. II',
-                world: 'ENCYCLOPAEDIA · VOL. III',
-                people: 'PERSONAL REGISTER · VOL. IV',
-            }[type];
-            banner.append(element(doc, 'span', '', heading),
-                element(doc, 'span', '', type === 'people' ? 'CONFIDENTIAL' : 'PRIVATE COLLECTION'));
+            banner.append(readerBookLine());
             frame.append(banner, inner);
         }
         body.append(frame);
@@ -1801,14 +1803,17 @@ export function createStandaloneLibrary({
         body.dataset.type = type;
         overlay.querySelector('.slb-library-navigation')?.classList.toggle('is-search-open', readerSearchOpen);
         overlay.querySelector('[data-action="reader-search-toggle"]')?.setAttribute('aria-expanded', String(readerSearchOpen));
+        // Preserve the actual tag editor/input when a book page is replaced;
+        // moving the node to the stable temporary slot keeps its unsaved draft.
+        const tagSlot = overlay.querySelector('.slb-library-nav-tags');
+        const previous = overlay.querySelector('.slb-library-book-meta');
+        if (previous && tagSlot && previous.parentElement !== tagSlot) tagSlot.append(previous);
         body.replaceChildren();
         const found = filtered();
-        const tagSlot = overlay.querySelector('.slb-library-nav-tags');
-        // Keep the same tag editor DOM while paging/searching: preserving any
-        // unsaved tag draft, focus and open state instead of replacing its input.
-        if (tagSlot && !tagSlot.querySelector('.slb-library-book-meta'))
-            tagSlot.append(renderBookTagPanel());
         const inner = readerContainer(body, type);
+        const tagTarget = body.querySelector('.slb-library-reader-book-tags');
+        const existingTagPanel = tagSlot?.querySelector('.slb-library-book-meta');
+        if (tagTarget) tagTarget.append(existingTagPanel || renderBookTagPanel());
         if (!found.length) {
             inner.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
             return;
@@ -1839,7 +1844,7 @@ export function createStandaloneLibrary({
         const info = pageData(found.length, catalogPage);
         catalogPage = info.page;
         const frame = element(doc, 'div', 'slb-library-catalog-frame slb-library-paged-contents');
-        frame.append(contentsHeading('카드파일 · INDEX', found.length,
+        frame.append(contentsHeading('INDEX', found.length,
             'catalog-menu', catalogListOpen, 'slb-library-catalog-contents'));
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-catalog-contents';
@@ -1861,7 +1866,7 @@ export function createStandaloneLibrary({
         const chosen = visible.find(item => String(item.uid) === selectedUid) || visible[0];
         selectedUid = String(chosen.uid);
         const frame = element(doc, 'div', 'slb-library-paged-contents');
-        frame.append(contentsHeading('카드파일 · INDEX', found.length,
+        frame.append(contentsHeading('INDEX', found.length,
             'catalog-menu', catalogListOpen, 'slb-library-catalog-contents'));
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-catalog-contents';
@@ -1878,7 +1883,6 @@ export function createStandaloneLibrary({
         frame.append(contents);
         body.append(frame);
         const preview = element(doc, 'div', 'slb-library-clean-preview');
-        preview.append(element(doc, 'small', '', 'SELECTED RECORD'));
         preview.append(renderDetail(chosen, 'general'));
         body.append(preview);
     }
@@ -1906,7 +1910,7 @@ export function createStandaloneLibrary({
         const info = pageData(found.length, diaryTocPage);
         diaryTocPage = info.page;
         const frame = element(doc, 'div', 'slb-library-paged-contents slb-library-diary-toc');
-        frame.append(contentsHeading('기록 목차 · CONTENTS', found.length,
+        frame.append(contentsHeading('CONTENTS', found.length,
             'memory-menu', memoryTocOpen, 'slb-library-memory-contents'));
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-memory-contents';
@@ -1962,7 +1966,7 @@ export function createStandaloneLibrary({
         const layout = element(doc, 'div', 'slb-library-index-layout');
         layout.classList.toggle('is-index-open', worldIndexOpen);
         const menu = button(doc, 'slb-library-world-menu slb-library-index-heading', '', 'world-menu');
-        menu.append(element(doc, 'span', '', '목차 · CONTENTS'),
+        menu.append(element(doc, 'span', '', 'CONTENTS'),
             element(doc, 'small', 'slb-library-world-count', found.length + '개 항목'),
             faIcon(doc, worldIndexOpen ? 'chevron-up' : 'chevron-down'));
         menu.setAttribute('aria-label', worldIndexOpen ? '목차 접기' : '목차 펼치기');
@@ -2016,7 +2020,7 @@ export function createStandaloneLibrary({
             return;
         }
         const directory = element(doc, 'div', 'slb-library-person-directory slb-library-paged-contents');
-        directory.append(contentsHeading('인물록 · DIRECTORY', found.length,
+        directory.append(contentsHeading('DIRECTORY', found.length,
             'people-menu', peopleListOpen, 'slb-library-people-contents'));
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-people-contents';
@@ -2083,7 +2087,6 @@ export function createStandaloneLibrary({
         article.dataset.uid = uid;
         if (type !== 'memory') {
             const header = element(doc, 'header', 'slb-library-detail-head');
-            header.append(element(doc, 'small', '', type === 'people' ? 'CONTACT RECORD' : type === 'world' ? 'ENCYCLOPEDIA' : 'ARCHIVE FILE'));
             header.append(element(doc, 'h3', '', titleOf(entry)));
             if (type === 'people') header.prepend(element(doc, 'span', 'slb-library-avatar', (titleOf(entry).trim()[0] || '?').toUpperCase()));
             article.append(header);

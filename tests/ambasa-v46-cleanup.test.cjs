@@ -60,7 +60,7 @@ test('all reader modes use compact labels without any repeated library prefix or
    try{
     await f.load();
     const h=f.q(variant==='mac' ? '.slb-library-clean-chrome strong' : '.slb-library-app-device-head strong');
-    assert.equal(h.textContent,{general:'카드파일',memory:'메모리',world:'백과사전',people:'인물록'}[type]);
+    assert.equal(h.textContent,'Book 1','reader chrome shows the actual book name, not repeated category');
     assert.equal(f.q('.slb-library-clean-chrome small'),null,'no repeated LORE LIBRARY');
     assert.equal(f.q('.slb-library-device-top'),null,'no fake clock/status header');
     assert.doesNotMatch(f.q('.slb-library-reader-frame').textContent,/14:05|로어 라이브러리\s*·/);
@@ -138,7 +138,7 @@ test('world search displays readable stable index numbers when filtered',async()
   search.dispatchEvent(new f.w.Event('input',{bubbles:true}));
   assert.deepEqual(f.qa('.slb-library-index-initial').map(e=>e.textContent),['10']);
   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 접기');
-  assert.match(f.q('.slb-library-world-menu').textContent,/목차 · CONTENTS/);
+  assert.match(f.q('.slb-library-world-menu').textContent,/CONTENTS/);
   assert.match(css,/\.slb-library-index-initial\s*\{[^}]*color:\s*#384655/s);
  }finally{f.dom.window.close()}
 });
