@@ -2550,7 +2550,7 @@ export function createStandaloneLibrary({
         const serial = ++externalOpenSerial;
         const name = typeof book === 'string' ? book : '';
         const entryUid = typeof uid === 'string' || typeof uid === 'number' ? String(uid) : '';
-        if (!name || !/^\\d+$/.test(entryUid) || !listBooks().includes(name)) return false;
+        if (!name || !/^\d+$/.test(entryUid) || !listBooks().includes(name)) return false;
         let data;
         try {
             data = isOpen() && currentBook === name && currentData ? currentData : await loadBook(name);
