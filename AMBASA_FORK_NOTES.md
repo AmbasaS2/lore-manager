@@ -1,5 +1,13 @@
 # 로어북 매니저 · AmbasaS2 베타 변경 기록
 
+## v1.4.85-ambasa.65 · 2026-11-23 · WorldInfo Info 「로어북 서가 연동」용 정확한 로어 바로 열기
+
+- **요청과 정본:** main .64 (9d6a2bb4) 기반. WorldInfo Info 주입 로어 목록 클릭 시 독립 서재의 같은 로어북·같은 UID 기록으로 이동. 중복/번역 제목을 식별에 사용하지 않음.
+- **기능:** 버전 1 window.__slbLoreLibraryBridge.openEntry({book, uid}) 공개. 유효한 책/UID를 확인한 뒤 4개 테마×4개 유형의 정확한 기록으로 이동하고 페이지 크기·정렬/역순에 맞춰 이동. 열린 편집기 초안 보존·이동 취소 시 false 반환. 사용자 원본·번역·이미지·설정 저장 및 AI 자동 호출 없음.
+- **호환:** WorldInfo Info 없이도 매니저 평소 기능 불변. 옵션은 WorldInfo Info에서 기본 꺼짐. 실패하면 WorldInfo Info의 기존 플로팅 열람창 사용. native/Foldy/통합 관리 페이지 캐시 변경 없음.
+- **검증:** JS 구문 검사, openEntry 메서드 격리 16분기 통과. JSDOM 4테마×4유형, 240항목, 편집 초안 보존 자동 테스트 소스 추가. 실제 전체 Node22/JSDOM 회귀 및 Windows/iOS Safari 실사용 테스트는 아직 실행 전.
+- **변경/롤백:** index.js, library-shelf.js, manifest.json, tests/ambasa-v65-worldinfoinfo-link.test.cjs와 기록. 문제시 직전 .64 9d6a2bb4 코드만 복원. 로어북/번역/설정/이미지 파일은 유지.
+
 ## v1.4.85-ambasa.64 · 2026-11-23 · 좁은 창의 불필요 중첩 틀/접기 줄 제거·페이저 겹침/기록 메뉴 폭 수정
 
 - **사용자 증상/정본:** GitHub main `.63` `2d08895ffafa9e904a0998ada1e13e3e15e868a8`의 실제 파일을 별도 클론으로 받아 작업. 사용자가 좁은 서재 창에서 **목차 상자/리더 상자/접기 바 등 중첩 틀로 읽기 면적이 좁고, 106px 정렬 셀렉트와 네 페이지 화살표가 겹치며, 기록 상세 `…` 메뉴가 지나치게 넓고 항목별 태그 편집 기능은 불필요하다**고 스크린샷으로 보고. 실제 사용자 Windows ST 설치본/SillyTavern 버전 및 iOS Safari는 연결되지 않아 이 환경에서 직접 확인 불가; 제공된 실제 화면과 GitHub 최신 파일을 정본으로 적용.
