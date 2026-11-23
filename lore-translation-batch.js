@@ -37,9 +37,13 @@ export function buildLoreFieldBatchPrompt({sources,fields,targetLanguage='ko',in
 
 function parseJSONCandidate(value) {
     const text=String(value??'').trim();
-    const stripped=text.startsWith('\x60\x60\x60')
-        ? text.replace(/^\x60\x60\x60(?:json)?\s*\n?/i,'').replace(/\n?\s*\x60\x60\x60$/,'').trim()
-        : text;
+    let stripped = text;
+    if (stripped.startsWith('\x60\x60\x60')) {
+        stripped = stripped.replace(/^\x60\x60\x60(?:json)?\s*\n?/i, '');
+        // The terminal delimiter check replaces the quadratic trailing \s* scan.
+        if (stripped.endsWith('\x60\x60\x60')) stripped = stripped.slice(0, -3);
+        stripped = stripped.trim();
+    }
     // If the response wraps the JSON in prose, find a balanced object only
     // when there is exactly one JSON object. Never parse positional chunks.
     let parsed;

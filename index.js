@@ -1219,8 +1219,13 @@ function hashText(value) {
 
 function cleanAIText(value) {
     let text = String(value ?? '').trim();
-    const fenced = text.match(/^```(?:\w+)?\s*([\s\S]*?)\s*```$/);
-    if (fenced) text = fenced[1].trim();
+    // A complete fence must have opening and closing delimiters. Check them
+    // before parsing the header so malformed, whitespace-heavy replies stay linear.
+    if (text.length >= 6 && text.startsWith('```') && text.endsWith('```')) {
+        const inner = text.slice(3, -3);
+        const headerLength = /^(?:\w+)?\s*/.exec(inner)[0].length;
+        text = inner.slice(headerLength).trim();
+    }
     return text;
 }
 
@@ -1492,6 +1497,89 @@ function mirroredStructureClose(opening) {
         .join('');
 }
 
+// Match the original symbolic-wrapper groups without regex backtracking.
+// The structure check must preserve its exact captures (not just true/false).
+const STRUCTURE_SYMBOL_CHARACTER = /^[\p{P}\p{S}]$/u;
+const STRUCTURE_WHITESPACE_CHARACTER = /^\s$/u;
+
+function matchStructureSymbolicWrapper(text) {
+    const length = text.length;
+    if (length < 3) return null;
+    let lastStart = length - 1;
+    const lastUnit = text.charCodeAt(lastStart);
+    if (lastStart > 0 && lastUnit >= 0xDC00 && lastUnit <= 0xDFFF) {
+        const previousUnit = text.charCodeAt(lastStart - 1);
+        if (previousUnit >= 0xD800 && previousUnit <= 0xDBFF) lastStart--;
+    }
+    if (!STRUCTURE_SYMBOL_CHARACTER.test(text.slice(lastStart))) return null;
+
+    // Group 1 is greedy: use the longest leading symbol run that leaves
+    // at least two non-whitespace characters for the middle and closing groups.
+    const lastPrefixStarts = [];
+    let prefixEnd = 0;
+    for (const point of text) {
+        if (!STRUCTURE_SYMBOL_CHARACTER.test(point)) break;
+        lastPrefixStarts.push(prefixEnd);
+        if (lastPrefixStarts.length > 3) lastPrefixStarts.shift();
+        prefixEnd += point.length;
+    }
+    if (!lastPrefixStarts.length) return null;
+    let remaining = 0;
+    for (const point of text.slice(prefixEnd)) {
+        if (!STRUCTURE_WHITESPACE_CHARACTER.test(point)) remaining++;
+        if (remaining >= 2) break;
+    }
+    while (remaining < 2 && lastPrefixStarts.length > 1) {
+        prefixEnd = lastPrefixStarts.pop();
+        remaining++;
+    }
+    if (remaining < 2) return null;
+
+    let middleStart = prefixEnd;
+    while (middleStart < length && STRUCTURE_WHITESPACE_CHARACTER.test(text[middleStart])) middleStart++;
+    const firstMiddleEnd = middleStart + (text.codePointAt(middleStart) > 0xFFFF ? 2 : 1);
+
+    // Group 3 is a terminal run of punctuation/symbol code points.
+    let suffixStart = length;
+    while (suffixStart > 0) {
+        let previous = suffixStart - 1;
+        const unit = text.charCodeAt(previous);
+        if (previous > 0 && unit >= 0xDC00 && unit <= 0xDFFF) {
+            const high = text.charCodeAt(previous - 1);
+            if (high >= 0xD800 && high <= 0xDBFF) previous--;
+        }
+        if (!STRUCTURE_SYMBOL_CHARACTER.test(text.slice(previous, suffixStart))) break;
+        suffixStart = previous;
+    }
+    let beforeSuffixEnd = suffixStart;
+    while (beforeSuffixEnd > middleStart && STRUCTURE_WHITESPACE_CHARACTER.test(text[beforeSuffixEnd - 1])) {
+        beforeSuffixEnd--;
+    }
+
+    // The original middle group's optional branch is greedy, even though
+    // its inner scan is lazy. Retain that capture choice on symbol-only tails.
+    let closingStart;
+    if (suffixStart <= middleStart) {
+        const secondMiddleEnd = firstMiddleEnd + (text.codePointAt(firstMiddleEnd) > 0xFFFF ? 2 : 1);
+        closingStart = secondMiddleEnd < length ? secondMiddleEnd : firstMiddleEnd;
+    } else if (beforeSuffixEnd > firstMiddleEnd) {
+        closingStart = suffixStart;
+    } else if (suffixStart < length &&
+        suffixStart >= firstMiddleEnd &&
+        suffixStart + (text.codePointAt(suffixStart) > 0xFFFF ? 2 : 1) < length) {
+        closingStart = suffixStart + (text.codePointAt(suffixStart) > 0xFFFF ? 2 : 1);
+    } else {
+        closingStart = suffixStart;
+    }
+    if (closingStart >= length) return null;
+    let middleEnd = beforeSuffixEnd > firstMiddleEnd && closingStart === suffixStart
+        ? beforeSuffixEnd
+        : (closingStart > suffixStart ? closingStart : firstMiddleEnd);
+    while (middleEnd > middleStart && STRUCTURE_WHITESPACE_CHARACTER.test(text[middleEnd - 1])) middleEnd--;
+    if (middleEnd <= middleStart) return null;
+    return [text, text.slice(0, prefixEnd), text.slice(middleStart, middleEnd), text.slice(closingStart)];
+}
+
 function getStructureLineDescriptor(line) {
     const text = String(line ?? '').trim();
     if (!text) return null;
@@ -1528,7 +1616,7 @@ function getStructureLineDescriptor(line) {
         if (nested) return { key: `blockquote:${blockquoteHeading[1].length}:${nested.key}`, exact: nested.exact };
     }
 
-    const symbolicWrapper = text.match(/^([\p{P}\p{S}]+)\s*(\S(?:[\s\S]*?\S)?)\s*([\p{P}\p{S}]+)$/u);
+    const symbolicWrapper = matchStructureSymbolicWrapper(text);
     if (symbolicWrapper) {
         const opening = symbolicWrapper[1];
         const closing = symbolicWrapper[3];
