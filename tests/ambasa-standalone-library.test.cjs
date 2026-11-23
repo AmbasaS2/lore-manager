@@ -37,6 +37,7 @@ function fixture({ count = 3, linked = new Set(['Memory Peter', 'Cody Core']), t
     const entriesByBook = Object.fromEntries(books.map(name => [name, data(count)]));
     if (translate) records.set('Memory Peter:0', { text: '한국어 번역 첫째', title: '번역 제목 0', stale: false });
     let lib;
+    let linkedOnly = true;
     return { dom, w, calls, books, types, records, entriesByBook, tagsByBook, tagSaves,
         async build() {
             const { createStandaloneLibrary } = await production();
@@ -73,6 +74,8 @@ function fixture({ count = 3, linked = new Set(['Memory Peter', 'Cody Core']), t
                 getTags: name => tagsByBook[name] || [],
                 setTags: async (name, tags) => { tagsByBook[name] = tags; tagSaves.push({name,tags}); },
                 getTheme: () => 'antique',
+                getLinkedOnly: () => linkedOnly,
+                setLinkedOnly: async enabled => { linkedOnly = enabled; },
                 notify: (message, tone) => calls.notify.push([message, tone]),
             });
             return lib;
@@ -119,6 +122,7 @@ test('start screen shows linked lorebooks only, with explicit all-books option; 
         assert.ok(linkedCheck.checked);
         linkedCheck.checked = false;
         linkedCheck.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+        await new Promise(resolve => setImmediate(resolve));
         assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length, 3);
         await f.load('Cody Locations');
         assert.deepEqual(f.calls.loaded, ['Cody Locations']);
@@ -159,22 +163,24 @@ test('catalog shows title-only overlapping stack OR one detail, with back/next/p
     } finally { f.dom.window.close(); }
 });
 
-test('diary is continuous in original order and makes later records explicit, not 240 enormous DOM pages', async () => {
+test('diary selects records from its index and pages two at a time without 240 DOM pages', async () => {
     const f = fixture({ count: 240, type: 'memory' });
     try {
         const lib = await f.build();
         lib.open();
         await f.load();
-        assert.equal(f.w.document.querySelectorAll('.slb-library-diary-page').length, 12);
+        assert.equal(f.w.document.querySelectorAll('.slb-library-diary-page').length, 2);
         assert.match(f.w.document.querySelector('.slb-library-diary-date').textContent, /2024-06-10/);
-        f.click('[data-action="more"]');
-        assert.equal(f.w.document.querySelectorAll('.slb-library-diary-page').length, 24);
+        assert.equal(f.w.document.querySelector('#slb-library-diary-select').options.length, 240);
+        f.click('[data-action="diary-next"]');
+        assert.equal(f.w.document.querySelectorAll('.slb-library-diary-page').length, 2);
+        assert.equal(f.w.document.querySelector('#slb-library-diary-select').value, '2');
         assert.equal(f.calls.ai.length, 0, 'rendering memory never runs the AI');
         assert.equal(f.w.document.querySelectorAll('[data-slb-editor-pending]').length, 0);
     } finally { f.dom.window.close(); }
 });
 
-test('world encyclopedia and contacts are different navigation UIs with no forced auto-selection', async () => {
+test('world encyclopedia opens first reference; contacts open names only until chosen', async () => {
     const f = fixture({ linked: null });
     try {
         const lib = await f.build();
@@ -182,13 +188,14 @@ test('world encyclopedia and contacts are different navigation UIs with no force
         await f.load('Cody Core');
         assert.equal(f.w.document.querySelector('#slb-library-overlay .slb-library-body').dataset.type, 'world');
         assert.equal(f.w.document.querySelectorAll('.slb-library-index-item').length, 3);
-        assert.equal(f.w.document.querySelector('.slb-library-detail'), null);
+        assert.equal(f.w.document.querySelector('.slb-library-detail-world').dataset.uid, '0');
         f.click('[data-action="entry"][data-uid="2"]');
         assert.equal(f.w.document.querySelector('.slb-library-detail-world').dataset.uid, '2');
         f.click('[data-action="books"]');
         await f.load('Cody Locations');
         assert.equal(f.w.document.querySelector('#slb-library-overlay .slb-library-body').dataset.type, 'people');
         assert.equal(f.w.document.querySelector('.slb-library-detail-people'), null);
+        assert.equal(f.w.document.querySelectorAll('.slb-library-person-row').length, 3);
         f.click('[data-action="entry"][data-uid="1"]');
         assert.equal(f.w.document.querySelector('.slb-library-detail-people h3').textContent, 'Dana Dawson');
         assert.ok(f.w.document.querySelector('.slb-library-avatar'), 'contacts use an initial when no portrait exists');
@@ -409,7 +416,7 @@ test('diary entry source/translation buttons act on their own entries without si
         lib.open();
         await f.load();
         const pages = [...f.w.document.querySelectorAll('.slb-library-diary-page')];
-        assert.equal(pages.length, 3);
+        assert.equal(pages.length, 2);
         assert.equal(pages[0].querySelector('.slb-library-reading').dataset.readView, 'translated');
         assert.equal(pages[1].querySelector('.slb-library-reading').dataset.readView, 'source');
         pages[0].querySelector('[data-action="toggle-view"]').click();
