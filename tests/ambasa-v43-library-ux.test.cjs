@@ -86,7 +86,7 @@ test('linked-book choice lives in saved library setting, not native global ST fi
 test('shelf title search filters metadata only and preserves input caret, without fetching books',async()=>{
  const f=await setup({nBooks:35,linkedOnly:false});
  try{
-   assert.equal(f.all('.slb-library-book-spine').length,24);
+   assert.equal(f.all('.slb-library-book-spine').length,28);
    f.input('#slb-library-shelf-search','Book 34');
    assert.equal(f.all('.slb-library-book-spine').length,1);
    assert.equal(f.q('.slb-library-book-spine').dataset.book,'Book 34');
@@ -102,9 +102,9 @@ test('two-row initial shelf adapts to narrow widths and more shows exactly two m
    Object.defineProperty(f.w,'innerWidth',{configurable:true,value:390});
    Object.defineProperty(f.q('.slb-library-body'),'clientWidth',{configurable:true,value:380});
    f.input('#slb-library-shelf-search','Book');
-   assert.equal(f.all('.slb-library-book-spine').length,12);
+   assert.equal(f.all('.slb-library-book-spine').length,14);
    f.click('[data-action="shelf-more"]');
-   assert.equal(f.all('.slb-library-book-spine').length,24);
+   assert.equal(f.all('.slb-library-book-spine').length,28);
    assert.equal(f.stats.bookReads,0);
  }finally{f.dom.window.close()}
 });
@@ -184,8 +184,11 @@ test('resize grip responds to pointer deltas without using observers or reloadin
    grip.dispatchEvent(down);
    const move=new f.w.MouseEvent('pointermove',{bubbles:true,clientX:650,clientY:540});
    f.w.dispatchEvent(move);
-   assert.equal(shell.style.width,'690px');
-   assert.equal(shell.style.height,'570px');
+   assert.equal(shell.style.width,'780px');
+   assert.equal(shell.style.height,'610px');
+   assert.equal(shell.style.left,'50%');
+   assert.equal(shell.style.top,'50%');
+   assert.equal(shell.style.transform,'translate(-50%, -50%)');
    f.w.dispatchEvent(new f.w.MouseEvent('pointerup',{bubbles:true,clientX:650,clientY:540}));
    assert.equal(f.stats.bookReads,0);
  }finally{f.dom.window.close()}
