@@ -79,7 +79,8 @@ test('narrow antique diary really builds one full page and advances one record',
   assert.equal(f.q('.slb-library-diary-pager span').textContent,'01–01 / 24');
   f.click('[data-action="diary-next"]');
   assert.deepEqual(f.qa('.slb-library-diary-page').map(e=>e.dataset.uid),['1']);
-  assert.equal(f.q('#slb-library-diary-select').value,'1');
+  assert.equal(f.q('#slb-library-diary-select'),null);
+  assert.equal(f.q('[data-action="diary-entry"][data-index="1"]').classList.contains('is-selected'),true);
   assert.equal(f.stat.load,1);
   assert.equal(f.stat.ai,0);
  }finally{f.dom.window.close()}
@@ -100,14 +101,14 @@ test('classic general retains distinct cards, then opens one independent detail'
  const f=await fixture({theme:'antique',type:'general'});
  try{
   await f.load();
-  assert.equal(f.qa('.slb-library-catalog-card').length,12);
+  assert.equal(f.qa('.slb-library-catalog-card').length,5);
   const card=f.q('.slb-library-catalog-card');
   assert.ok(card.querySelector('strong'));
   f.click('[data-action="entry"][data-uid="3"]');
   assert.equal(f.qa('.slb-library-catalog-card').length,0);
   assert.equal(f.q('.slb-library-detail-general').dataset.uid,'3');
   f.click('[data-action="catalog-back"]');
-  assert.equal(f.qa('.slb-library-catalog-card').length,12);
+  assert.equal(f.qa('.slb-library-catalog-card').length,5);
   assert.equal(f.stat.savedSource,0);
   assert.equal(f.stat.savedTranslation,0);
  }finally{f.dom.window.close()}

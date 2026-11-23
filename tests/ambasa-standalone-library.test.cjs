@@ -140,7 +140,7 @@ test('catalog shows title-only overlapping stack OR one detail, with back/next/p
         await f.load();
         assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 3);
         assert.equal(f.w.document.querySelectorAll('.slb-library-detail').length, 0);
-        assert.equal(f.w.document.querySelector('.slb-library-section-head').textContent, '3개 항목');
+        assert.equal(f.w.document.querySelector('.slb-library-contents-count').textContent, '3개 항목');
         assert.equal(f.w.document.querySelector('.slb-library-catalog-card p'), null, 'cards contain only title');
         const firstTitle=f.w.document.querySelector('.slb-library-catalog-card').textContent;
         assert.equal(firstTitle, '번역 제목 0');
@@ -171,10 +171,12 @@ test('diary selects records from its index and pages two at a time without 240 D
         await f.load();
         assert.equal(f.w.document.querySelectorAll('.slb-library-diary-page').length, 2);
         assert.match(f.w.document.querySelector('.slb-library-diary-date').textContent, /2024-06-10/);
-        assert.equal(f.w.document.querySelector('#slb-library-diary-select').options.length, 240);
+        assert.equal(f.w.document.querySelector('#slb-library-diary-select'), null);
+        assert.equal(f.w.document.querySelectorAll('[data-action="diary-entry"]').length, 5);
         f.click('[data-action="diary-next"]');
         assert.equal(f.w.document.querySelectorAll('.slb-library-diary-page').length, 2);
-        assert.equal(f.w.document.querySelector('#slb-library-diary-select').value, '2');
+        assert.equal(f.w.document.querySelector('.slb-library-diary-page').dataset.uid, '2');
+        assert.equal(f.w.document.querySelector('[data-action="diary-entry"][data-index="2"]').classList.contains('is-selected'), true);
         assert.equal(f.calls.ai.length, 0, 'rendering memory never runs the AI');
         assert.equal(f.w.document.querySelectorAll('[data-slb-editor-pending]').length, 0);
     } finally { f.dom.window.close(); }

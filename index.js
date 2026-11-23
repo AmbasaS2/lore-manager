@@ -27,7 +27,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.52';
+const VERSION = '1.4.85-ambasa.53';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -124,6 +124,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryTheme: 'antique',
     libraryCleanVariant: 'mac',
     libraryLinkedOnly: true,
+    libraryListPageSize: 5,
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -364,6 +365,8 @@ function getSettings() {
         settings.libraryTheme = 'antique';
     if (!['mac', 'blackberry'].includes(settings.libraryCleanVariant)) settings.libraryCleanVariant = 'mac';
     settings.libraryLinkedOnly = settings.libraryLinkedOnly !== false;
+    settings.libraryListPageSize = [5, 10, 20].includes(Number(settings.libraryListPageSize))
+        ? Number(settings.libraryListPageSize) : 5;
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -9435,6 +9438,16 @@ function initStandaloneLibrary() {
             const settings = getSettings(), previous = settings.libraryTheme;
             settings.libraryTheme = theme;
             try { await saveSettings(); } catch (error) { settings.libraryTheme = previous; throw error; }
+        },
+        getListPageSize: () => getSettings().libraryListPageSize,
+        setListPageSize: async value => {
+            if (![5, 10, 20].includes(value)) return;
+            const settings = getSettings(), previous = settings.libraryListPageSize;
+            settings.libraryListPageSize = value;
+            try { await saveSettings(); } catch (error) {
+                settings.libraryListPageSize = previous;
+                throw error;
+            }
         },
         getLinkedOnly: () => getSettings().libraryLinkedOnly !== false,
         setLinkedOnly: async enabled => {

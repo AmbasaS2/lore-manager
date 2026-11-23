@@ -38,10 +38,10 @@ test('new catalog shows title-only stacked records without a redundant type head
  const f=await fixture({n:240});
  try{
    const d=f.win.document;
-   assert.equal(d.querySelectorAll('.slb-library-catalog-card').length,24);
+   assert.equal(d.querySelectorAll('.slb-library-catalog-card').length,5);
    assert.equal(d.querySelector('.slb-library-catalog-card').childElementCount,1);
    assert.equal(d.querySelector('.slb-library-catalog-card p'),null);
-   assert.equal(d.querySelector('.slb-library-section-head').textContent,'240개 항목');
+   assert.equal(d.querySelector('.slb-library-contents-count').textContent,'240개 항목');
    assert.equal(d.querySelectorAll('.slb-library-detail').length,0);
    assert.equal(f.actions.imageGets,0,'card titles do not load 240 optional images');
    f.click('[data-action="entry"][data-uid="0"]');
@@ -56,7 +56,7 @@ test('new catalog shows title-only stacked records without a redundant type head
    assert.equal(d.querySelector('[data-action="advanced"]').textContent,'로어북 바로가기');
    assert.equal(f.actions.imageGets,1,'only the selected record loads its image metadata');
    f.click('[data-action="catalog-back"]');
-   assert.equal(d.querySelectorAll('.slb-library-catalog-card').length,24);
+   assert.equal(d.querySelectorAll('.slb-library-catalog-card').length,5);
  }finally{f.dom.window.close()}
 });
 test('one Edit action follows the visible source or saved translation, without ever calling AI',async()=>{

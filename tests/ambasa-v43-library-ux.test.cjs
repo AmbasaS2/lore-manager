@@ -109,15 +109,16 @@ test('three-row initial shelf adapts to narrow widths and more shows two more ro
  }finally{f.dom.window.close()}
 });
 
-test('classic memory uses top record index and spreads two pages, never long continuous list',async()=>{
+test('classic memory uses a bounded five-entry TOC and retains the two-page journal spread',async()=>{
  const f=await setup({type:'memory',nEntries:100});
  try{
    await f.load();
    assert.ok(f.q('.slb-library-reader-classic'));
    assert.equal(f.all('.slb-library-diary-page').length,2);
-   assert.equal(f.q('#slb-library-diary-select').options.length,100);
-   f.change('#slb-library-diary-select','28');
-   assert.equal(f.q('#slb-library-diary-select').value,'28');
+   assert.equal(f.q('#slb-library-diary-select'),null);
+   assert.equal(f.all('.slb-library-diary-toc .slb-library-index-item').length,5);
+   for (let i = 0; i < 5; i++) f.click('[data-action="memory-list-next"]');
+   f.click('[data-action="diary-entry"][data-index="28"]');
    assert.deepEqual(f.all('.slb-library-diary-page').map(x=>x.dataset.uid),['28','29']);
    f.click('[data-action="diary-next"]');
    assert.deepEqual(f.all('.slb-library-diary-page').map(x=>x.dataset.uid),['30','31']);

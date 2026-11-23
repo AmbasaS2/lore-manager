@@ -5183,3 +5183,256 @@
     border: 1px solid var(--ll-brass);
     background: var(--ll-warm);
 }
+
+/* ambasa.53 — shared pagination and single-instance tag controls in four
+   existing themes. No WorldInfo controls or chat typography are modified. */
+
+/* The type picker in the global navigation already identifies the book.
+   Tags belong next to the selected book name, never inside reader content. */
+#slb-library-overlay .slb-library-navigation.slb-library-has-book {
+    z-index: 15;
+    overflow: visible;
+}
+#slb-library-overlay .slb-library-nav-top {
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-nav-tags {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 40%;
+}
+#slb-library-overlay .slb-library-nav-tags:empty { display: none; }
+#slb-library-overlay .slb-library-nav-tags > details.slb-library-book-meta {
+    position: static;
+    display: block;
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+}
+#slb-library-overlay .slb-library-nav-tags .slb-library-book-meta-summary {
+    max-width: 100%;
+    min-height: 25px;
+    height: auto;
+    padding: 2px 7px 2px 3px;
+    border-radius: 15px;
+    font-size: .77em;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-nav-tags .slb-library-book-chips {
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+#slb-library-overlay .slb-library-nav-tags .slb-library-tag-chip,
+#slb-library-overlay .slb-library-nav-tags .slb-library-no-tags {
+    max-width: 68px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: .9em;
+    padding: 2px 5px;
+}
+#slb-library-overlay .slb-library-nav-tags .slb-library-book-tag-picker {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 3px);
+    left: 9px;
+    right: auto;
+    width: min(315px, calc(100% - 18px));
+    max-width: none;
+    max-height: min(48dvh, 330px);
+}
+
+/* Suppress all unsolicited bottom-left status display, including old saved
+   banners. Actionable warnings/errors are still emitted by notifyStatus(). */
+#slb-library-overlay .slb-library-footer {
+    display: none !important;
+}
+
+/* Mac reader: reclaim the full width, including on larger desktop windows.
+   The Finder shelf (outside the reader) keeps its category sidebar. */
+#slb-library-overlay .slb-library-reader-mac .slb-library-clean-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+#slb-library-overlay .slb-library-reader-mac .slb-library-reader-inner {
+    min-width: 0;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-reader-mac .slb-library-clean-sidebar {
+    display: none;
+}
+
+/* Each table of contents is one cohesive surface: header, bounded items,
+   compact arrow pager. The component's real card/book skins remain intact. */
+#slb-library-overlay .slb-library-paged-contents,
+#slb-library-overlay .slb-library-contents-frame {
+    min-width: 0;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-contents-heading {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    gap: 7px;
+    min-height: 33px;
+    padding: 6px 10px;
+    margin: 0;
+    border: 1px solid var(--ll-line);
+    border-bottom: 0;
+    border-radius: 7px 7px 0 0;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-weight: 650;
+    font-size: .81em;
+    line-height: 1.3;
+    text-align: left;
+    letter-spacing: .025em;
+}
+#slb-library-overlay .slb-library-contents-count {
+    margin-left: auto;
+    color: var(--ll-muted);
+    font-weight: 450;
+    font-size: .88em;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-contents-heading > .fa-solid {
+    color: var(--ll-muted);
+    font-size: .85em;
+}
+#slb-library-overlay .slb-library-paged-list {
+    width: 100%;
+    min-width: 0;
+    padding: 9px;
+    border: 1px solid var(--ll-line);
+    border-radius: 0 0 7px 7px;
+    background: var(--ll-paper-light);
+}
+#slb-library-overlay .slb-library-paged-list[hidden] { display: none !important; }
+#slb-library-overlay .slb-library-paged-contents > .slb-library-contents-heading[aria-expanded="false"] {
+    border-bottom: 1px solid var(--ll-line);
+    border-radius: 7px;
+}
+#slb-library-overlay .slb-library-list-pages {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    margin-top: 7px;
+    padding: 6px 3px 0;
+    border-top: 1px solid var(--ll-line);
+    color: var(--ll-muted);
+}
+#slb-library-overlay .slb-library-list-pages button {
+    display: inline-grid;
+    place-items: center;
+    width: 31px;
+    min-width: 31px;
+    min-height: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 1.14em;
+    background: var(--ll-paper-light);
+    border: 1px solid var(--ll-line);
+    border-radius: 5px;
+}
+#slb-library-overlay .slb-library-list-pages button:disabled {
+    opacity: .3;
+    cursor: default;
+}
+#slb-library-overlay .slb-library-list-pages small {
+    font-size: .82em;
+    font-variant-numeric: tabular-nums;
+}
+#slb-library-overlay .slb-library-paged-list .slb-library-index {
+    display: flex;
+    flex-direction: column;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    padding: 0;
+    background: transparent;
+}
+#slb-library-overlay .slb-library-diary-toc {
+    margin: 0 0 10px;
+}
+#slb-library-overlay .slb-library-diary-toc + .slb-library-journal {
+    margin-top: 8px;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-frame.slb-library-paged-contents {
+    padding: 0;
+}
+#slb-library-overlay .slb-library-paged-contents .slb-library-catalog {
+    margin: 0;
+    max-width: none;
+}
+#slb-library-overlay .slb-library-paged-contents .slb-library-catalog-frame {
+    padding: 0;
+}
+#slb-library-overlay .slb-library-paged-contents .slb-library-clean-list {
+    margin: 0;
+}
+#slb-library-overlay .slb-library-reader-clean .slb-library-paged-contents,
+#slb-library-overlay .slb-library-reader-ebook .slb-library-paged-contents {
+    margin-bottom: 8px;
+}
+#slb-library-overlay .slb-library-paged-contents.slb-library-person-directory {
+    padding: 8px;
+}
+#slb-library-overlay .slb-library-paged-contents.slb-library-person-directory > .slb-library-contents-heading {
+    margin-bottom: 0;
+}
+#slb-library-overlay .slb-library-paged-contents.slb-library-person-directory .slb-library-paged-list {
+    padding: 8px 5px;
+}
+#slb-library-overlay .slb-library-contents-frame .slb-library-world-menu.slb-library-index-heading {
+    margin: 0;
+    border-radius: 7px 7px 0 0;
+    border-bottom: 0;
+    background: var(--ll-paper-light);
+}
+#slb-library-overlay .slb-library-contents-frame .slb-library-index-layout {
+    margin-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+#slb-library-overlay .slb-library-contents-frame .slb-library-world-menu[aria-expanded="false"] {
+    border-bottom: 1px solid var(--ll-line);
+    border-radius: 7px;
+}
+#slb-library-overlay .slb-library-page-setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    margin: 8px 0;
+    font-size: .83em;
+}
+#slb-library-overlay .slb-library-page-setting select {
+    flex: 0 0 auto;
+    width: 92px;
+    min-width: 0;
+    min-height: 30px;
+    padding: 4px 8px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+}
+
+/* Keep the tag badge immediately beside the book title instead of pushing
+   it toward the type selector when there is spare room in the title row. */
+#slb-library-overlay .slb-library-navigation.slb-library-has-book .slb-library-current {
+    flex: 0 1 auto;
+    max-width: 62%;
+}

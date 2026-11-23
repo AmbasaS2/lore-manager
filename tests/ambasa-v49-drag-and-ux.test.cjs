@@ -110,17 +110,20 @@ test('narrow search button opens the real search and Escape closes it, not the m
   assert.equal(f.data.loads,0);
  }finally{f.dom.window.close()}
 });
-test('classic journal and encyclopedia keep stable tag row with independent navigation controls',async()=>{
+test('classic journal and encyclopedia keep tag beside title with independent bounded contents',async()=>{
  for(const kind of ['memory','world']){
   const f=await fixture({kind,nEntries:22});
   try{
    await f.load();
-   assert.ok(f.q('.slb-library-reader-meta-row > .slb-library-book-meta'));
+   assert.ok(f.q('.slb-library-nav-tags > .slb-library-book-meta'));
+   assert.equal(f.q('.slb-library-reader-meta-row'),null);
    if(kind==='memory'){
-    assert.ok(f.q('.slb-library-reader-meta-row #slb-library-diary-select'));
+    assert.ok(f.q('[data-action="memory-menu"]'));
+    assert.ok(f.q('[data-action="memory-list-next"]'));
+    assert.equal(f.qa('[data-action="diary-entry"]').length,5);
     assert.ok(f.q('.slb-library-diary-page'));
    }else{
-    assert.ok(f.q('.slb-library-reader-inner > [data-action="world-menu"]'));
+    assert.ok(f.q('.slb-library-reader-inner .slb-library-contents-frame > [data-action="world-menu"]'));
     assert.equal(f.q('.slb-library-reader-meta-row [data-action="world-menu"]'),null);
     assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-expanded'),'true');
     assert.ok(f.q('.slb-library-index-layout.is-index-open'));
