@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.42';
+const VERSION = '1.4.85-ambasa.43';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -122,6 +122,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryBookCovers: {},
     libraryTheme: 'antique',
     libraryCleanVariant: 'mac',
+    libraryLinkedOnly: true,
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -356,6 +357,7 @@ function getSettings() {
         || Array.isArray(settings.libraryBookCovers)) settings.libraryBookCovers = {};
     if (!['antique', 'clean', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
     if (!['mac', 'blackberry'].includes(settings.libraryCleanVariant)) settings.libraryCleanVariant = 'mac';
+    settings.libraryLinkedOnly = settings.libraryLinkedOnly !== false;
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -9317,6 +9319,15 @@ function initStandaloneLibrary() {
             const settings = getSettings(), previous = settings.libraryTheme;
             settings.libraryTheme = theme;
             try { await saveSettings(); } catch (error) { settings.libraryTheme = previous; throw error; }
+        },
+        getLinkedOnly: () => getSettings().libraryLinkedOnly !== false,
+        setLinkedOnly: async enabled => {
+            const settings = getSettings(), previous = settings.libraryLinkedOnly;
+            settings.libraryLinkedOnly = Boolean(enabled);
+            try { await saveSettings(); } catch (error) {
+                settings.libraryLinkedOnly = previous;
+                throw error;
+            }
         },
         getCleanVariant: () => getSettings().libraryCleanVariant === 'blackberry' ? 'blackberry' : 'mac',
         setCleanVariant: async variant => {

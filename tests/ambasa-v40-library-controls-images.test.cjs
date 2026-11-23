@@ -17,6 +17,7 @@ async function mock(linked) {
  w.confirm=()=>true;
  const books=['기억','세계관','일반'];
  let reads=0,translations=0,metadataSaves=0,uploads=0,removes=0;
+ let linkedOnly=true;
  const imageMap={};
  const lib=createStandaloneLibrary({
    document:w.document,listBooks:()=>books,linkedBooks:()=>linked,
@@ -34,7 +35,8 @@ async function mock(linked) {
      imageMap[book+':'+entry.uid]='/user/images/my-picture.png';
    },
    removeEntryImage:async(book,entry)=>{removes++;delete imageMap[book+':'+entry.uid]},
-   getTheme:()=> 'antique',notify:()=>{},
+   getTheme:()=> 'antique',getLinkedOnly:()=>linkedOnly,
+   setLinkedOnly:async enabled=>{linkedOnly=enabled;},notify:()=>{},
  });
  lib.open();
  const click=selector=>{let target=w.document.querySelector(selector);assert.ok(target,selector);target.click()};
@@ -49,8 +51,9 @@ test('current-character checkbox with requested hint, fallback to all books for 
    try{
      const checkbox=f.w.document.querySelector('#slb-library-linked-only');
      assert.ok(checkbox?.checked);
-     assert.equal(f.w.document.querySelector('.slb-library-linked-control').textContent.trim(),'현재 캐릭터에 연결된 책만 보기');
-     assert.equal(f.w.document.querySelector('.slb-library-linked-hint').textContent.trim(),'연동된 로어북이 없으면 모든 책이 보여집니다');
+     assert.ok(f.w.document.querySelector('.slb-library-settings-panel[hidden]'));
+     assert.equal(f.w.document.querySelector('.slb-library-linked-setting').textContent.trim(),'현재 캐릭터에 연결된 책만 보기');
+     assert.equal(f.w.document.querySelector('.slb-library-linked-hint').textContent.trim(),'연결된 로어북이 없으면 모든 책이 표시됩니다.');
      assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length,3);
      assert.deepEqual(f.stats(),{reads:0,translations:0,metadataSaves:0,uploads:0,removes:0});
    }finally{f.dom.window.close()}
@@ -69,6 +72,7 @@ test('shelf tag tabs and more books have styled, accessible and functional UI',a
    const checkbox=f.w.document.querySelector('#slb-library-linked-only');
    checkbox.checked=false;
    checkbox.dispatchEvent(new f.w.Event('change',{bubbles:true}));
+   await new Promise(resolve=>setImmediate(resolve));
    assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length,3);
  }finally{f.dom.window.close()}
  assert.match(css,/\.slb-library-tagbar button\s*\{[^}]*border-top: 3px solid var\(--ll-brass\)/s);
