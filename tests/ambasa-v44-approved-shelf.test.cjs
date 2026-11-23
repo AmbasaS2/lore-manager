@@ -122,7 +122,8 @@ test('center resize and gear are actual separate controls; no redundant header/f
         const toolbar=f.q('.slb-library-header-actions');
         assert.deepEqual([...toolbar.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['settings','close']);
         assert.equal(f.q('.slb-library-heading small'),null);
-        assert.ok(f.q('.slb-library-settings-button svg path'),'actual outlined gear icon');
+        assert.ok(f.q('.slb-library-settings-button .fa-solid.fa-gear'),'Font Awesome solid gear icon');
+        assert.ok(f.q('.slb-library-close .fa-solid.fa-xmark'),'Font Awesome solid close icon');
         assert.ok(f.q('.slb-library-resize-grip svg path'),'three slash resize SVG');
         assert.equal(f.q('.slb-library-footer small'),null);
         assert.doesNotMatch(f.q('.slb-library-footer').textContent,/AI 자동 실행 없음/);
