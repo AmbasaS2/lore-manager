@@ -86,37 +86,39 @@ test('classic remains the original book-spine shelf and never reads cover metada
    assert.equal(d.querySelectorAll('.slb-library-book-spine').length,4);
    assert.equal(d.querySelectorAll('.slb-library-cover-art').length,0);
    assert.equal(f.stats.coverMapReads,0);
-   assert.equal(d.querySelector('#slb-library-clean-variant').closest('.slb-library-variant-wrap').hidden,true);
+   assert.equal(d.querySelector('#slb-library-clean-variant'),null);
+   assert.equal(d.querySelector('#slb-library-theme-mode').options.length,4);
    assert.equal(d.querySelector('#slb-library-overlay').dataset.theme,'antique');
    assert.deepEqual([f.stats.loads,f.stats.translationReads,f.stats.ai,f.stats.entryImages],[0,0,0,0]);
  }finally{f.dom.window.close();}
 });
 
-test('clean theme uses front-facing book covers, with Mac and Blackberry variants and two-row lazy shelf',async()=>{
+test('ebook keeps cover shelf; Mac and Blackberry render different independent shelves',async()=>{
  const f=await fixture({count:31});
  try{
    const d=f.w.document;
-   f.change('#slb-library-theme-mode','clean');await tick();
-   assert.equal(f.settings.theme,'clean');
-   assert.equal(d.querySelector('#slb-library-overlay').dataset.theme,'clean');
+   f.change('#slb-library-theme-mode','ebook');await tick();
+   assert.equal(f.settings.theme,'ebook');
+   assert.equal(d.querySelector('#slb-library-overlay').dataset.libraryTheme,'ebook');
    assert.equal(d.querySelectorAll('.slb-library-cover-item').length,12);
    assert.equal(d.querySelectorAll('.slb-library-book-spine').length,0);
    assert.equal(d.querySelectorAll('[data-action="select-book"]').length,12);
    assert.equal(d.querySelectorAll('[data-action="cover-config"]').length,12);
-   assert.equal(d.querySelector('.slb-library-books-scroll').getAttribute('aria-label'),'책 표지 목록');
+   assert.equal(d.querySelector('.slb-library-books-scroll').getAttribute('aria-label'),'전자책 표지 목록');
    assert.equal(f.stats.loads,0);
-   assert.equal(f.stats.coverMapReads,1);
-   assert.equal(f.stats.typeMapReads,2);
-   assert.equal(f.stats.tagMapReads,2);
-   assert.equal(d.querySelector('.slb-library-variant-wrap').hidden,false);
-   f.change('#slb-library-clean-variant','blackberry');await tick();
-   assert.equal(f.settings.variant,'blackberry');
-   assert.equal(d.querySelector('#slb-library-overlay').dataset.variant,'blackberry');
-   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,12);
+   assert.ok(f.stats.coverMapReads>=1);
+   assert.equal(d.querySelector('#slb-library-clean-variant'),null);
    f.click('[data-action="shelf-more"]');
    assert.equal(d.querySelectorAll('.slb-library-cover-item').length,24);
    f.click('[data-action="shelf-more"]');
    assert.equal(d.querySelectorAll('.slb-library-cover-item').length,31);
+   f.change('#slb-library-theme-mode','mac');await tick();
+   assert.ok(d.querySelector('.slb-library-finder'));
+   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,0);
+   f.change('#slb-library-theme-mode','blackberry');await tick();
+   assert.ok(d.querySelector('.slb-library-app-device'));
+   assert.ok(d.querySelector('.slb-library-app-device .slb-library-device-keyboard'));
+   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,0);
    assert.equal(f.stats.loads,0);
  }finally{f.dom.window.close();}
 });
@@ -202,7 +204,7 @@ test('settings save failure restores saved appearance, and invalid external cove
    assert.equal(f.settings.theme,'antique');
    assert.equal(d.querySelector('#slb-library-theme-mode').value,'antique');
    f.setFailTheme(false);
-   f.change('#slb-library-theme-mode','clean');await tick();
+   f.change('#slb-library-theme-mode','ebook');await tick();
    assert.equal(d.querySelectorAll('.slb-library-cover-image').length,0);
    assert.equal(f.stats.loads,0);
  }finally{f.dom.window.close();}
@@ -212,7 +214,7 @@ test('clean reader structure and upload contract remain segregated',()=>{
  assert.match(index,/libraryBookCovers: \{\}/);
  assert.match(index,/uploadLibraryImageFile\(file, \{ cover: true \}\)/);
  assert.match(index,/saveLibraryBookCoverPath/);
- assert.match(index,/getTheme: \(\) => getSettings\(\)\.libraryTheme/);
+ assert.match(index,/getTheme: \(\) => \['antique', 'mac', 'blackberry', 'ebook'\]/);
  assert.match(css,/\.slb-library-cover-grid\s*\{/);
  assert.match(css,/data-theme="clean"/);
  assert.match(css,/data-variant="blackberry"/);

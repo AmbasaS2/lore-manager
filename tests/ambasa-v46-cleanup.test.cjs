@@ -56,11 +56,11 @@ test('compact shelf title search is right aligned and matches saved-tag width',(
 test('all reader modes use compact labels without any repeated library prefix or fabricated time',async()=>{
  for(const variant of ['mac','blackberry']){
   for(const type of ['general','memory','world','people']){
-   const f=await fixture({theme:'clean',variant,type});
+   const f=await fixture({theme:variant,type});
    try{
     await f.load();
-    const h=f.q('.slb-library-clean-chrome strong');
-    assert.equal(h.textContent,{general:'일반',memory:'기억',world:'세계관',people:'인물록'}[type]);
+    const h=f.q(variant==='mac' ? '.slb-library-clean-chrome strong' : '.slb-library-app-device-head strong');
+    assert.equal(h.textContent,{general:'카드파일',memory:'메모리',world:'백과사전',people:'인물록'}[type]);
     assert.equal(f.q('.slb-library-clean-chrome small'),null,'no repeated LORE LIBRARY');
     assert.equal(f.q('.slb-library-device-top'),null,'no fake clock/status header');
     assert.doesNotMatch(f.q('.slb-library-reader-frame').textContent,/14:05|로어 라이브러리\s*·/);

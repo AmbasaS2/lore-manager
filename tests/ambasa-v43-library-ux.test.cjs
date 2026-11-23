@@ -127,7 +127,7 @@ test('classic memory uses top record index and spreads two pages, never long con
 
 test('MacBook journal uses a single clean card and Blackberry adds a distinct device keyboard',async()=>{
  for(const variant of ['mac','blackberry']){
-   const f=await setup({theme:'clean',variant,type:'memory'});
+   const f=await setup({theme:variant,type:'memory'});
    try{
      await f.load();
      assert.equal(f.all('.slb-library-diary-page').length,1);
