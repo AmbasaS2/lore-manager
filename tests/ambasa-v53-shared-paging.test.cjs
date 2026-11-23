@@ -58,7 +58,8 @@ async function fixture({
     const click = selector => { const node = q(selector); assert.ok(node, 'missing ' + selector); node.click(); };
     const load = async () => { click('[data-action="select-book"]'); await tick(); };
     const setSize = async count => {
-        const select = q('#slb-library-page-size');
+        const select = q('.slb-library-page-size-select');
+        assert.ok(select, 'page size selector should be on the active contents pager');
         select.value = String(count);
         select.dispatchEvent(new win.Event('change', { bubbles: true }));
         await tick();
@@ -66,15 +67,19 @@ async function fixture({
     return { dom, win, lib, q, all, click, load, setSize, settings, stats };
 }
 
-test('settings exposes a single 5/10/20 listing control shared by four themes and all entry types', async () => {
+test('page size 5/10/20 is shared across four themes, shown on TOC pager rather than settings', async () => {
     for (const theme of ['antique', 'mac', 'blackberry', 'ebook']) {
         const f = await fixture({ theme });
         try {
-            const select = f.q('#slb-library-page-size');
-            assert.deepEqual([...select.options].map(option => option.value), ['5', '10', '20']);
-            assert.equal(select.value, '5');
-            assert.equal(f.all('#slb-library-page-size').length, 1);
+            assert.equal(f.q('#slb-library-page-size'), null);
+            assert.equal(f.q('.slb-library-settings-panel .slb-library-page-size-select'), null);
             assert.equal(f.stats.loads, 0);
+            await f.load();
+            const select = f.q('.slb-library-world-pages .slb-library-page-size-select');
+            assert.ok(select);
+            assert.deepEqual([...select.options].map(option => option.value), ['5', '10', '20']);
+            assert.deepEqual([...select.options].map(option => option.textContent), ['5 / page', '10 / page', '20 / page']);
+            assert.equal(select.value, '5');
         } finally { f.dom.window.close(); }
     }
     assert.match(indexSource, /libraryListPageSize:\s*5/);
@@ -251,7 +256,7 @@ test('success/loading toasts and bottom-left status are absent; real save failur
         f.settings.fail = true;
         await f.setSize(20);
         assert.equal(f.settings.pageSize, 10);
-        assert.equal(f.q('#slb-library-page-size').value, '10');
+        assert.equal(f.q('.slb-library-page-size-select').value, '10');
         assert.equal(f.stats.alerts.length, 1);
         assert.equal(f.stats.alerts[0][1], 'error');
     } finally { f.dom.window.close(); }

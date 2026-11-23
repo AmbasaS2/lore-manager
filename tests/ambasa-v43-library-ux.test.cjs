@@ -54,7 +54,7 @@ test('settings gear sits before close button and panels stay closed until explic
  const f=await setup();
  try{
    const header=f.q('.slb-library-header-actions');
-   assert.deepEqual([...header.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['settings','close']);
+   assert.deepEqual([...header.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['settings','minimize','close']);
    assert.equal(f.q('.slb-library-settings-panel').hidden,true);
    assert.equal(f.q('.slb-library-appearance').closest('.slb-library-navigation'),null);
    f.click('[data-action="settings"]');
@@ -195,10 +195,15 @@ test('resize grip responds to pointer deltas without using observers or reloadin
  }finally{f.dom.window.close()}
 });
 
-test('independent reader inherits fonts; smaller tag text is local, never a global ST override',()=>{
+test('independent reader inherits font family; only compact settings/pager use fixed small UI sizes',()=>{
  assert.doesNotMatch(css,/font-family\s*:/i);
  assert.doesNotMatch(css,/@font-face|@import/i);
- assert.doesNotMatch(css,/font-size\s*:\s*\d+(?:\.\d+)?px/i);
+ const compactStart = css.indexOf('/* ambasa.54 — compact');
+ const minimizeStart = css.indexOf('/* ambasa.54: KongTalk-style minimization');
+ assert.ok(compactStart > 0 && minimizeStart > compactStart);
+ assert.doesNotMatch(css.slice(0,compactStart),/font-size\s*:\s*\d+(?:\.\d+)?px/i);
+ assert.match(css.slice(compactStart,minimizeStart),/\.slb-library-settings-panel \.slb-library-linked-setting\s*\{[^}]*font-size:\s*11px !important/s);
+ assert.match(css.slice(compactStart,minimizeStart),/select\.slb-library-page-size-select\s*\{[^}]*font-size:\s*11px !important/s);
  assert.match(css,/#slb-library-overlay\s*\{[^}]*font:\s*inherit/s);
  assert.match(css,/\.slb-library-tagbar button\s*\{[^}]*font-size:\s*\.83em/s);
  assert.match(css,/\.slb-library-resize-grip/);

@@ -166,6 +166,11 @@ export function createStandaloneLibrary({
     let coverLongPressPointer = null;
     let activeToolsUid = null;
     let appearanceSaving = false;
+    let minimized = false;
+    let minimizedLauncherPosition = null;
+    let minimizedDragCleanup = null;
+    let ignoreMinimizedClick = false;
+    let savedScrollPositions = [];
     // Only the currently opened book can have a pending, explicitly selected
     // image. These File objects are never stored in ST settings.
     const pendingImages = new Map();
@@ -181,6 +186,25 @@ export function createStandaloneLibrary({
         const page = Math.min(Math.max(0, current), pageCount - 1);
         return { size, page, pageCount, start: page * size };
     }
+    function pageSizePicker() {
+        // A single persisted setting shared across the four reader styles.
+        // Place its selector next to each contents pager, never in settings.
+        const select = element(doc, 'select', 'slb-library-page-size-select');
+        select.setAttribute('aria-label', '한 페이지에 표시할 항목 수');
+        select.setAttribute('title', '한 페이지에 표시할 항목 수');
+        for (const size of [5, 10, 20]) {
+            const option = element(doc, 'option', '', size + ' / page');
+            option.value = String(size);
+            select.append(option);
+        }
+        select.value = String(libraryPageSize());
+        return select;
+    }
+    function pageNavigation(previous, index, next) {
+        const group = element(doc, 'div', 'slb-library-page-navigation');
+        group.append(previous, element(doc, 'small', '', index), next);
+        return group;
+    }
     function pageButtons(actionPrefix, page, total, label) {
         const info = pageData(total, page);
         const pager = element(doc, 'nav', 'slb-library-list-pages');
@@ -191,7 +215,8 @@ export function createStandaloneLibrary({
         const next = button(doc, '', '›', actionPrefix + '-next');
         next.disabled = info.page >= info.pageCount - 1;
         next.setAttribute('aria-label', '다음 ' + label);
-        pager.append(previous, element(doc, 'small', '', (info.page + 1) + ' / ' + info.pageCount), next);
+        pager.append(pageNavigation(previous, (info.page + 1) + ' / ' + info.pageCount, next),
+            pageSizePicker());
         return pager;
     }
     function contentsHeading(title, count, action, open, contentsId) {
@@ -241,12 +266,121 @@ export function createStandaloneLibrary({
         return !hasPendingEdit({ allowTags }) || doc.defaultView.confirm('저장하지 않은 수정 사항이 있습니다. 변경 내용을 버리고 이동하시겠습니까?');
     }
     function resetEdit() { edit = null; }
+    function placeMinimizedLauncher(left, top) {
+        const launcher = overlay?.querySelector('.slb-library-minimized-launcher');
+        if (!launcher) return;
+        const vp = visibleLibraryViewport();
+        const margin = 8;
+        const width = 34;
+        const height = 34;
+        const nextLeft = Math.max(vp.left + margin,
+            Math.min(left, vp.left + vp.width - margin - width));
+        const nextTop = Math.max(vp.top + margin,
+            Math.min(top, vp.top + vp.height - margin - height));
+        minimizedLauncherPosition = { left: nextLeft, top: nextTop };
+        launcher.style.setProperty('left', nextLeft + 'px', 'important');
+        launcher.style.setProperty('top', nextTop + 'px', 'important');
+        launcher.style.setProperty('right', 'auto', 'important');
+        launcher.style.setProperty('bottom', 'auto', 'important');
+    }
+    function setMinimized(value) {
+        if (!isOpen()) return;
+        const next = Boolean(value);
+        if (minimized === next) return;
+        const shell = overlay.querySelector('.slb-library-shell');
+        const launcher = overlay.querySelector('.slb-library-minimized-launcher');
+        if (!shell || !launcher) return;
+        minimizedDragCleanup?.();
+        minimizedDragCleanup = null;
+        if (next) {
+            // Only snapshot existing scroll offsets. Do not recreate book
+            // content, reread translation files, or discard an unsaved draft.
+            savedScrollPositions = [...shell.querySelectorAll(
+                '.slb-library-body, .slb-library-books-scroll, ' +
+                '.slb-library-app-reading-screen, .slb-library-index, ' +
+                '.slb-library-app-device-screen')].map(node => [node, node.scrollTop]);
+            const x = Number.parseFloat(shell.style.left);
+            const y = Number.parseFloat(shell.style.top);
+            const width = floatingSize?.width || Number.parseFloat(shell.style.width) || 460;
+            minimized = true;
+            overlay.classList.add('slb-library-is-minimized');
+            shell.hidden = true;
+            launcher.hidden = false;
+            placeMinimizedLauncher((Number.isFinite(x) ? x : 0) + width - 34,
+                Number.isFinite(y) ? y : 16);
+            launcher.focus?.();
+        } else {
+            minimized = false;
+            overlay.classList.remove('slb-library-is-minimized');
+            launcher.hidden = true;
+            shell.hidden = false;
+            if (floatingSize) {
+                const x = Number.parseFloat(shell.style.left);
+                const y = Number.parseFloat(shell.style.top);
+                const vp = visibleLibraryViewport();
+                placeFloatingShell(shell, floatingSize.width, floatingSize.height,
+                    (Number.isFinite(x) ? x : vp.left) + floatingSize.width / 2,
+                    (Number.isFinite(y) ? y : vp.top) + floatingSize.height / 2);
+            }
+            for (const [node, position] of savedScrollPositions) {
+                if (node.isConnected) node.scrollTop = position;
+            }
+            savedScrollPositions = [];
+            ignoreMinimizedClick = false;
+            shell.focus?.();
+        }
+    }
+    function beginMinimizedDrag(event) {
+        if (!minimized || event.button !== 0 && event.pointerType !== 'touch') return;
+        const launcher = overlay?.querySelector('.slb-library-minimized-launcher');
+        if (!launcher) return;
+        minimizedDragCleanup?.();
+        ignoreMinimizedClick = false;
+        const initial = minimizedLauncherPosition || { left: 0, top: 0 };
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const pointerId = event.pointerId;
+        const win = doc.defaultView;
+        let moved = false;
+        const move = e => {
+            if (e.pointerId !== pointerId) return;
+            if (!moved && Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) < 4) return;
+            moved = true;
+            placeMinimizedLauncher(initial.left + e.clientX - startX,
+                initial.top + e.clientY - startY);
+            e.preventDefault?.();
+        };
+        const end = e => {
+            if (e.pointerId !== pointerId) return;
+            ignoreMinimizedClick = moved;
+            minimizedDragCleanup?.();
+            minimizedDragCleanup = null;
+        };
+        minimizedDragCleanup = () => {
+            win.removeEventListener('pointermove', move);
+            win.removeEventListener('pointerup', end);
+            win.removeEventListener('pointercancel', end);
+            try {
+                if (launcher.hasPointerCapture?.(pointerId)) launcher.releasePointerCapture(pointerId);
+            } catch {}
+        };
+        try { launcher.setPointerCapture?.(pointerId); } catch {}
+        win.addEventListener('pointermove', move);
+        win.addEventListener('pointerup', end);
+        win.addEventListener('pointercancel', end);
+    }
     function close() {
         if (coverEditor) return dismissCoverEditor();
         closeReaderTools();
         if (!isOpen() || !discardOrStay()) return false;
         cancelCoverLongPress();
         closeCoverMenu();
+        minimizedDragCleanup?.();
+        minimizedDragCleanup = null;
+        minimized = false;
+        minimizedLauncherPosition = null;
+        ignoreMinimizedClick = false;
+        savedScrollPositions = [];
         loadVersion += 1;
         resizeCleanup?.();
         resizeCleanup = null;
@@ -265,7 +399,9 @@ export function createStandaloneLibrary({
         return true;
     }
     function onKeyDown(event) {
-        if (!isOpen()) return;
+        // While minimized, Escape belongs to SillyTavern and other extensions,
+        // not to this hidden reader with possible unsaved edits.
+        if (!isOpen() || minimized) return;
         if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
             const opener = event.target.closest?.('.slb-library-cover-open');
             if (opener) {
@@ -398,10 +534,14 @@ export function createStandaloneLibrary({
         settingsButton.setAttribute('aria-label', '서재 설정');
         settingsButton.setAttribute('aria-controls', 'slb-library-settings-panel');
         settingsButton.setAttribute('aria-expanded', 'false');
+        const minimizeButton = button(doc, 'slb-library-minimize-button', '', 'minimize');
+        minimizeButton.append(faIcon(doc, 'minus'));
+        minimizeButton.setAttribute('aria-label', '서재 최소화');
+        minimizeButton.setAttribute('title', '서재 최소화');
         const closeButton = button(doc, 'slb-library-close', '', 'close');
         closeButton.append(faIcon(doc, 'xmark'));
         closeButton.setAttribute('aria-label', '서재 닫기');
-        headerActions.append(settingsButton, closeButton);
+        headerActions.append(settingsButton, minimizeButton, closeButton);
         top.append(heading, headerActions);
         const navigation = element(doc, 'div', 'slb-library-navigation');
         const navTop = element(doc, 'div', 'slb-library-nav-top');
@@ -434,7 +574,7 @@ export function createStandaloneLibrary({
         searchToggle.setAttribute('aria-expanded', 'false');
         navTools.append(filters, searchToggle, search);
         const appearance = element(doc, 'div', 'slb-library-appearance');
-        const appearanceLabel = element(doc, 'label', '', '서재 테마');
+        const appearanceLabel = element(doc, 'label', '', '테마');
         appearanceLabel.htmlFor = 'slb-library-theme-mode';
         const themeMode = element(doc, 'select', 'slb-library-theme-select');
         themeMode.id = 'slb-library-theme-mode';
@@ -447,27 +587,16 @@ export function createStandaloneLibrary({
         const settingsPanel = element(doc, 'aside', 'slb-library-settings-panel');
         settingsPanel.id = 'slb-library-settings-panel';
         settingsPanel.hidden = true;
-        const settingsHeading = element(doc, 'strong', 'slb-library-settings-title', '서재 설정');
+        const settingsHeading = element(doc, 'strong', 'slb-library-settings-title', '로어북 서재 설정');
         const linkedLabel = element(doc, 'label', 'slb-library-linked-setting');
         const linkedCheck = element(doc, 'input');
         linkedCheck.type = 'checkbox';
         linkedCheck.id = 'slb-library-linked-only';
         linkedLabel.append(linkedCheck, element(doc, 'span', '',
-            '현재 캐릭터에 연결된 책만 보기'));
+            '현재 캐릭터에 연결된 로어북만 보기'));
         const linkedHint = element(doc, 'small', 'slb-library-linked-hint',
             '연결된 로어북이 없으면 모든 책이 표시됩니다.');
-        const pagesSetting = element(doc, 'label', 'slb-library-page-setting');
-        const pagesLabel = element(doc, 'span', '', '목록 한 페이지에 표시');
-        const pagesSelect = element(doc, 'select', 'slb-library-page-size-select');
-        pagesSelect.id = 'slb-library-page-size';
-        pagesSelect.setAttribute('aria-label', '목록 한 페이지에 표시할 항목 수');
-        for (const count of [5, 10, 20]) {
-            const option = element(doc, 'option', '', count + '개');
-            option.value = String(count);
-            pagesSelect.append(option);
-        }
-        pagesSetting.append(pagesLabel, pagesSelect);
-        settingsPanel.append(settingsHeading, appearance, pagesSetting, linkedLabel, linkedHint);
+        settingsPanel.append(settingsHeading, appearance, linkedLabel, linkedHint);
         navigation.append(navTop, navTools);
         const body = element(doc, 'main', 'slb-library-body');
         // Keep the structural footer hook for existing layouts without
@@ -488,7 +617,13 @@ export function createStandaloneLibrary({
         resizeGrip.setAttribute('aria-label', '창 크기 조절');
         resizeGrip.setAttribute('title', '모서리를 끌어 창 크기 조절');
         shell.append(top, settingsPanel, navigation, body, footer, resizeGrip);
-        overlay.append(shell);
+        const minimizedLauncher = button(doc, 'slb-library-minimized-launcher', '', 'restore');
+        minimizedLauncher.append(faIcon(doc, 'book-open'));
+        minimizedLauncher.setAttribute('aria-label', '서재 다시 열기');
+        minimizedLauncher.setAttribute('title', '서재 다시 열기');
+        minimizedLauncher.hidden = true;
+        minimizedLauncher.addEventListener('pointerdown', beginMinimizedDrag);
+        overlay.append(shell, minimizedLauncher);
         resizeGrip.addEventListener('pointerdown', beginResize);
         resizeGrip.addEventListener('keydown', onResizeKeyDown);
         overlay.addEventListener('click', event => {
@@ -624,6 +759,12 @@ export function createStandaloneLibrary({
     }
     function placeOnViewportChange() {
         if (!isOpen() || !floatingSize) return;
+        if (minimized) {
+            if (minimizedLauncherPosition) placeMinimizedLauncher(
+                minimizedLauncherPosition.left, minimizedLauncherPosition.top);
+            // Do not re-render the hidden reader on viewport/keyboard changes.
+            return;
+        }
         const shell = overlay.querySelector('.slb-library-shell');
         if (!shell) return;
         const vp = visibleLibraryViewport();
@@ -853,8 +994,6 @@ export function createStandaloneLibrary({
         if (themeSelect) themeSelect.value = value;
         const linkedCheck = overlay.querySelector('#slb-library-linked-only');
         if (linkedCheck) linkedCheck.checked = Boolean(getLinkedOnly());
-        const pageSelect = overlay.querySelector('#slb-library-page-size');
-        if (pageSelect) pageSelect.value = String(libraryPageSize());
     }
     async function updateAppearance(value) {
         if (!isOpen() || appearanceSaving || coverEditor) return;
@@ -882,15 +1021,18 @@ export function createStandaloneLibrary({
     }
     async function updateLibraryPageSize(value) {
         const size = Number(value);
+        const inputs = [...(overlay?.querySelectorAll('.slb-library-page-size-select') || [])];
         if (!isOpen() || appearanceSaving || ![5, 10, 20].includes(size)) {
-            syncAppearanceControls();
+            for (const input of inputs) input.value = String(libraryPageSize());
             return;
         }
-        if (!discardOrStay({ allowTags: true })) { syncAppearanceControls(); return; }
+        if (!discardOrStay({ allowTags: true })) {
+            for (const input of inputs) input.value = String(libraryPageSize());
+            return;
+        }
         if (size === libraryPageSize()) return;
         appearanceSaving = true;
-        const control = overlay.querySelector('#slb-library-page-size');
-        if (control) control.disabled = true;
+        for (const input of inputs) input.disabled = true;
         try {
             await setListPageSize(size);
             catalogPage = 0;
@@ -898,14 +1040,15 @@ export function createStandaloneLibrary({
             diaryTocPage = 0;
             peoplePage = 0;
             if (currentData) renderBook();
-            notifyStatus('목록 표시 개수가 저장되었습니다.', 'success');
         } catch (error) {
             notifyStatus('목록 표시 개수 저장 실패: ' + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
-            if (control) {
-                control.disabled = false;
-                control.value = String(libraryPageSize());
+            // Rerendering after save replaces the pager; handle either the
+            // existing input (failure) or its new counterpart (success).
+            for (const input of overlay?.querySelectorAll('.slb-library-page-size-select') || []) {
+                input.disabled = false;
+                input.value = String(libraryPageSize());
             }
         }
     }
@@ -1698,7 +1841,8 @@ export function createStandaloneLibrary({
         next.setAttribute('aria-label', '다음 목차');
         next.setAttribute('title', '다음 목차');
         next.disabled = worldTocPage >= pageCount - 1;
-        pages.append(prev, element(doc, 'small', '', (worldTocPage + 1) + ' / ' + pageCount), next);
+        pages.append(pageNavigation(prev, (worldTocPage + 1) + ' / ' + pageCount, next),
+            pageSizePicker());
         index.append(pages);
         const paper = element(doc, 'div', 'slb-library-index-paper');
         paper.append(renderDetail(chosen, type));
@@ -1745,7 +1889,8 @@ export function createStandaloneLibrary({
         next.setAttribute('aria-label', '다음 인물');
         next.setAttribute('title', '다음 인물');
         next.disabled = peoplePage >= pages - 1;
-        pager.append(prev, element(doc, 'small', '', (peoplePage + 1) + ' / ' + pages), next);
+        pager.append(pageNavigation(prev, (peoplePage + 1) + ' / ' + pages, next),
+            pageSizePicker());
         contents.append(pager);
         directory.append(contents);
         body.append(directory);
@@ -2008,7 +2153,13 @@ export function createStandaloneLibrary({
         const action = target.dataset.action, uid = target.dataset.uid;
         if (coverEditor && !coverEditor.backdrop.contains(target)) return;
         if (['edit', 'translate', 'advanced'].includes(action)) closeReaderTools();
-        if (action === 'settings') setSettingsOpen(!settingsOpen);
+        if (action === 'minimize') setMinimized(true);
+        else if (action === 'restore') {
+            // A drag of the collapsed launcher is not a request to reopen.
+            if (ignoreMinimizedClick && event.detail !== 0) ignoreMinimizedClick = false;
+            else setMinimized(false);
+        }
+        else if (action === 'settings') setSettingsOpen(!settingsOpen);
         else if (action === 'shelf-search-toggle') {
             shelfSearchOpen = !shelfSearchOpen;
             const bar = overlay.querySelector('.slb-library-shelf-toolbar');
@@ -2171,7 +2322,7 @@ export function createStandaloneLibrary({
             void updateAppearance(event.target.value);
             return;
         }
-        if (event.target?.id === 'slb-library-page-size') {
+        if (event.target?.classList?.contains('slb-library-page-size-select')) {
             void updateLibraryPageSize(event.target.value);
             return;
         }
@@ -2249,9 +2400,14 @@ export function createStandaloneLibrary({
     }
     function open() {
         if (isOpen()) {
-            overlay.querySelector('.slb-library-shell')?.focus();
+            if (minimized) setMinimized(false);
+            else overlay.querySelector('.slb-library-shell')?.focus();
             return;
         }
+        minimized = false;
+        minimizedLauncherPosition = null;
+        ignoreMinimizedClick = false;
+        savedScrollPositions = [];
         originalFocus = doc.activeElement;
         bookNames = listBooks();
         bookToneByName = new Map(bookNames.map((book, index) => [book, index % 12]));

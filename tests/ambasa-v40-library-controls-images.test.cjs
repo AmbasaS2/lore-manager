@@ -52,7 +52,7 @@ test('current-character checkbox with requested hint, fallback to all books for 
      const checkbox=f.w.document.querySelector('#slb-library-linked-only');
      assert.ok(checkbox?.checked);
      assert.ok(f.w.document.querySelector('.slb-library-settings-panel[hidden]'));
-     assert.equal(f.w.document.querySelector('.slb-library-linked-setting').textContent.trim(),'현재 캐릭터에 연결된 책만 보기');
+     assert.equal(f.w.document.querySelector('.slb-library-linked-setting').textContent.trim(),'현재 캐릭터에 연결된 로어북만 보기');
      assert.equal(f.w.document.querySelector('.slb-library-linked-hint').textContent.trim(),'연결된 로어북이 없으면 모든 책이 표시됩니다.');
      assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length,3);
      assert.deepEqual(f.stats(),{reads:0,translations:0,metadataSaves:0,uploads:0,removes:0});
