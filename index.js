@@ -23,11 +23,12 @@ import { translateLoreWithValidation } from './lore-translation.js';
 import { translateLoreFieldsBatch } from './lore-translation-batch.js';
 import { planLoreEntryGroups, translateLoreEntryGroup } from './lore-entry-batch.js';
 import { compactNativeSort, enableNativeEntryDrag } from './native-controls.js';
+import { prepareFirstNativePageHeaders } from './native-page-fastpath.js';
 import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames } from './library-shelf.js';
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.56';
+const VERSION = '1.4.85-ambasa.57';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -4918,7 +4919,29 @@ function bindWorkspaceEntries(entries) {
                 }
             }
         }
-        if (listChanged) state.navigatorDirty = true;
+        if (listChanged) {
+            state.navigatorDirty = true;
+            // Same-book pagination: SillyTavern destroys native rows and
+            // appends fresh ones. Prepare the first two top-level headers
+            // inside this *existing* observer delivery, before our normal
+            // requestAnimationFrame. The rest are handled by enhanceAll.
+            // Never run during book switches, Foldy, sorting, or editor
+            // hydration; and never touch detached old-page DOM.
+            if (!linkedMode && state.managerMode === MANAGER_MODE_STANDARD
+                && !state.bookSwitch && !state.worldDrawerOpening
+                && state.currentBook === currentBookName()
+                && state.currentBookData?.entries) {
+                const compact = isNarrowEntryLayout();
+                prepareFirstNativePageHeaders(relevantMutations, entries, {
+                    enhance: row => enhanceEntryHeader(row, {
+                        initialCompact: compact,
+                        deferBadgeTheme: true,
+                    }),
+                    isReady: isEntryHeaderReadyForReveal,
+                    now: () => performance.now(),
+                });
+            }
+        }
         if (listChanged || entryChanged) scheduleEnhance();
     });
     state.observer.observe(entries, { childList: true, subtree: true });
