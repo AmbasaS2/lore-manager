@@ -115,6 +115,7 @@ export function createStandaloneLibrary({
     let saving = false;
     let searchIndex = new Map();
     let bookNames = [];
+    let bookToneByName = new Map();
     let linkedNames = null;
     let shelfTag = 'all';
     let shelfRows = 2;
@@ -187,29 +188,27 @@ export function createStandaloneLibrary({
         heading.append(element(doc, 'span', 'slb-library-crest', '✦'),
             element(doc, 'h2', '', 'THE LORE LIBRARY'));
         heading.querySelector('h2').id = 'slb-library-title';
-        heading.append(element(doc, 'small', '', '로어북 매니저 · 개인 서재'));
         const headerActions = element(doc, 'div', 'slb-library-header-actions');
         const settingsButton = button(doc, 'slb-library-settings-button', '', 'settings');
-        const sliders = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        sliders.setAttribute('viewBox', '0 0 24 24');
-        sliders.setAttribute('width', '19');
-        sliders.setAttribute('height', '19');
-        sliders.setAttribute('aria-hidden', 'true');
-        sliders.setAttribute('fill', 'none');
-        sliders.setAttribute('stroke', 'currentColor');
-        sliders.setAttribute('stroke-width', '1.8');
-        sliders.setAttribute('stroke-linecap', 'round');
-        for (const [y, x] of [[6, 8], [12, 16], [18, 10]]) {
-            const line = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-            line.setAttribute('d', 'M3 ' + y + 'H21');
-            const ring = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            ring.setAttribute('cx', String(x));
-            ring.setAttribute('cy', String(y));
-            ring.setAttribute('r', '2.2');
-            ring.setAttribute('fill', 'var(--ll-paper-light)');
-            sliders.append(line, ring);
-        }
-        settingsButton.append(sliders);
+        // Compact, theme-independent gear. No icon font dependency.
+        const gear = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        gear.setAttribute('viewBox', '0 0 24 24');
+        gear.setAttribute('width', '19');
+        gear.setAttribute('height', '19');
+        gear.setAttribute('aria-hidden', 'true');
+        gear.setAttribute('fill', 'none');
+        gear.setAttribute('stroke', 'currentColor');
+        gear.setAttribute('stroke-width', '1.7');
+        gear.setAttribute('stroke-linecap', 'round');
+        gear.setAttribute('stroke-linejoin', 'round');
+        const gearCircle = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        gearCircle.setAttribute('cx', '12');
+        gearCircle.setAttribute('cy', '12');
+        gearCircle.setAttribute('r', '3');
+        const gearRing = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+        gearRing.setAttribute('d', 'M19.4 15a1.7 1.7 0 0 0 .33 1.82l-1.9 1.9a1.7 1.7 0 0 0-1.82-.33 1.7 1.7 0 0 0-1 1.51v.1h-3v-.1a1.7 1.7 0 0 0-1-1.51 1.7 1.7 0 0 0-1.82.33l-1.9-1.9A1.7 1.7 0 0 0 7.62 15a1.7 1.7 0 0 0-1.51-1H6v-3h.11a1.7 1.7 0 0 0 1.51-1 1.7 1.7 0 0 0-.33-1.82l1.9-1.9a1.7 1.7 0 0 0 1.82.33 1.7 1.7 0 0 0 1-1.51V5h3v.1a1.7 1.7 0 0 0 1 1.51 1.7 1.7 0 0 0 1.82-.33l1.9 1.9a1.7 1.7 0 0 0-.33 1.82 1.7 1.7 0 0 0 1.51 1H21v3h-.09a1.7 1.7 0 0 0-1.51 1z');
+        gear.append(gearRing, gearCircle);
+        settingsButton.append(gear);
         settingsButton.setAttribute('aria-label', '서재 설정');
         settingsButton.setAttribute('aria-controls', 'slb-library-settings-panel');
         settingsButton.setAttribute('aria-expanded', 'false');
@@ -279,8 +278,19 @@ export function createStandaloneLibrary({
         const footer = element(doc, 'footer', 'slb-library-footer');
         const status = element(doc, 'span', '', '기존 로어북 원문과 번역 데이터를 사용합니다.');
         status.id = 'slb-library-status';
-        footer.append(status, element(doc, 'small', '', '저장은 직접 확정 · AI 자동 실행 없음'));
-        const resizeGrip = button(doc, 'slb-library-resize-grip', '↘', 'resize-grip');
+        footer.append(status);
+        const resizeGrip = button(doc, 'slb-library-resize-grip', '', 'resize-grip');
+        const gripSvg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        gripSvg.setAttribute('viewBox', '0 0 20 20');
+        gripSvg.setAttribute('aria-hidden', 'true');
+        gripSvg.setAttribute('fill', 'none');
+        gripSvg.setAttribute('stroke', 'currentColor');
+        gripSvg.setAttribute('stroke-width', '1.5');
+        gripSvg.setAttribute('stroke-linecap', 'round');
+        const gripLines = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+        gripLines.setAttribute('d', 'M12 5 5 12M16 7 7 16M16 13 13 16');
+        gripSvg.append(gripLines);
+        resizeGrip.append(gripSvg);
         resizeGrip.setAttribute('aria-label', '창 크기 조절');
         resizeGrip.setAttribute('title', '모서리를 끌어 창 크기 조절');
         shell.append(top, settingsPanel, navigation, body, footer, resizeGrip);
@@ -288,6 +298,7 @@ export function createStandaloneLibrary({
         resizeGrip.addEventListener('pointerdown', beginResize);
         resizeGrip.addEventListener('keydown', onResizeKeyDown);
         overlay.addEventListener('click', event => {
+            if (settingsOpen && !event.target.closest('.slb-library-settings-panel, [data-action="settings"]')) setSettingsOpen(false);
             if (event.target === overlay) close();
         });
         overlay.addEventListener('click', onClick);
@@ -317,19 +328,20 @@ export function createStandaloneLibrary({
         const win = doc.defaultView;
         const startX = event.clientX, startY = event.clientY;
         const width = bounds.width, height = bounds.height;
-        const left = Math.max(0, bounds.left), top = Math.max(0, bounds.top);
+        // Resize symmetrically around the same modal center, not its top-left.
         shell.style.position = 'absolute';
-        shell.style.left = left + 'px';
-        shell.style.top = top + 'px';
+        shell.style.left = '50%';
+        shell.style.top = '50%';
+        shell.style.transform = 'translate(-50%, -50%)';
         shell.style.width = width + 'px';
         shell.style.height = height + 'px';
         const grip = event.currentTarget;
         const onMove = move => {
             if (move.pointerId !== event.pointerId) return;
-            const maxWidth = Math.max(260, win.innerWidth - left - 10);
-            const maxHeight = Math.max(260, win.innerHeight - top - 10);
-            shell.style.width = Math.min(maxWidth, Math.max(260, width + move.clientX - startX)) + 'px';
-            shell.style.height = Math.min(maxHeight, Math.max(260, height + move.clientY - startY)) + 'px';
+            const maxWidth = Math.max(260, win.innerWidth - 20);
+            const maxHeight = Math.max(260, win.innerHeight - 20);
+            shell.style.width = Math.min(maxWidth, Math.max(260, width + 2 * (move.clientX - startX))) + 'px';
+            shell.style.height = Math.min(maxHeight, Math.max(260, height + 2 * (move.clientY - startY))) + 'px';
         };
         const stop = move => {
             if (move && move.pointerId !== event.pointerId) return;
@@ -553,21 +565,22 @@ export function createStandaloneLibrary({
         return normalizeLibraryTags(getTags(book));
     }
     function spineTone(book) {
-        // Stable book-color variation without fetching or hashing any content.
-        let hash = 0;
-        for (const character of book) hash = (hash * 33 + character.codePointAt(0)) >>> 0;
-        return hash % 7;
+        // Use the actual saved shelf order for the approved material/cover
+        // sequence; filtering never changes an individual book's appearance.
+        return bookToneByName.get(book) ?? 0;
     }
     function shelfColumns(body, digital) {
-        // Exactly two visible rows by default at each window width.
-        // One width read on explicit shelf render; no observers or polling.
-        const width = body.clientWidth
-            || overlay?.querySelector('.slb-library-shell')?.clientWidth
-            || Math.min(doc.defaultView.innerWidth || 1024, 1080);
-        const small = (doc.defaultView.innerWidth || width) <= 760;
-        const usable = Math.max(140, width - (digital ? 64 : small ? 58 : 82));
-        const unit = digital ? (small ? 154 : 164) : (small ? 52 : 57);
-        return Math.max(1, Math.floor((usable + (digital ? 12 : 5)) / unit));
+        // Shelf geometry is read once on explicit entry/search/more/resize-end.
+        // The same count is used for both DOM limit and CSS grid columns.
+        const shellWidth = overlay?.querySelector('.slb-library-shell')?.clientWidth
+            || Math.min(doc.defaultView.innerWidth || 1024, 1000);
+        const width = body.clientWidth || Math.max(260, shellWidth - 32);
+        if (digital) {
+            // Narrow windows: 360px -> 3 covers, 440px -> 4.
+            // Three columns remain usable in the smallest mobile modal.
+            return Math.max(3, Math.min(6, Math.floor((shellWidth - 14) / 96)));
+        }
+        return Math.max(3, Math.min(14, Math.floor((width - 28 + 4) / 47)));
     }
     function bookList({ restoreSearchFocus = false } = {}) {
         if (!isOpen()) return;
@@ -611,14 +624,25 @@ export function createStandaloneLibrary({
 
         const tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
-        for (const [key, name] of [
-            ['all', '전체'], ['untagged', '미분류'], ...knownTags.map(tag => ['tag:' + tag, tag]),
-        ]) {
+        for (const [key, name] of [['all', '전체'], ['untagged', '미분류']]) {
             const choice = button(doc, 'slb-library-tag-tab' + (shelfTag === key ? ' is-active' : ''), name, 'shelf-tag');
             choice.dataset.filter = key;
             choice.setAttribute('aria-pressed', String(shelfTag === key));
             tagbar.append(choice);
         }
+        const tagSelect = element(doc, 'select', 'slb-library-shelf-tag-select');
+        tagSelect.id = 'slb-library-shelf-tag-select';
+        tagSelect.setAttribute('aria-label', '저장된 로어북 태그 선택');
+        tagSelect.append(element(doc, 'option', '', '태그 선택'));
+        tagSelect.options[0].value = '';
+        for (const tag of knownTags) {
+            const option = element(doc, 'option', '', tag);
+            option.value = 'tag:' + tag;
+            tagSelect.append(option);
+        }
+        tagSelect.value = shelfTag.startsWith('tag:') && knownTags.includes(shelfTag.slice(4))
+            ? shelfTag : '';
+        tagbar.append(tagSelect);
         const needle = shelfQuery.toLocaleLowerCase().trim();
         const candidates = linked.filter(book => {
             const tags = tagsFor(book.name);
@@ -637,7 +661,8 @@ export function createStandaloneLibrary({
         const spines = element(doc, 'div', digital ? 'slb-library-cover-grid' : 'slb-library-book-spines');
         const coverMap = digital && typeof getBookCoverMap === 'function' ? getBookCoverMap() : null;
         const rowWidth = shelfColumns(body, digital);
-        const maxVisible = Math.min(shelfRows * rowWidth, shelfRows * 12);
+        spines.style.setProperty('--slb-shelf-columns', String(rowWidth));
+        const maxVisible = shelfRows * rowWidth;
         const shown = candidates.slice(0, maxVisible);
         for (const [index, item] of shown.entries()) {
             const savedType = typeMap && typeof typeMap === 'object'
@@ -650,10 +675,13 @@ export function createStandaloneLibrary({
                 opener.dataset.book = item.name;
                 opener.setAttribute('aria-label', item.name + ' · 로어북 열기');
                 const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-tone-' + spineTone(item.name)
+                    + ' slb-library-cover-design-' + (spineTone(item.name) % 8)
                     + ' slb-library-cover-type-' + type);
-                art.append(element(doc, 'span', 'slb-library-cover-overline', 'LORE LIBRARY'));
+                art.append(element(doc, 'span', 'slb-library-cover-overline',
+                    String(index + 1).padStart(2, '0') + ' / EDITION'));
                 art.append(element(doc, 'span', 'slb-library-cover-title', item.name));
-                art.append(element(doc, 'span', 'slb-library-cover-type-label', LIBRARY_BOOK_TYPES[type].split(' · ')[0]));
+                art.append(element(doc, 'span', 'slb-library-cover-type-label',
+                    { general: 'RECORD', memory: 'JOURNAL', world: 'WORLD', people: 'PEOPLE' }[type]));
                 const stored = coverMap && typeof coverMap === 'object'
                     ? (Object.hasOwn(coverMap, item.name) ? coverMap[item.name] : '')
                     : getBookCover(item.name);
@@ -675,13 +703,16 @@ export function createStandaloneLibrary({
                 spines.append(entry);
                 continue;
             }
-            const spine = button(doc, 'slb-library-book-spine slb-library-spine-tone-' + spineTone(item.name)
-                + ' slb-library-spine-type-' + type, '', 'select-book');
+            const tone = spineTone(item.name);
+            const binding = ['leather', 'cloth', 'cloth', 'linen', 'cloth', 'leather',
+                'linen', 'cloth', 'leather', 'cloth', 'linen', 'leather'][tone];
+            const spine = button(doc, 'slb-library-book-spine slb-library-spine-tone-' + tone
+                + ' slb-library-binding-' + binding + ' slb-library-spine-type-' + type, '', 'select-book');
             spine.dataset.book = item.name;
             spine.dataset.bookType = type;
             spine.title = item.name;
             spine.setAttribute('aria-label', item.name + ' · 로어북 열기');
-            const adornment = { general: '▱', memory: '❦', world: '✣', people: '◈' };
+            const adornment = { general: '◇', memory: '✧', world: '✣', people: '♧' };
             spine.append(element(doc, 'span', 'slb-library-spine-ornament', adornment[type]));
             const name = element(doc, 'span', 'slb-library-spine-title', item.name);
             name.lang = /[가-힣]/.test(item.name) ? 'ko' : 'en';
@@ -704,8 +735,8 @@ export function createStandaloneLibrary({
         summary.append(element(doc, 'span', '', candidates.length + '권 중 ' + shown.length + '권 표시'));
         if (candidates.length > shown.length) {
             const more = button(doc, 'slb-library-shelf-more', '', 'shelf-more');
-            more.append(element(doc, 'span', 'slb-library-more-caption', '책 더 보기'),
-                element(doc, 'small', 'slb-library-more-remaining', (candidates.length - shown.length) + '권 남음'));
+            more.append(element(doc, 'span', 'slb-library-more-caption',
+                '더 보기 (' + (candidates.length - shown.length) + ')'));
             summary.append(more);
         }
         body.append(summary);
@@ -1432,6 +1463,12 @@ export function createStandaloneLibrary({
         }
     }
     function onChange(event) {
+        if (event.target?.id === 'slb-library-shelf-tag-select') {
+            shelfTag = event.target.value || 'all';
+            shelfRows = 2;
+            bookList();
+            return;
+        }
         if (event.target?.id === 'slb-library-diary-select') {
             if (!discardOrStay({ allowTags: true })) {
                 event.target.value = String(diaryIndex);
@@ -1528,6 +1565,7 @@ export function createStandaloneLibrary({
         }
         originalFocus = doc.activeElement;
         bookNames = listBooks();
+        bookToneByName = new Map(bookNames.map((book, index) => [book, index % 12]));
         linkedNames = linkedBooks();
         allBooks = !Boolean(getLinkedOnly());
         shelfTag = 'all';

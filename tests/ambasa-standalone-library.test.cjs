@@ -459,9 +459,13 @@ test('one book can belong to multiple tag shelves, filtering uses settings metad
         f.tagsByBook['Cody Core']=['마법 세계'];
         const lib=await f.build();lib.open();
         assert.equal(f.w.document.querySelectorAll('.slb-library-book-spine').length,3);
-        f.click('[data-action="shelf-tag"][data-filter="tag:기억"]');
+        const tagChoice=f.w.document.querySelector('#slb-library-shelf-tag-select');
+        tagChoice.value='tag:기억';
+        tagChoice.dispatchEvent(new f.w.Event('change',{bubbles:true}));
         assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(b=>b.dataset.book),['Memory Peter']);
-        f.click('[data-action="shelf-tag"][data-filter="tag:마법 세계"]');
+        const tagChoiceWorld=f.w.document.querySelector('#slb-library-shelf-tag-select');
+        tagChoiceWorld.value='tag:마법 세계';
+        tagChoiceWorld.dispatchEvent(new f.w.Event('change',{bubbles:true}));
         assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(b=>b.dataset.book),['Memory Peter','Cody Core']);
         f.click('[data-action="shelf-tag"][data-filter="untagged"]');
         assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(b=>b.dataset.book),['Cody Locations']);
@@ -495,7 +499,9 @@ test('book tags are edited directly inside the opened book and never in the shel
         assert.deepEqual(f.calls.loaded,['Memory Peter']);
         f.click('[data-action="books"]');
         assert.equal(f.w.document.querySelectorAll('.slb-library-tag-chip').length,0);
-        f.click('[data-action="shelf-tag"][data-filter="tag:기억"]');
+        const tagChoice=f.w.document.querySelector('#slb-library-shelf-tag-select');
+        tagChoice.value='tag:기억';
+        tagChoice.dispatchEvent(new f.w.Event('change',{bubbles:true}));
         assert.deepEqual([...f.w.document.querySelectorAll('.slb-library-book-spine')].map(node=>node.dataset.book),['Memory Peter']);
     }finally{f.dom.window.close()}
 });
@@ -530,7 +536,7 @@ test('invalid or unchanged book tags cannot save, and dirty tag field prevents a
     }finally{f.dom.window.close()}
 });
 
-test('shelf limits initial DOM to 24 spines even when 240 books exist; more button expands by 24',async()=>{
+test('shelf limits initial DOM to two physical rows even for 240 books and expands by two rows',async()=>{
     const {createStandaloneLibrary}=await production();
     const dom=new JSDOM('<html><body></body></html>',{runScripts:'outside-only'});
     const w=dom.window;
@@ -546,12 +552,12 @@ test('shelf limits initial DOM to 24 spines even when 240 books exist; more butt
             getTagMap:()=>{tagMapReads++;return {};},setTags:async()=>{},getTheme:()=> 'antique',notify:()=>{},
         });
         lib.open();
-        assert.equal(w.document.querySelectorAll('.slb-library-book-spine').length,24);
+        assert.equal(w.document.querySelectorAll('.slb-library-book-spine').length,28);
         assert.equal(tagMapReads,1,'metadata snapshot is read once per shelf view');
         assert.equal(individualTagReads,0,'never repeat settings reads for each of 240 books');
-        assert.equal(w.document.querySelector('.slb-library-shelf-summary span').textContent,'240권 중 24권 표시');
+        assert.equal(w.document.querySelector('.slb-library-shelf-summary span').textContent,'240권 중 28권 표시');
         w.document.querySelector('[data-action="shelf-more"]').click();
-        assert.equal(w.document.querySelectorAll('.slb-library-book-spine').length,48);
+        assert.equal(w.document.querySelectorAll('.slb-library-book-spine').length,56);
         assert.equal(tagMapReads,2,'more view reuses a single metadata snapshot');
         assert.equal(loads,0);
         assert.equal(translations,0);

@@ -99,10 +99,10 @@ test('clean theme uses front-facing book covers, with Mac and Blackberry variant
    f.change('#slb-library-theme-mode','clean');await tick();
    assert.equal(f.settings.theme,'clean');
    assert.equal(d.querySelector('#slb-library-overlay').dataset.theme,'clean');
-   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,10);
+   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,12);
    assert.equal(d.querySelectorAll('.slb-library-book-spine').length,0);
-   assert.equal(d.querySelectorAll('[data-action="select-book"]').length,10);
-   assert.equal(d.querySelectorAll('[data-action="cover-config"]').length,10);
+   assert.equal(d.querySelectorAll('[data-action="select-book"]').length,12);
+   assert.equal(d.querySelectorAll('[data-action="cover-config"]').length,12);
    assert.equal(d.querySelector('.slb-library-books-scroll').getAttribute('aria-label'),'책 표지 목록');
    assert.equal(f.stats.loads,0);
    assert.equal(f.stats.coverMapReads,1);
@@ -112,11 +112,9 @@ test('clean theme uses front-facing book covers, with Mac and Blackberry variant
    f.change('#slb-library-clean-variant','blackberry');await tick();
    assert.equal(f.settings.variant,'blackberry');
    assert.equal(d.querySelector('#slb-library-overlay').dataset.variant,'blackberry');
-   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,10);
+   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,12);
    f.click('[data-action="shelf-more"]');
-   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,20);
-   f.click('[data-action="shelf-more"]');
-   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,30);
+   assert.equal(d.querySelectorAll('.slb-library-cover-item').length,24);
    f.click('[data-action="shelf-more"]');
    assert.equal(d.querySelectorAll('.slb-library-cover-item').length,31);
    assert.equal(f.stats.loads,0);
