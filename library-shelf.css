@@ -949,3 +949,382 @@
     #slb-library-overlay .slb-library-reader-tools button { font-size: 12px; padding: 5px 9px; }
     #slb-library-overlay .slb-library-footer small { display: none; }
 }
+
+
+/* Library skin selector; a single classic skin plus one clean skin with
+   MacBook / BlackBerry visual variants. All colors and controls are modal-scoped. */
+#slb-library-overlay .slb-library-appearance {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px 10px;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-appearance label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--ll-muted);
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-appearance .slb-library-variant-wrap[hidden] { display: none !important; }
+#slb-library-overlay .slb-library-theme-select {
+    min-height: 32px;
+    max-width: min(100%, 190px);
+    padding: 5px 25px 5px 10px;
+    font-size: 12px;
+    border: 1px solid var(--ll-line);
+    border-radius: 7px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+}
+
+/* Clean digital library: book faces, not antique spines. */
+#slb-library-overlay[data-theme="clean"] {
+    --ll-ink: #303942;
+    --ll-muted: #78838e;
+    --ll-paper: #ffffff;
+    --ll-paper-light: #ffffff;
+    --ll-warm: #eef1f4;
+    --ll-line: #dce1e6;
+    --ll-brass: #7b94aa;
+    --ll-leather: #f5f6f8;
+    --ll-surface: #f5f6f8;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-shell {
+    border: 1px solid #d7dce1;
+    border-radius: 15px;
+    box-shadow: 0 20px 70px #0d192746;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-top {
+    background: #f7f8f9;
+    color: #384450;
+    border-bottom: 1px solid #e0e5e9;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-crest { color: #7f98ac; }
+#slb-library-overlay[data-theme="clean"] .slb-library-close {
+    color: #5f6c77;
+    border: 1px solid #dce1e5;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-navigation {
+    background: #fafbfc;
+    border-color: #e6e9ec;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-tagbar button {
+    border-radius: 7px;
+    border-top: 1px solid var(--ll-line);
+    background: #ffffff;
+    box-shadow: none;
+    color: var(--ll-muted);
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-tagbar button.is-active {
+    background: #e7edf4;
+    color: #4c667e;
+    border-color: #cfdae4;
+    box-shadow: none;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-digital-bookshelf {
+    background: #fff;
+    border: 1px solid var(--ll-line);
+    border-radius: 12px;
+    box-shadow: 0 2px 9px #24364b09;
+    min-height: 230px;
+}
+#slb-library-overlay[data-theme="clean"] .slb-library-digital-bookshelf::before,
+#slb-library-overlay[data-theme="clean"] .slb-library-digital-bookshelf::after { display: none; }
+#slb-library-overlay[data-theme="clean"] .slb-library-digital-bookshelf .slb-library-books-scroll {
+    padding: 22px 18px 24px;
+}
+#slb-library-overlay .slb-library-cover-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(147px, 1fr));
+    gap: 24px 17px;
+    align-items: start;
+    min-width: 0;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-cover-item { min-width: 0; }
+#slb-library-overlay button.slb-library-cover-open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    width: 100%;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: left;
+    box-shadow: none;
+}
+#slb-library-overlay button.slb-library-cover-open:hover { background: transparent; }
+#slb-library-overlay .slb-library-cover-art {
+    --ll-cover-start: #667d90;
+    --ll-cover-end: #34495c;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    padding: 16px 9px 14px;
+    border: 1px solid #00000019;
+    border-radius: 3px 6px 6px 3px;
+    background: linear-gradient(145deg, var(--ll-cover-start), var(--ll-cover-end));
+    color: #fff;
+    box-shadow: inset 4px 0 4px #ffffff23, inset -2px 0 3px #00000020, 3px 5px 10px #14263825;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+#slb-library-overlay button.slb-library-cover-open:hover .slb-library-cover-art {
+    transform: translateY(-2px);
+    box-shadow: 3px 8px 14px #1426382a;
+}
+#slb-library-overlay .slb-library-cover-art::before {
+    content: '';
+    position: absolute;
+    width: 1px;
+    top: 0; bottom: 0; left: 6px;
+    background: #ffffff45;
+    pointer-events: none;
+}
+#slb-library-overlay .slb-library-cover-art::after {
+    content: '';
+    position: absolute;
+    width: 65%;
+    aspect-ratio: 1 / 1;
+    left: 17%; top: 27%;
+    border: 1px solid #ffffff45;
+    border-radius: 50%;
+    box-shadow: 0 0 0 13px #ffffff09, 0 0 0 28px #ffffff07;
+    pointer-events: none;
+}
+#slb-library-overlay .slb-library-cover-type-world::after { border-radius: 7%; transform: rotate(35deg); }
+#slb-library-overlay .slb-library-cover-type-memory::after { width: 115%; left: -7%; border-radius: 45%; transform: rotate(-25deg); }
+#slb-library-overlay .slb-library-cover-type-people::after { width: 50%; left: 25%; border-radius: 50% 50% 0 0; }
+#slb-library-overlay .slb-library-cover-tone-0 { --ll-cover-start: #7d5568; --ll-cover-end: #4c354f; }
+#slb-library-overlay .slb-library-cover-tone-1 { --ll-cover-start: #66836d; --ll-cover-end: #3a5546; }
+#slb-library-overlay .slb-library-cover-tone-2 { --ll-cover-start: #6c7894; --ll-cover-end: #3d4d69; }
+#slb-library-overlay .slb-library-cover-tone-3 { --ll-cover-start: #9c7661; --ll-cover-end: #694938; }
+#slb-library-overlay .slb-library-cover-tone-4 { --ll-cover-start: #827596; --ll-cover-end: #504962; }
+#slb-library-overlay .slb-library-cover-tone-5 { --ll-cover-start: #888269; --ll-cover-end: #5b543d; }
+#slb-library-overlay .slb-library-cover-tone-6 { --ll-cover-start: #588487; --ll-cover-end: #315758; }
+#slb-library-overlay .slb-library-cover-overline,
+#slb-library-overlay .slb-library-cover-type-label {
+    position: relative;
+    z-index: 1;
+    font-size: 9px;
+    letter-spacing: .09em;
+    text-align: center;
+    opacity: .8;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-cover-title {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    font-size: clamp(12px, 1.3vw, 17px);
+    font-weight: 750;
+    line-height: 1.5;
+    text-align: center;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-cover-image {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+#slb-library-overlay .slb-library-cover-caption {
+    display: block;
+    margin-top: 9px;
+    font-weight: 650;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+#slb-library-overlay button.slb-library-cover-config {
+    min-height: 26px;
+    margin: 3px 0 0;
+    padding: 2px 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    text-align: left;
+    font-size: 11px;
+    color: #5a7d97;
+}
+#slb-library-overlay button.slb-library-cover-config:hover {
+    background: transparent;
+    text-decoration: underline;
+}
+/* Blackberry is one variant within the clean theme, not a third theme. */
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] {
+    --ll-brass: #548185;
+}
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-top {
+    background: #293238;
+    color: #f1f4f5;
+    border-bottom: 3px solid #527e82;
+}
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-crest { color: #aac7c9; }
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-close {
+    color: #e9f0f1;
+    border-color: #82969a;
+}
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-navigation { background: #f0f3f3; }
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-shell { border-radius: 8px; }
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-digital-bookshelf { border-radius: 5px; }
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-cover-art {
+    border-radius: 2px;
+    box-shadow: inset 3px 0 2px #ffffff22, 2px 4px 5px #11222625;
+}
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-tagbar button {
+    border-radius: 4px;
+}
+#slb-library-overlay[data-theme="clean"][data-variant="blackberry"] .slb-library-tagbar button.is-active {
+    background: #dce9e9;
+    border-color: #bfcece;
+    color: #35666a;
+}
+
+/* Explicit per-book cover picker: no image processing until user selects a file. */
+#slb-library-overlay .slb-library-cover-backdrop {
+    position: absolute;
+    z-index: 8;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(19, 25, 30, .65);
+}
+#slb-library-overlay .slb-library-cover-dialog {
+    width: min(470px, 100%);
+    max-height: min(85dvh, 680px);
+    min-width: 0;
+    overflow-y: auto;
+    padding: 20px 22px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    border: 1px solid var(--ll-line);
+    border-radius: 12px;
+    box-shadow: 0 16px 48px #0005;
+}
+#slb-library-overlay .slb-library-cover-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+}
+#slb-library-overlay .slb-library-cover-dialog-head h3 {
+    margin: 0;
+    font-size: 18px;
+}
+#slb-library-overlay button.slb-library-cover-dismiss {
+    min-width: 31px;
+    width: 31px;
+    min-height: 31px;
+    padding: 0;
+    font-size: 22px;
+}
+#slb-library-overlay .slb-library-cover-book-name {
+    font-size: 12px;
+    color: var(--ll-muted);
+    margin: 0 0 12px;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-cover-preview {
+    display: grid;
+    place-items: center;
+    width: 130px;
+    aspect-ratio: 2 / 3;
+    margin: 0 auto 16px;
+    border: 1px solid var(--ll-line);
+    border-radius: 5px;
+    background: var(--ll-warm);
+    overflow: hidden;
+    color: var(--ll-muted);
+    font-size: 11px;
+}
+#slb-library-overlay .slb-library-cover-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+#slb-library-overlay .slb-library-cover-help {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: var(--ll-muted);
+    line-height: 1.65;
+}
+#slb-library-overlay .slb-library-cover-file-label {
+    display: inline-block;
+    padding: 8px 12px;
+    color: var(--ll-ink);
+    border: 1px solid var(--ll-line);
+    border-radius: 8px;
+    background: var(--ll-warm);
+    cursor: pointer;
+    font-size: 12px;
+}
+#slb-library-overlay .slb-library-cover-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+}
+#slb-library-overlay .slb-library-cover-file-status {
+    margin: 10px 0 0;
+    color: var(--ll-muted);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-cover-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 7px;
+    margin-top: 18px;
+    padding-top: 13px;
+    border-top: 1px solid var(--ll-line);
+}
+#slb-library-overlay .slb-library-cover-dialog-actions button { font-size: 12px; }
+#slb-library-overlay button.slb-library-cover-save {
+    background: var(--ll-leather);
+    color: var(--ll-ink);
+    border-color: var(--ll-brass);
+}
+#slb-library-overlay[data-theme="clean"] button.slb-library-cover-save {
+    background: #4c6479;
+    color: #fff;
+}
+@media (max-width: 760px) {
+    #slb-library-overlay[data-theme="clean"] .slb-library-shell { border-radius: 0; border: 0; }
+    #slb-library-overlay .slb-library-appearance { gap: 6px; }
+    #slb-library-overlay .slb-library-appearance label { font-size: 10px; }
+    #slb-library-overlay .slb-library-theme-select { font-size: 11px; min-height: 30px; }
+    #slb-library-overlay .slb-library-cover-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 12px; }
+    #slb-library-overlay[data-theme="clean"] .slb-library-digital-bookshelf .slb-library-books-scroll { padding: 14px 12px 17px; }
+}
+@media (max-width: 500px) {
+    #slb-library-overlay .slb-library-cover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 12px; }
+    #slb-library-overlay .slb-library-cover-title { font-size: 13px; }
+    #slb-library-overlay .slb-library-cover-dialog { padding: 17px 15px; }
+    #slb-library-overlay .slb-library-appearance label[for="slb-library-theme-mode"] { display: none; }
+    #slb-library-overlay .slb-library-variant-wrap span { display: none; }
+    #slb-library-overlay .slb-library-appearance select { max-width: 160px; }
+}

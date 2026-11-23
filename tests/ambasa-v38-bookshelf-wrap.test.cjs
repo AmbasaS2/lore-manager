@@ -24,8 +24,7 @@ test('bookshelf uses responsive auto-wrapping grid rather than a single horizont
   assert.doesNotMatch(spines,/width:\s*max-content|flex-wrap:\s*nowrap/);
   const scroll=rule('#slb-library-overlay .slb-library-books-scroll');
   assert.doesNotMatch(scroll,/overflow-x:\s*auto|overflow-y:\s*hidden/);
-  const mobile=css.slice(css.lastIndexOf('@media (max-width: 760px)'));
-  assert.match(mobile,/grid-template-columns:\s*repeat\(auto-fill,\s*47px\);/);
+  assert.match(css,/\.slb-library-book-spines\s*\{\s*grid-template-columns:\s*repeat\(auto-fill,\s*47px\);/);
 });
 
 test('each wrapped row includes a wooden shelf; empty books keep full width', () => {

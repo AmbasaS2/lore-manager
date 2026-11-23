@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.41';
+const VERSION = '1.4.85-ambasa.42';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -119,7 +119,9 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryBookTypes: {},
     libraryBookTags: {},
     libraryEntryImages: {},
+    libraryBookCovers: {},
     libraryTheme: 'antique',
+    libraryCleanVariant: 'mac',
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -350,7 +352,10 @@ function getSettings() {
         || Array.isArray(settings.libraryBookTags)) settings.libraryBookTags = {};
     if (!settings.libraryEntryImages || typeof settings.libraryEntryImages !== 'object'
         || Array.isArray(settings.libraryEntryImages)) settings.libraryEntryImages = {};
-    if (!['antique', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
+    if (!settings.libraryBookCovers || typeof settings.libraryBookCovers !== 'object'
+        || Array.isArray(settings.libraryBookCovers)) settings.libraryBookCovers = {};
+    if (!['antique', 'clean', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
+    if (!['mac', 'blackberry'].includes(settings.libraryCleanVariant)) settings.libraryCleanVariant = 'mac';
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -9174,7 +9179,7 @@ function safeLibraryUploadedPath(path) {
     return value;
 }
 
-async function uploadLibraryEntryImage(book, entry, file) {
+async function uploadLibraryImageFile(file, { cover = false } = {}) {
     const formats = {
         'image/png': 'png',
         'image/jpeg': 'jpg',
@@ -9182,8 +9187,10 @@ async function uploadLibraryEntryImage(book, entry, file) {
         'image/gif': 'gif',
     };
     const format = formats[file?.type];
-    if (!format || !file?.size || file.size > 5 * 1024 * 1024) {
-        throw new Error('PNG, JPG, WEBP 또는 GIF 형식의 5MB 이하 이미지를 선택하세요.');
+    if (!format || (cover && format === 'gif') || !file?.size || file.size > 5 * 1024 * 1024) {
+        throw new Error(cover
+            ? 'PNG, JPG 또는 WEBP 형식의 5MB 이하 이미지를 선택하세요.'
+            : 'PNG, JPG, WEBP 또는 GIF 형식의 5MB 이하 이미지를 선택하세요.');
     }
     const base64DataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -9193,7 +9200,7 @@ async function uploadLibraryEntryImage(book, entry, file) {
     });
     const base64 = base64DataUrl.split(',')[1];
     if (!base64) throw new Error('이미지 파일을 읽지 못했습니다.');
-    const filename = 'slb-lore-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    const filename = (cover ? 'slb-cover-' : 'slb-lore-') + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
     const response = await fetch('/api/images/upload', {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -9203,7 +9210,43 @@ async function uploadLibraryEntryImage(book, entry, file) {
     const data = await response.json();
     const path = safeLibraryUploadedPath(data?.path);
     if (!path) throw new Error('이미지 저장 경로가 올바르지 않습니다.');
+    return path;
+}
+
+async function uploadLibraryEntryImage(book, entry, file) {
+    const path = await uploadLibraryImageFile(file);
     await saveLibraryEntryImagePath(book, entry.uid, path);
+    return path;
+}
+
+// Book covers are shelf metadata only, unrelated to entry-image metadata,
+// original worldbook entries and translated JSON. Removing a cover unlinks
+// its saved path; it never deletes the user's physical ST image file.
+function libraryBookCoverPath(book) {
+    const all = getSettings().libraryBookCovers;
+    return Object.hasOwn(all, book) ? safeLibraryUploadedPath(all[book]) : '';
+}
+async function saveLibraryBookCoverPath(book, path) {
+    const all = getSettings().libraryBookCovers;
+    const existed = Object.hasOwn(all, book);
+    const previous = existed ? all[book] : undefined;
+    if (path) Object.defineProperty(all, book, {
+        value: path, enumerable: true, configurable: true, writable: true,
+    });
+    else delete all[book];
+    try {
+        await saveSettings();
+    } catch (error) {
+        if (existed) Object.defineProperty(all, book, {
+            value: previous, enumerable: true, configurable: true, writable: true,
+        });
+        else delete all[book];
+        throw error;
+    }
+}
+async function uploadLibraryBookCover(book, file) {
+    const path = await uploadLibraryImageFile(file, { cover: true });
+    await saveLibraryBookCoverPath(book, path);
     return path;
 }
 
@@ -9245,6 +9288,10 @@ function initStandaloneLibrary() {
         getEntryImage: (book, entry) => libraryImagePath(book, entry.uid),
         uploadEntryImage: uploadLibraryEntryImage,
         removeEntryImage: (book, entry) => saveLibraryEntryImagePath(book, entry.uid, ''),
+        getBookCover: libraryBookCoverPath,
+        getBookCoverMap: () => getSettings().libraryBookCovers,
+        uploadBookCover: uploadLibraryBookCover,
+        removeBookCover: book => saveLibraryBookCoverPath(book, ''),
         setTags: async (book, tags) => {
             const all = getSettings().libraryBookTags;
             const existed = Object.hasOwn(all, book);
@@ -9264,7 +9311,20 @@ function initStandaloneLibrary() {
                 throw error;
             }
         },
-        getTheme: () => 'antique',
+        getTheme: () => getSettings().libraryTheme === 'clean' ? 'clean' : 'antique',
+        setTheme: async theme => {
+            if (!['antique', 'clean'].includes(theme)) return;
+            const settings = getSettings(), previous = settings.libraryTheme;
+            settings.libraryTheme = theme;
+            try { await saveSettings(); } catch (error) { settings.libraryTheme = previous; throw error; }
+        },
+        getCleanVariant: () => getSettings().libraryCleanVariant === 'blackberry' ? 'blackberry' : 'mac',
+        setCleanVariant: async variant => {
+            if (!['mac', 'blackberry'].includes(variant)) return;
+            const settings = getSettings(), previous = settings.libraryCleanVariant;
+            settings.libraryCleanVariant = variant;
+            try { await saveSettings(); } catch (error) { settings.libraryCleanVariant = previous; throw error; }
+        },
         notify,
     });
     return standaloneLibrary;

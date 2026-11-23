@@ -88,7 +88,14 @@ export function createStandaloneLibrary({
     getEntryImage = () => '',
     uploadEntryImage = async () => {},
     removeEntryImage = async () => {},
-    getTheme,
+    getBookCover = () => '',
+    getBookCoverMap = null,
+    uploadBookCover = async () => {},
+    removeBookCover = async () => {},
+    getTheme = () => 'antique',
+    setTheme = async () => {},
+    getCleanVariant = () => 'mac',
+    setCleanVariant = async () => {},
     notify,
 }) {
     let overlay = null;
@@ -113,6 +120,8 @@ export function createStandaloneLibrary({
     let tagDraft = '';
     let tagInitial = '';
     let tagPanelExpanded = false;
+    let coverEditor = null;
+    let appearanceSaving = false;
     // Only the currently opened book can have a pending, explicitly selected
     // image. These File objects are never stored in ST settings.
     const pendingImages = new Map();
@@ -128,7 +137,7 @@ export function createStandaloneLibrary({
             || (!allowTags && currentBook && (tagDraft !== tagInitial || pendingImages.size > 0)));
     }
     function discardOrStay({ allowTags = false } = {}) {
-        if (saving || tagSaving) {
+        if (saving || tagSaving || appearanceSaving || coverEditor?.saving) {
             notifyStatus('저장 작업이 완료된 후 이동할 수 있습니다.', 'warning');
             return false;
         }
@@ -136,6 +145,7 @@ export function createStandaloneLibrary({
     }
     function resetEdit() { edit = null; }
     function close() {
+        if (coverEditor) return dismissCoverEditor();
         if (!isOpen() || !discardOrStay()) return false;
         loadVersion += 1;
         doc.removeEventListener('keydown', onKeyDown);
@@ -149,7 +159,8 @@ export function createStandaloneLibrary({
     function onKeyDown(event) {
         if (event.key === 'Escape' && isOpen()) {
             event.preventDefault();
-            close();
+            if (coverEditor) dismissCoverEditor();
+            else close();
         }
     }
     function createShell() {
@@ -190,7 +201,28 @@ export function createStandaloneLibrary({
         search.setAttribute('aria-label', '로어북 내 검색');
         const navTools = element(doc, 'div', 'slb-library-nav-tools');
         navTools.append(filters, search);
-        navigation.append(navTop, navTools);
+        const appearance = element(doc, 'div', 'slb-library-appearance');
+        const appearanceLabel = element(doc, 'label', '', '서재 테마');
+        appearanceLabel.htmlFor = 'slb-library-theme-mode';
+        const themeMode = element(doc, 'select', 'slb-library-theme-select');
+        themeMode.id = 'slb-library-theme-mode';
+        for (const [value, title] of [['antique', '클래식 아카이브'], ['clean', '클린 디지털']]) {
+            const option = element(doc, 'option', '', title);
+            option.value = value;
+            themeMode.append(option);
+        }
+        const variantLabel = element(doc, 'label', 'slb-library-variant-wrap');
+        const variantText = element(doc, 'span', '', '클린 디자인');
+        const variant = element(doc, 'select', 'slb-library-theme-select');
+        variant.id = 'slb-library-clean-variant';
+        for (const [value, title] of [['mac', 'MacBook형'], ['blackberry', 'BlackBerry형']]) {
+            const option = element(doc, 'option', '', title);
+            option.value = value;
+            variant.append(option);
+        }
+        variantLabel.append(variantText, variant);
+        appearance.append(appearanceLabel, themeMode, variantLabel);
+        navigation.append(appearance, navTop, navTools);
         const body = element(doc, 'main', 'slb-library-body');
         const footer = element(doc, 'footer', 'slb-library-footer');
         const status = element(doc, 'span', '', '기존 로어북 원문과 번역 데이터를 사용합니다.');
@@ -205,6 +237,169 @@ export function createStandaloneLibrary({
         overlay.addEventListener('change', onChange);
         overlay.addEventListener('input', onInput);
         return shell;
+    }
+
+    // This editor is mounted only when a user explicitly opens a cover
+    // setting; neither book data nor images are fetched for the antique shelf.
+    function dismissCoverEditor(force = false) {
+        if (!coverEditor) return true;
+        if (coverEditor.saving && !force) {
+            notifyStatus('표지 저장이 완료된 후 이동할 수 있습니다.', 'warning');
+            return false;
+        }
+        if (!force && coverEditor.file
+            && !doc.defaultView.confirm('저장하지 않은 표지 이미지가 있습니다. 변경을 취소하시겠습니까?')) return false;
+        const previous = coverEditor;
+        coverEditor = null;
+        if (previous.previewUrl) doc.defaultView.URL?.revokeObjectURL?.(previous.previewUrl);
+        previous.backdrop.remove();
+        previous.focus?.focus?.();
+        return true;
+    }
+    function openCoverEditor(book) {
+        if (coverEditor || currentBook || !bookNames.includes(book) || !isOpen()) return;
+        const backdrop = element(doc, 'div', 'slb-library-cover-backdrop');
+        const dialog = element(doc, 'section', 'slb-library-cover-dialog');
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-labelledby', 'slb-library-cover-dialog-title');
+        const header = element(doc, 'div', 'slb-library-cover-dialog-head');
+        const title = element(doc, 'h3', '', '책 표지 설정');
+        title.id = 'slb-library-cover-dialog-title';
+        header.append(title, button(doc, 'slb-library-cover-dismiss', '×', 'cover-cancel'));
+        const bookTitle = element(doc, 'p', 'slb-library-cover-book-name', book);
+        const preview = element(doc, 'div', 'slb-library-cover-preview');
+        const existing = safeLibraryImagePath(getBookCover(book));
+        if (existing) {
+            const image = element(doc, 'img', 'slb-library-cover-preview-image');
+            image.src = existing;
+            image.alt = book + ' · 현재 책 표지';
+            image.addEventListener('error', () => image.remove(), { once: true });
+            preview.append(image);
+        } else preview.append(element(doc, 'span', '', '기본 표지'));
+        const description = element(doc, 'p', 'slb-library-cover-help',
+            '표지 이미지는 서가에만 표시됩니다. 로어북 원문과 항목 이미지는 변경되지 않습니다.');
+        const fileLabel = element(doc, 'label', 'slb-library-cover-file-label', '이미지 선택');
+        fileLabel.htmlFor = 'slb-library-cover-file';
+        const file = element(doc, 'input', 'slb-library-cover-file');
+        file.id = 'slb-library-cover-file';
+        file.type = 'file';
+        file.accept = 'image/png,image/jpeg,image/webp';
+        const status = element(doc, 'p', 'slb-library-cover-file-status', 'PNG · JPG · WEBP / 최대 5MB');
+        const actions = element(doc, 'div', 'slb-library-cover-dialog-actions');
+        const reset = button(doc, '', '기본 표지 복원', 'cover-reset');
+        reset.disabled = !existing;
+        const cancel = button(doc, '', '취소', 'cover-cancel');
+        const save = button(doc, 'slb-library-cover-save', '표지 저장', 'cover-save');
+        save.disabled = true;
+        actions.append(reset, cancel, save);
+        dialog.append(header, bookTitle, preview, description, fileLabel, file, status, actions);
+        backdrop.append(dialog);
+        backdrop.addEventListener('click', event => {
+            if (event.target === backdrop) dismissCoverEditor();
+        });
+        coverEditor = { book, backdrop, preview, file: null, previewUrl: null, focus: doc.activeElement, saving: false };
+        overlay.append(backdrop);
+        fileLabel.tabIndex = 0;
+        fileLabel.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                file.click();
+            }
+        });
+        cancel.focus();
+    }
+    function previewCoverFile(file) {
+        if (!coverEditor || coverEditor.saving) return;
+        const editor = coverEditor;
+        if (!file || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)
+            || file.size < 1 || file.size > 5 * 1024 * 1024) {
+            editor.file = null;
+            if (editor.previewUrl) doc.defaultView.URL?.revokeObjectURL?.(editor.previewUrl);
+            editor.previewUrl = null;
+            editor.backdrop.querySelector('[data-action="cover-save"]').disabled = true;
+            editor.backdrop.querySelector('.slb-library-cover-file-status').textContent =
+                'PNG, JPG 또는 WEBP 형식의 5MB 이하 이미지를 선택하세요.';
+            return;
+        }
+        editor.file = file;
+        if (editor.previewUrl) doc.defaultView.URL?.revokeObjectURL?.(editor.previewUrl);
+        editor.previewUrl = null;
+        editor.preview.replaceChildren();
+        if (typeof doc.defaultView.URL?.createObjectURL === 'function') {
+            editor.previewUrl = doc.defaultView.URL.createObjectURL(file);
+            const image = element(doc, 'img', 'slb-library-cover-preview-image');
+            image.src = editor.previewUrl;
+            image.alt = '선택한 표지 미리보기';
+            editor.preview.append(image);
+        } else editor.preview.append(element(doc, 'span', '', file.name));
+        editor.backdrop.querySelector('.slb-library-cover-file-status').textContent = file.name;
+        editor.backdrop.querySelector('[data-action="cover-save"]').disabled = false;
+    }
+    async function commitCover(remove = false) {
+        const editor = coverEditor;
+        if (!editor || editor.saving || (!remove && !editor.file)) return;
+        editor.saving = true;
+        for (const control of editor.backdrop.querySelectorAll('button, input')) control.disabled = true;
+        const status = editor.backdrop.querySelector('.slb-library-cover-file-status');
+        status.textContent = '표지를 저장하는 중입니다…';
+        try {
+            if (remove) await removeBookCover(editor.book);
+            else await uploadBookCover(editor.book, editor.file);
+            dismissCoverEditor(true);
+            if (isOpen()) {
+                bookList();
+                notifyStatus(remove ? '기본 표지로 복원되었습니다.' : '책 표지가 저장되었습니다.', 'success');
+            }
+        } catch (error) {
+            status.textContent = '표지 저장 실패: ' + (error?.message || error);
+            notify?.(status.textContent, 'error');
+        } finally {
+            editor.saving = false;
+            if (coverEditor === editor) {
+                for (const control of editor.backdrop.querySelectorAll('button, input')) control.disabled = false;
+                editor.backdrop.querySelector('[data-action="cover-save"]').disabled = !editor.file;
+                editor.backdrop.querySelector('[data-action="cover-reset"]').disabled =
+                    !safeLibraryImagePath(getBookCover(editor.book));
+            }
+        }
+    }
+    function syncAppearanceControls() {
+        if (!isOpen()) return;
+        const theme = getTheme() === 'clean' ? 'clean' : 'antique';
+        const variant = getCleanVariant() === 'blackberry' ? 'blackberry' : 'mac';
+        overlay.dataset.theme = theme;
+        overlay.dataset.variant = variant;
+        const modeSelect = overlay.querySelector('#slb-library-theme-mode');
+        const variantSelect = overlay.querySelector('#slb-library-clean-variant');
+        if (modeSelect) modeSelect.value = theme;
+        if (variantSelect) variantSelect.value = variant;
+        const variantRow = overlay.querySelector('.slb-library-variant-wrap');
+        if (variantRow) variantRow.hidden = theme !== 'clean';
+    }
+    async function updateAppearance(kind, value) {
+        if (!isOpen() || appearanceSaving || coverEditor) return;
+        if (!discardOrStay()) { syncAppearanceControls(); return; }
+        if (kind === 'theme' && !['antique', 'clean'].includes(value)) return;
+        if (kind === 'variant' && !['mac', 'blackberry'].includes(value)) return;
+        const prev = kind === 'theme' ? getTheme() : getCleanVariant();
+        if (value === prev) { syncAppearanceControls(); return; }
+        appearanceSaving = true;
+        const controls = overlay.querySelectorAll('.slb-library-appearance select');
+        for (const input of controls) input.disabled = true;
+        try {
+            if (kind === 'theme') await setTheme(value);
+            else await setCleanVariant(value);
+            syncAppearanceControls();
+            if (!currentBook) bookList();
+            notifyStatus('서재 디자인 설정이 저장되었습니다.', 'success');
+        } catch (error) {
+            syncAppearanceControls();
+            notifyStatus('서재 디자인 저장 실패: ' + (error?.message || error), 'error');
+        } finally {
+            appearanceSaving = false;
+            for (const input of controls) input.disabled = false;
+        }
     }
     function bookTags(book) {
         return normalizeLibraryTags(getTags(book));
@@ -273,18 +468,53 @@ export function createStandaloneLibrary({
             return true;
         });
         const typeMap = typeof getTypeMap === 'function' ? getTypeMap() : null;
-        const shelf = element(doc, 'div', 'slb-library-bookshelf');
+        const digital = getTheme() === 'clean';
+        const shelf = element(doc, 'div', 'slb-library-bookshelf' + (digital ? ' slb-library-digital-bookshelf' : ''));
         const scroll = element(doc, 'div', 'slb-library-books-scroll');
         scroll.setAttribute('role', 'region');
-        scroll.setAttribute('aria-label', '책등 목록');
+        scroll.setAttribute('aria-label', digital ? '책 표지 목록' : '책등 목록');
         scroll.tabIndex = 0;
-        const spines = element(doc, 'div', 'slb-library-book-spines');
+        const spines = element(doc, 'div', digital ? 'slb-library-cover-grid' : 'slb-library-book-spines');
+        const coverMap = digital && typeof getBookCoverMap === 'function' ? getBookCoverMap() : null;
         const shown = candidates.slice(0, shelfLimit);
         for (const [index, item] of shown.entries()) {
             const savedType = typeMap && typeof typeMap === 'object'
                 ? (Object.hasOwn(typeMap, item.name) ? typeMap[item.name] : 'general')
                 : getType(item.name);
             const type = Object.hasOwn(LIBRARY_BOOK_TYPES, savedType) ? savedType : 'general';
+            if (digital) {
+                const entry = element(doc, 'div', 'slb-library-cover-item');
+                const opener = button(doc, 'slb-library-cover-open', '', 'select-book');
+                opener.dataset.book = item.name;
+                opener.setAttribute('aria-label', item.name + ' · 로어북 열기');
+                const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-tone-' + spineTone(item.name)
+                    + ' slb-library-cover-type-' + type);
+                art.append(element(doc, 'span', 'slb-library-cover-overline', 'LORE LIBRARY'));
+                art.append(element(doc, 'span', 'slb-library-cover-title', item.name));
+                art.append(element(doc, 'span', 'slb-library-cover-type-label', LIBRARY_BOOK_TYPES[type].split(' · ')[0]));
+                const stored = coverMap && typeof coverMap === 'object'
+                    ? (Object.hasOwn(coverMap, item.name) ? coverMap[item.name] : '')
+                    : getBookCover(item.name);
+                const imagePath = safeLibraryImagePath(stored);
+                if (imagePath) {
+                    const image = element(doc, 'img', 'slb-library-cover-image');
+                    image.src = imagePath;
+                    image.alt = item.name + ' 표지 이미지';
+                    image.loading = 'lazy';
+                    image.decoding = 'async';
+                    // If the image was removed externally, keep the default
+                    // cover usable instead of leaving a broken-image icon.
+                    image.addEventListener('error', () => image.remove(), { once: true });
+                    art.append(image);
+                }
+                opener.append(art, element(doc, 'span', 'slb-library-cover-caption', item.name));
+                const configure = button(doc, 'slb-library-cover-config', imagePath ? '표지 교체' : '표지 설정', 'cover-config');
+                configure.dataset.book = item.name;
+                configure.setAttribute('aria-label', item.name + ' · 표지 설정');
+                entry.append(opener, configure);
+                spines.append(entry);
+                continue;
+            }
             const spine = button(doc, 'slb-library-book-spine slb-library-spine-tone-' + spineTone(item.name)
                 + ' slb-library-spine-type-' + type, '', 'select-book');
             spine.dataset.book = item.name;
@@ -307,7 +537,8 @@ export function createStandaloneLibrary({
                     : '이 분류에 해당하는 로어북이 없습니다.'));
         }
         scroll.append(spines);
-        shelf.append(scroll, element(doc, 'div', 'slb-library-wood-plank'));
+        if (digital) shelf.append(scroll);
+        else shelf.append(scroll, element(doc, 'div', 'slb-library-wood-plank'));
         body.append(head, tagbar, shelf);
         const summary = element(doc, 'div', 'slb-library-shelf-summary');
         summary.append(element(doc, 'span', '', candidates.length + '권 중 ' + shown.length + '권 표시'));
@@ -790,7 +1021,12 @@ export function createStandaloneLibrary({
         const target = event.target.closest?.('[data-action]');
         if (!target || !overlay?.contains(target)) return;
         const action = target.dataset.action, uid = target.dataset.uid;
-        if (action === 'close') close();
+        if (coverEditor && !coverEditor.backdrop.contains(target)) return;
+        if (action === 'cover-config') openCoverEditor(target.dataset.book);
+        else if (action === 'cover-cancel') dismissCoverEditor();
+        else if (action === 'cover-save') void commitCover(false);
+        else if (action === 'cover-reset') void commitCover(true);
+        else if (action === 'close') close();
         else if (action === 'books') {
             if (!discardOrStay()) return;
             loadVersion += 1;
@@ -838,6 +1074,18 @@ export function createStandaloneLibrary({
         }
     }
     function onChange(event) {
+        if (event.target?.id === 'slb-library-cover-file') {
+            previewCoverFile(event.target.files?.[0]);
+            return;
+        }
+        if (event.target?.id === 'slb-library-theme-mode') {
+            void updateAppearance('theme', event.target.value);
+            return;
+        }
+        if (event.target?.id === 'slb-library-clean-variant') {
+            void updateAppearance('variant', event.target.value);
+            return;
+        }
         if (event.target?.classList?.contains('slb-library-image-file')) {
             const uid = event.target.dataset.uid;
             const file = event.target.files?.[0];
@@ -902,6 +1150,8 @@ export function createStandaloneLibrary({
         tagDraft = '';
         tagInitial = '';
         tagPanelExpanded = false;
+        coverEditor = null;
+        appearanceSaving = false;
         pendingImages.clear();
         currentBook = '';
         currentData = null;
@@ -912,8 +1162,8 @@ export function createStandaloneLibrary({
         edit = null;
         ++loadVersion;
         const shell = createShell();
-        overlay.dataset.theme = getTheme?.() || 'antique';
         doc.body.append(overlay);
+        syncAppearanceControls();
         doc.addEventListener('keydown', onKeyDown);
         bookList();
         shell.focus();
@@ -933,7 +1183,10 @@ export function createStandaloneLibrary({
         renderBook();
     }
     function updateTheme() {
-        if (isOpen()) overlay.dataset.theme = getTheme?.() || 'antique';
+        if (!isOpen()) return;
+        const previous = overlay.dataset.theme;
+        syncAppearanceControls();
+        if (previous !== overlay.dataset.theme && !currentBook) bookList();
     }
     return { open, close, isOpen, refreshTranslations, onExternalWorldUpdate, updateTheme };
 }

@@ -22,8 +22,10 @@ test('library settings have a readable standalone launcher without a redundant t
     dom.window.close();
 });
 
-test('only antique is selected at runtime and old theme preference is left intact', () => {
-    assert.match(index, /getTheme:\s*\(\)\s*=>\s*'antique'/);
+test('antique remains default while the new clean theme is an explicit saved choice', () => {
+    assert.match(index, /getTheme:\s*\(\)\s*=>\s*getSettings\(\)\.libraryTheme === 'clean'/);
+    assert.match(index, /setTheme: async theme =>/);
+    assert.match(index, /libraryCleanVariant:\s*'mac'/);
     assert.doesNotMatch(index, /const libraryThemeControl = document.getElementById/);
     assert.match(index, /libraryTheme:\s*'antique'/, 'keep existing settings schema for backward compatibility');
     assert.match(index, /function openStandaloneLibrary\(/, 'the original launcher stays available');
