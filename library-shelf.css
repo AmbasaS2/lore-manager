@@ -4956,3 +4956,230 @@
         padding: 5px;
     }
 }
+
+/* ambasa.52 · 2026-11-23 · reader/bookcase UI only.
+   The shelf counter stays on the left, with More truly centered and clear
+   of the floating window's corner grip on every theme. */
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 6px;
+    width: 100%;
+    min-width: 0;
+    padding: 9px 16px 17px;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-summary > span {
+    grid-column: 1;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-summary > button.slb-library-shelf-more {
+    grid-column: 2;
+    justify-self: center;
+    margin: 0 !important;
+}
+
+/* Ebook cover configuration appears only on explicit right-click, long-press
+   or keyboard context-menu. Nothing occupies a permanent line below covers. */
+#slb-library-overlay .slb-library-cover-item { position: relative; }
+#slb-library-overlay .slb-library-cover-menu {
+    position: absolute;
+    z-index: 15;
+    left: 50%;
+    top: 32%;
+    transform: translateX(-50%);
+    display: grid;
+    place-items: center;
+    width: max-content;
+    max-width: 100%;
+    padding: 5px;
+    background: var(--ll-paper-light);
+    border: 1px solid var(--ll-line);
+    border-radius: 7px;
+    box-shadow: 0 5px 18px #14202c40;
+}
+#slb-library-overlay .slb-library-cover-menu[hidden] { display: none !important; }
+#slb-library-overlay .slb-library-cover-menu button.slb-library-cover-config {
+    display: block;
+    width: auto;
+    min-height: 29px;
+    margin: 0;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ll-ink);
+    white-space: nowrap;
+    font-size: .8em;
+}
+#slb-library-overlay .slb-library-mode-ebook .slb-library-cover-title {
+    transform: translateY(-10px);
+}
+
+/* Markdown typography is limited to read-only lore content. The original
+   source and edited textarea retain their exact unformatted strings. */
+#slb-library-overlay .slb-library-prose.is-markdown {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.7;
+}
+#slb-library-overlay .slb-library-prose.is-markdown :is(h1, h2, h3, h4, h5, h6) {
+    margin: .8em 0 .35em;
+    font-weight: 750;
+    line-height: 1.3;
+}
+#slb-library-overlay .slb-library-prose.is-markdown :is(h1, h2) { font-size: 1.3em; }
+#slb-library-overlay .slb-library-prose.is-markdown h3 { font-size: 1.13em; }
+#slb-library-overlay .slb-library-prose.is-markdown :is(h4, h5, h6) { font-size: 1em; }
+#slb-library-overlay .slb-library-prose.is-markdown :is(p, ul, ol, blockquote, pre, table) {
+    margin: 0 0 .8em;
+}
+#slb-library-overlay .slb-library-prose.is-markdown :is(ul, ol) {
+    padding-left: 1.4em;
+}
+#slb-library-overlay .slb-library-prose.is-markdown pre {
+    white-space: pre;
+    max-width: 100%;
+    overflow-x: auto;
+}
+#slb-library-overlay .slb-library-prose.is-markdown :is(img, table) {
+    max-width: 100%;
+}
+#slb-library-overlay .slb-library-prose.is-markdown p:last-child { margin-bottom: 0; }
+
+/* Remove the ebook-only MY LIBRARY chrome without changing other themes.
+   The whole TOC heading becomes the open/close action, count on the same row. */
+#slb-library-overlay .slb-library-reader-ebook .slb-library-ebook-paper {
+    padding-top: 12px;
+}
+#slb-library-overlay button.slb-library-world-menu.slb-library-index-heading {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    height: auto;
+    margin: 0 0 7px;
+    padding: 6px 11px;
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    text-align: left;
+    letter-spacing: .03em;
+    font-size: .82em;
+    font-weight: 650;
+    cursor: pointer;
+}
+#slb-library-overlay button.slb-library-world-menu .slb-library-world-count {
+    margin-left: auto;
+    font-size: .86em;
+    font-weight: 450;
+    color: var(--ll-muted);
+    white-space: nowrap;
+}
+#slb-library-overlay button.slb-library-world-menu .fa-solid {
+    font-size: .86em;
+    color: var(--ll-muted);
+}
+#slb-library-overlay .slb-library-index-layout:not(.is-index-open) {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+#slb-library-overlay .slb-library-index-layout:not(.is-index-open) > .slb-library-index {
+    display: none !important;
+}
+
+/* The tag editor must not participate in the header's flex measurements.
+   This also fixes the unrelated diary selector moving when tags open. */
+#slb-library-overlay .slb-library-reader-meta-row {
+    position: relative;
+    z-index: 6;
+    align-items: flex-start;
+    overflow: visible;
+}
+#slb-library-overlay .slb-library-reader-meta-row > details.slb-library-book-meta,
+#slb-library-overlay .slb-library-reader-frame .slb-library-reader-meta-row > details.slb-library-book-meta[open] {
+    position: relative;
+    flex: 0 1 auto;
+    width: max-content;
+    max-width: 55%;
+    margin: 0;
+    overflow: visible;
+}
+#slb-library-overlay .slb-library-book-tag-picker {
+    position: absolute;
+    z-index: 25;
+    left: 0;
+    top: calc(100% + 5px);
+    width: min(315px, calc(100vw - 44px));
+    max-width: none;
+    max-height: min(48dvh, 330px);
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--ll-line);
+    border-radius: 9px;
+    background: var(--ll-paper-light);
+    box-shadow: 0 7px 20px #17243336;
+}
+#slb-library-overlay .slb-library-book-tag-suggestions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 2px 0 8px;
+}
+#slb-library-overlay button.slb-library-book-tag-suggestion {
+    display: inline-flex;
+    width: auto;
+    min-height: 26px;
+    padding: 3px 8px;
+    background: var(--ll-warm);
+    border: 1px solid var(--ll-line);
+    border-radius: 14px;
+    color: var(--ll-ink);
+    font-size: .78em;
+    line-height: 1.2;
+}
+#slb-library-overlay button.slb-library-book-tag-suggestion.is-selected {
+    border-color: var(--ll-brass);
+    background: var(--ll-leather);
+    color: var(--ll-paper-light);
+}
+#slb-library-overlay .slb-library-book-tag-picker .slb-library-book-tag-field {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    padding: 4px 0 0;
+    gap: 6px;
+    border-top: 0;
+}
+#slb-library-overlay .slb-library-book-tag-picker .slb-library-book-tag-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-book-tag-picker button.slb-library-book-tag-save {
+    flex: 0 0 auto;
+}
+
+/* Optional multi-tag OR filters have removable chips below the same toolbar. */
+#slb-library-overlay .slb-library-active-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin: -5px 0 10px;
+}
+#slb-library-overlay button.slb-library-active-tag {
+    width: auto;
+    min-height: 24px;
+    padding: 3px 8px;
+    font-size: .75em;
+    border-radius: 14px;
+    border: 1px solid var(--ll-brass);
+    background: var(--ll-warm);
+}

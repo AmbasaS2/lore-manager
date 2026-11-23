@@ -97,15 +97,15 @@ test('all encyclopedias default open and toggle labels match the actual state',a
   try{
    await f.load();
    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
-   assert.equal(f.q('.slb-library-world-menu').textContent,'목차 접기');
+   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 접기');
    assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-expanded'),'true');
    assert.equal(f.qa('.slb-library-index-item').length,5);
    f.click('[data-action="world-menu"]');
    assert.equal(f.q('.slb-library-index-layout.is-index-open'),null);
-   assert.equal(f.q('.slb-library-world-menu').textContent,'목차 펼치기');
+   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 펼치기');
    assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-expanded'),'false');
    f.click('[data-action="world-menu"]');
-   assert.equal(f.q('.slb-library-world-menu').textContent,'목차 접기');
+   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 접기');
    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
    assert.equal(f.q('[data-action="world-prev"]').textContent,'‹');
    assert.equal(f.q('[data-action="world-next"]').textContent,'›');

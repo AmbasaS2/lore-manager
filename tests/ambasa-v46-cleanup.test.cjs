@@ -136,7 +136,8 @@ test('world search displays readable stable index numbers when filtered',async()
   search.value='Entry 9';
   search.dispatchEvent(new f.w.Event('input',{bubbles:true}));
   assert.deepEqual(f.qa('.slb-library-index-initial').map(e=>e.textContent),['10']);
-  assert.equal(f.q('.slb-library-world-menu').textContent,'목차 접기');
+  assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 접기');
+  assert.match(f.q('.slb-library-world-menu').textContent,/목차 · CONTENTS/);
   assert.match(css,/\.slb-library-index-initial\s*\{[^}]*color:\s*#384655/s);
  }finally{f.dom.window.close()}
 });
