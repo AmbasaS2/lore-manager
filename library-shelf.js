@@ -89,6 +89,7 @@ export function createStandaloneLibrary({
     saveContent,
     loadTranslations,
     translationFor,
+    renderReadMarkdown = null,
     translateOne,
     saveTranslation,
     openAdvanced,
@@ -131,6 +132,7 @@ export function createStandaloneLibrary({
     let bookToneByName = new Map();
     let linkedNames = null;
     let shelfTag = 'all';
+    let shelfSelectedTags = new Set();
     let shelfRows = 3;
     let shelfSearchOpen = false;
     let worldTocPage = 0;
@@ -153,6 +155,9 @@ export function createStandaloneLibrary({
     let tagInitial = '';
     let tagPanelExpanded = false;
     let coverEditor = null;
+    let coverContextBook = '';
+    let coverLongPressTimer = null;
+    let coverLongPressPointer = null;
     let activeToolsUid = null;
     let appearanceSaving = false;
     // Only the currently opened book can have a pending, explicitly selected
@@ -186,6 +191,8 @@ export function createStandaloneLibrary({
         if (coverEditor) return dismissCoverEditor();
         closeReaderTools();
         if (!isOpen() || !discardOrStay()) return false;
+        cancelCoverLongPress();
+        closeCoverMenu();
         loadVersion += 1;
         resizeCleanup?.();
         resizeCleanup = null;
@@ -204,9 +211,20 @@ export function createStandaloneLibrary({
         return true;
     }
     function onKeyDown(event) {
-        if (event.key !== 'Escape' || !isOpen()) return;
+        if (!isOpen()) return;
+        if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+            const opener = event.target.closest?.('.slb-library-cover-open');
+            if (opener) {
+                event.preventDefault();
+                openCoverMenu(opener.dataset.book);
+                overlay.querySelector('.slb-library-cover-menu:not([hidden]) [data-action="cover-config"]')?.focus();
+            }
+            return;
+        }
+        if (event.key !== 'Escape') return;
         event.preventDefault();
         if (coverEditor) dismissCoverEditor();
+        else if (coverContextBook) closeCoverMenu();
         else if (activeToolsUid !== null) closeReaderTools();
         else if (settingsOpen) setSettingsOpen(false);
         else if (shelfSearchOpen) closeShelfSearch();
@@ -231,6 +249,59 @@ export function createStandaloneLibrary({
         const target = event.target;
         if (shelfSearchOpen && !target.closest?.('.slb-library-books-head')) closeShelfSearch();
         if (readerSearchOpen && !target.closest?.('.slb-library-reader-search-toggle, #slb-library-search')) closeReaderSearch();
+    }
+    function cancelCoverLongPress() {
+        if (coverLongPressTimer !== null) doc.defaultView.clearTimeout(coverLongPressTimer);
+        coverLongPressTimer = null;
+        coverLongPressPointer = null;
+    }
+    function closeCoverMenu() {
+        coverContextBook = '';
+        for (const menu of overlay?.querySelectorAll('.slb-library-cover-menu') || []) {
+            menu.hidden = true;
+            menu.parentElement?.querySelector('.slb-library-cover-open')?.setAttribute('aria-expanded', 'false');
+        }
+    }
+    function openCoverMenu(book) {
+        if (!isOpen() || currentBook || coverEditor || !bookNames.includes(book)) return;
+        const opener = [...overlay.querySelectorAll('.slb-library-cover-open')]
+            .find(node => node.dataset.book === book);
+        const menu = opener?.closest('.slb-library-cover-item')?.querySelector('.slb-library-cover-menu');
+        if (!menu) return;
+        closeCoverMenu();
+        coverContextBook = book;
+        menu.hidden = false;
+        opener.setAttribute('aria-expanded', 'true');
+    }
+    function onCoverContextMenu(event) {
+        const opener = event.target.closest?.('.slb-library-cover-open');
+        if (!opener || !overlay?.contains(opener) || coverEditor) return;
+        event.preventDefault();
+        cancelCoverLongPress();
+        openCoverMenu(opener.dataset.book);
+    }
+    function onCoverPointerDown(event) {
+        if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+        cancelCoverLongPress();
+        const opener = event.target.closest?.('.slb-library-cover-open');
+        if (!opener || !overlay?.contains(opener) || coverEditor || currentBook) return;
+        const book = opener.dataset.book;
+        coverLongPressPointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        // A single short-lived hold timer per user gesture, never a scan/observer.
+        coverLongPressTimer = doc.defaultView.setTimeout(() => {
+            coverLongPressTimer = null;
+            coverLongPressPointer = null;
+            if (opener.isConnected && isOpen()) openCoverMenu(book);
+        }, 520);
+    }
+    function onCoverPointerMove(event) {
+        const start = coverLongPressPointer;
+        if (!start || start.id !== event.pointerId) return;
+        if (Math.abs(event.clientX - start.x) > 10 || Math.abs(event.clientY - start.y) > 10)
+            cancelCoverLongPress();
+    }
+    function onCoverPointerEnd(event) {
+        if (coverLongPressPointer?.id === event.pointerId) cancelCoverLongPress();
     }
     function closeReaderTools() {
         activeToolsUid = null;
@@ -358,8 +429,14 @@ export function createStandaloneLibrary({
         overlay.addEventListener('click', event => {
             if (settingsOpen && !event.target.closest('.slb-library-settings-panel, [data-action="settings"]')) setSettingsOpen(false);
             if (activeToolsUid !== null && !event.target.closest('.slb-library-tools-popover, [data-action="more-tools"]')) closeReaderTools();
+            if (coverContextBook && !event.target.closest('.slb-library-cover-menu, .slb-library-cover-open')) closeCoverMenu();
             if (event.target === overlay) close();
         });
+        overlay.addEventListener('contextmenu', onCoverContextMenu);
+        overlay.addEventListener('pointerdown', onCoverPointerDown);
+        overlay.addEventListener('pointermove', onCoverPointerMove);
+        overlay.addEventListener('pointerup', onCoverPointerEnd);
+        overlay.addEventListener('pointercancel', onCoverPointerEnd);
         overlay.addEventListener('click', onClick);
         overlay.addEventListener('change', onChange);
         overlay.addEventListener('input', onInput);
@@ -583,6 +660,13 @@ export function createStandaloneLibrary({
     }
     function openCoverEditor(book) {
         if (coverEditor || currentBook || !bookNames.includes(book) || !isOpen()) return;
+        // Returning from the modal should focus the visible cover, not the
+        // context menu item that becomes hidden when the editor opens.
+        const coverOpener = [...overlay.querySelectorAll('.slb-library-cover-open')]
+            .find(node => node.dataset.book === book);
+        const restoreFocus = coverOpener || doc.activeElement;
+        cancelCoverLongPress();
+        closeCoverMenu();
         const backdrop = element(doc, 'div', 'slb-library-cover-backdrop');
         const dialog = element(doc, 'section', 'slb-library-cover-dialog');
         dialog.setAttribute('role', 'dialog');
@@ -623,7 +707,7 @@ export function createStandaloneLibrary({
         backdrop.addEventListener('click', event => {
             if (event.target === backdrop) dismissCoverEditor();
         });
-        coverEditor = { book, backdrop, preview, file: null, previewUrl: null, focus: doc.activeElement, saving: false };
+        coverEditor = { book, backdrop, preview, file: null, previewUrl: null, focus: restoreFocus, saving: false };
         // Keep the picker inside the movable shell rather than centering it
         // on the full-screen overlay after the shell has been dragged.
         overlay.querySelector('.slb-library-shell').append(backdrop);
@@ -779,6 +863,8 @@ export function createStandaloneLibrary({
             ? overlay.querySelector('#slb-library-shelf-search')?.selectionStart : null;
         resetEdit();
         closeReaderTools();
+        cancelCoverLongPress();
+        closeCoverMenu();
         currentBook = '';
         pendingImages.clear();
         currentData = null;
@@ -822,7 +908,8 @@ export function createStandaloneLibrary({
         const tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
         for (const [key, name] of [['all', '전체'], ['untagged', '미분류']]) {
-            const choice = button(doc, 'slb-library-tag-tab' + (shelfTag === key ? ' is-active' : ''), name, 'shelf-tag');
+            const choice = button(doc, 'slb-library-tag-tab' +
+                (shelfTag === key && !shelfSelectedTags.size ? ' is-active' : ''), name, 'shelf-tag');
             choice.dataset.filter = key;
             choice.setAttribute('aria-pressed', String(shelfTag === key));
             tagbar.append(choice);
@@ -837,8 +924,9 @@ export function createStandaloneLibrary({
             option.value = 'tag:' + tag;
             tagSelect.append(option);
         }
-        tagSelect.value = shelfTag.startsWith('tag:') && knownTags.includes(shelfTag.slice(4))
-            ? shelfTag : '';
+        // Keep the native picker for keyboard and touch accessibility. Every
+        // selection toggles one persistent chip; multiple tags match ANY (OR).
+        tagSelect.value = '';
         tagbar.append(tagSelect);
         const needle = shelfQuery.toLocaleLowerCase().trim();
         const typeMap = typeof getTypeMap === 'function' ? getTypeMap() : null;
@@ -853,7 +941,7 @@ export function createStandaloneLibrary({
             const tags = tagsFor(book.name);
             if (needle && !book.name.toLocaleLowerCase().includes(needle)) return false;
             if (shelfTag === 'untagged' && tags.length) return false;
-            if (shelfTag.startsWith('tag:') && !tags.includes(shelfTag.slice(4))) return false;
+            if (shelfSelectedTags.size && !tags.some(tag => shelfSelectedTags.has(tag))) return false;
             if (mode === 'mac' && shelfType !== 'all' && savedTypeOf(book.name) !== shelfType) return false;
             return true;
         });
@@ -921,10 +1009,19 @@ export function createStandaloneLibrary({
                     art.append(image);
                 }
                 opener.append(art, element(doc, 'span', 'slb-library-cover-caption', item.name));
+                opener.title = '클릭하여 열기 · 우클릭 또는 길게 눌러 표지 설정';
+                opener.setAttribute('aria-haspopup', 'menu');
+                opener.setAttribute('aria-expanded', String(coverContextBook === item.name));
+                const menu = element(doc, 'div', 'slb-library-cover-menu');
+                menu.hidden = coverContextBook !== item.name;
+                menu.setAttribute('role', 'menu');
+                menu.setAttribute('aria-label', item.name + ' · 표지 메뉴');
                 const configure = button(doc, 'slb-library-cover-config', imagePath ? '표지 교체' : '표지 설정', 'cover-config');
                 configure.dataset.book = item.name;
+                configure.setAttribute('role', 'menuitem');
                 configure.setAttribute('aria-label', item.name + ' · 표지 설정');
-                entry.append(opener, configure);
+                menu.append(configure);
+                entry.append(opener, menu);
                 spines.append(entry);
                 continue;
             }
@@ -999,7 +1096,19 @@ export function createStandaloneLibrary({
         const toolbar = element(doc, 'div', 'slb-library-shelf-toolbar');
         toolbar.classList.toggle('is-search-open', shelfSearchOpen);
         toolbar.append(tagbar, head);
-        body.append(toolbar, shelf);
+        body.append(toolbar);
+        if (shelfSelectedTags.size) {
+            const active = element(doc, 'div', 'slb-library-active-tags');
+            active.setAttribute('aria-label', '선택한 태그 필터 · 하나라도 포함하면 표시');
+            for (const tag of shelfSelectedTags) {
+                const chip = button(doc, 'slb-library-active-tag', '× ' + tag, 'shelf-tag-chip');
+                chip.dataset.tag = tag;
+                chip.setAttribute('aria-label', tag + ' 필터 해제');
+                active.append(chip);
+            }
+            body.append(active);
+        }
+        body.append(shelf);
         const summary = element(doc, 'div', 'slb-library-shelf-summary');
         summary.append(element(doc, 'span', '', candidates.length + '권 중 ' + shown.length + '권 표시'));
         if (candidates.length > shown.length) {
@@ -1032,6 +1141,36 @@ export function createStandaloneLibrary({
         if (!existing.length) chips.append(element(doc, 'span', 'slb-library-no-tags', '미분류'));
         else for (const tag of existing) chips.append(element(doc, 'span', 'slb-library-tag-chip', tag));
         summary.append(chips);
+        // Metadata-only suggestions: no lorebook file reads, writes, or content
+        // scans. The popover is absolutely positioned, so TOC controls do not shift.
+        const picker = element(doc, 'div', 'slb-library-book-tag-picker');
+        const allTags = new Set();
+        const tagMap = typeof getTagMap === 'function' ? getTagMap() : null;
+        if (tagMap && typeof tagMap === 'object') {
+            for (const value of Object.values(tagMap)) {
+                for (const tag of normalizeLibraryTags(value)) allTags.add(tag);
+            }
+        } else {
+            for (const book of bookNames) {
+                for (const tag of bookTags(book)) allTags.add(tag);
+            }
+        }
+        if (allTags.size) {
+            const suggestions = element(doc, 'div', 'slb-library-book-tag-suggestions');
+            suggestions.setAttribute('role', 'group');
+            suggestions.setAttribute('aria-label', '기존 태그 선택');
+            const draftTags = new Set(tagDraft.split(',').map(value => value.trim()).filter(Boolean));
+            for (const tag of allTags) {
+                const isSelected = draftTags.has(tag);
+                const choice = button(doc, 'slb-library-book-tag-suggestion' +
+                    (isSelected ? ' is-selected' : ''), tag, 'book-tag-suggest');
+                choice.dataset.tag = tag;
+                choice.setAttribute('aria-pressed', String(isSelected));
+                choice.disabled = tagSaving;
+                suggestions.append(choice);
+            }
+            picker.append(suggestions);
+        }
         const field = element(doc, 'div', 'slb-library-book-tag-field');
         const input = element(doc, 'input', 'slb-library-book-tag-input');
         input.id = 'slb-library-book-tag-input';
@@ -1045,8 +1184,36 @@ export function createStandaloneLibrary({
         const save = button(doc, 'slb-library-book-tag-save', '태그 저장', 'book-tag-save');
         save.disabled = tagSaving || tagDraft === tagInitial;
         field.append(input, save);
-        row.append(summary, field);
+        picker.append(field);
+        row.append(summary, picker);
         return row;
+    }
+    function toggleBookTagSuggestion(tag) {
+        if (!currentBook || tagSaving || typeof tag !== 'string') return;
+        const draft = normalizeLibraryTags(tagDraft.split(',').map(value => value.trim()).filter(Boolean));
+        const index = draft.indexOf(tag);
+        if (index >= 0) draft.splice(index, 1);
+        else {
+            if (draft.length >= 8) {
+                notifyStatus('태그는 최대 8개까지 지정할 수 있습니다.', 'warning');
+                return;
+            }
+            draft.push(tag);
+        }
+        tagDraft = draft.join(', ');
+        const input = overlay?.querySelector('#slb-library-book-tag-input');
+        if (input) input.value = tagDraft;
+        const save = overlay?.querySelector('[data-action="book-tag-save"]');
+        if (save) save.disabled = tagDraft === tagInitial;
+        syncTagSuggestionStates();
+    }
+    function syncTagSuggestionStates() {
+        const current = new Set(tagDraft.split(',').map(value => value.trim()).filter(Boolean));
+        for (const choice of overlay?.querySelectorAll('[data-action="book-tag-suggest"]') || []) {
+            const selected = current.has(choice.dataset.tag);
+            choice.classList.toggle('is-selected', selected);
+            choice.setAttribute('aria-pressed', String(selected));
+        }
     }
     async function saveBookTags() {
         if (!currentBook || tagSaving || !overlay?.isConnected) return;
@@ -1221,12 +1388,9 @@ export function createStandaloneLibrary({
             screen.append(inner);
             frame.append(top, screen, blackBerryKeys());
         } else if (mode === 'ebook') {
-            const title = element(doc, 'div', 'slb-library-ebook-heading');
-            title.append(element(doc, 'span', '', LIBRARY_BOOK_TYPES[type]),
-                element(doc, 'small', '', 'MY LIBRARY'));
             const paper = element(doc, 'div', 'slb-library-ebook-paper');
             paper.append(inner);
-            frame.append(title, paper);
+            frame.append(paper);
         } else {
             const banner = element(doc, 'div', 'slb-library-classic-banner');
             const heading = {
@@ -1257,7 +1421,7 @@ export function createStandaloneLibrary({
         const metaRow = element(doc, 'div', 'slb-library-reader-meta-row');
         metaRow.append(renderBookTagPanel());
         inner.append(metaRow);
-        if (!(type === 'general' && !['mac', 'blackberry'].includes(libraryTheme())
+        if (type !== 'world' && !(type === 'general' && !['mac', 'blackberry'].includes(libraryTheme())
             && selectedUid && found.some(item => String(item.uid) === selectedUid))) {
             const intro = element(doc, 'div', 'slb-library-section-head');
             intro.append(element(doc, 'small', '', found.length + '개 항목'));
@@ -1388,13 +1552,17 @@ export function createStandaloneLibrary({
         if (!selectedUid) selectedUid = String(chosen.uid);
         const layout = element(doc, 'div', 'slb-library-index-layout');
         layout.classList.toggle('is-index-open', worldIndexOpen);
-        const menu = button(doc, 'slb-library-world-menu',
-            worldIndexOpen ? '목차 접기' : '목차 펼치기', 'world-menu');
+        const menu = button(doc, 'slb-library-world-menu slb-library-index-heading', '', 'world-menu');
+        menu.append(element(doc, 'span', '', '목차 · CONTENTS'),
+            element(doc, 'small', 'slb-library-world-count', found.length + '개 항목'),
+            faIcon(doc, worldIndexOpen ? 'chevron-up' : 'chevron-down'));
+        menu.setAttribute('aria-label', worldIndexOpen ? '목차 접기' : '목차 펼치기');
+        menu.setAttribute('title', worldIndexOpen ? '목차 접기' : '목차 펼치기');
         menu.setAttribute('aria-expanded', String(worldIndexOpen));
-        (metaRow || body).append(menu);
+        menu.setAttribute('aria-controls', 'slb-library-world-contents');
         const index = element(doc, 'nav', 'slb-library-index');
+        index.id = 'slb-library-world-contents';
         index.setAttribute('aria-label', '세계관 목차');
-        index.append(element(doc, 'span', 'slb-library-index-heading', '목차 · CONTENTS'));
         // Global reader search already searches titles, keys, and original content.
         // One TOC only; render five bounded entries, page via buttons (no horizontal scroll).
         const perPage = 5;
@@ -1424,7 +1592,7 @@ export function createStandaloneLibrary({
         const paper = element(doc, 'div', 'slb-library-index-paper');
         paper.append(renderDetail(chosen, type));
         layout.append(index, paper);
-        body.append(layout);
+        body.append(menu, layout);
     }
     function renderPeople(body, found) {
         const selected = found.find(entry => String(entry.uid) === selectedUid);
@@ -1473,8 +1641,20 @@ export function createStandaloneLibrary({
         const lang = format === 'source' ? pair.sourceLanguage : pair.translationLanguage;
         section.append(element(doc, 'small', 'slb-library-language-mark', format === 'source'
             ? '원문 · ' + lang : translated ? '번역 · ' + lang : '번역 없음'));
-        section.append(element(doc, 'div', 'slb-library-prose', format === 'source'
-            ? (source || '원문이 비어 있습니다.') : (translated || '저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다.')));
+        const prose = element(doc, 'div', 'slb-library-prose');
+        const content = format === 'source'
+            ? (source || '원문이 비어 있습니다.')
+            : (translated || '저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다.');
+        if (typeof renderReadMarkdown === 'function') {
+            try {
+                renderReadMarkdown(prose, content);
+                prose.classList.add('is-markdown');
+            } catch {
+                // The optional presentation renderer cannot block original lore reading.
+                prose.textContent = content;
+            }
+        } else prose.textContent = content;
+        section.append(prose);
         if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', '원문 변경 이전에 저장된 번역입니다. 필요한 경우 다시 번역하세요.'));
         return section;
     }
@@ -1734,6 +1914,7 @@ export function createStandaloneLibrary({
                 tagPanel.querySelector('#slb-library-book-tag-input')?.focus();
             }
         }
+        else if (action === 'book-tag-suggest') toggleBookTagSuggestion(target.dataset.tag);
         else if (action === 'cover-config') openCoverEditor(target.dataset.book);
         else if (action === 'cover-cancel') dismissCoverEditor();
         else if (action === 'cover-save') void commitCover(false);
@@ -1745,6 +1926,12 @@ export function createStandaloneLibrary({
             bookList();
         } else if (action === 'shelf-tag') {
             shelfTag = target.dataset.filter || 'all';
+            shelfSelectedTags.clear();
+            shelfRows = 3;
+            bookList();
+        } else if (action === 'shelf-tag-chip') {
+            shelfSelectedTags.delete(target.dataset.tag);
+            if (!shelfSelectedTags.size) shelfTag = 'all';
             shelfRows = 3;
             bookList();
         } else if (action === 'shelf-type') {
@@ -1755,6 +1942,9 @@ export function createStandaloneLibrary({
             shelfRows += 2;
             bookList();
         } else if (action === 'select-book') {
+            // Mobile long-press can synthesize a regular click afterward.
+            // Keep the explicit cover menu open instead of opening a book.
+            if (coverContextBook === target.dataset.book && target.classList.contains('slb-library-cover-open')) return;
             void selectBook(target.dataset.book);
         } else if (action === 'book-tag-save') {
             void saveBookTags();
@@ -1784,7 +1974,12 @@ export function createStandaloneLibrary({
             renderBook();
         } else if (action === 'world-menu') {
             worldIndexOpen = !worldIndexOpen;
-            renderBook();
+            overlay.querySelector('.slb-library-index-layout')?.classList.toggle('is-index-open', worldIndexOpen);
+            target.setAttribute('aria-expanded', String(worldIndexOpen));
+            target.setAttribute('aria-label', worldIndexOpen ? '목차 접기' : '목차 펼치기');
+            target.title = worldIndexOpen ? '목차 접기' : '목차 펼치기';
+            const icon = target.querySelector('.fa-solid');
+            if (icon) icon.className = 'fa-solid fa-chevron-' + (worldIndexOpen ? 'up' : 'down');
         } else if (action === 'people-prev' || action === 'people-next') {
             if (!discardOrStay({ allowTags: true })) return;
             peoplePage += action === 'people-next' ? 1 : -1;
@@ -1814,9 +2009,15 @@ export function createStandaloneLibrary({
     }
     function onChange(event) {
         if (event.target?.id === 'slb-library-shelf-tag-select') {
-            shelfTag = event.target.value || 'all';
-            shelfRows = 3;
-            bookList();
+            const chosen = event.target.value;
+            if (chosen.startsWith('tag:')) {
+                const tag = chosen.slice(4);
+                if (shelfSelectedTags.has(tag)) shelfSelectedTags.delete(tag);
+                else shelfSelectedTags.add(tag);
+                shelfTag = shelfSelectedTags.size ? 'tags' : 'all';
+                shelfRows = 3;
+                bookList();
+            }
             return;
         }
         if (event.target?.id === 'slb-library-diary-select') {
@@ -1879,6 +2080,7 @@ export function createStandaloneLibrary({
             tagDraft = event.target.value;
             const save = overlay?.querySelector('[data-action="book-tag-save"]');
             if (save) save.disabled = tagSaving || tagDraft === tagInitial;
+            syncTagSuggestionStates();
             return;
         }
         if (event.target?.id !== 'slb-library-search') return;
@@ -1917,6 +2119,7 @@ export function createStandaloneLibrary({
         linkedNames = linkedBooks();
         allBooks = !Boolean(getLinkedOnly());
         shelfTag = 'all';
+        shelfSelectedTags.clear();
         shelfRows = 3;
         shelfType = 'all';
         shelfQuery = '';
@@ -1935,6 +2138,8 @@ export function createStandaloneLibrary({
         tagInitial = '';
         tagPanelExpanded = false;
         coverEditor = null;
+        cancelCoverLongPress();
+        coverContextBook = '';
         activeToolsUid = null;
         appearanceSaving = false;
         pendingImages.clear();

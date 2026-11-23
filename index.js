@@ -11,6 +11,7 @@ import { extension_settings } from '../../../extensions.js';
 import { getTokenCountAsync } from '../../../tokenizers.js';
 import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, world_names, world_info, world_info_position } from '../../../world-info.js';
 import { Popup, POPUP_TYPE, POPUP_RESULT } from '../../../popup.js';
+import { showdown, DOMPurify } from '../../../../lib.js';
 import { isMobile } from '../../../RossAscends-mods.js';
 import { getCharaFilename, select2ModifyOptions, toggleDrawer } from '../../../utils.js';
 import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js';
@@ -26,7 +27,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.51';
+const VERSION = '1.4.85-ambasa.52';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -9345,6 +9346,26 @@ async function uploadLibraryBookCover(book, file) {
     return path;
 }
 
+// Same bundled Showdown + DOMPurify read-only pipeline as WorldInfoInfo.
+let loreLibraryMarkdown = null;
+function renderLibraryReadingMarkdown(target, content) {
+    // Defer converter construction until a book entry is actually read.
+    loreLibraryMarkdown ??= new showdown.Converter({
+        emoji: true,
+        literalMidWordUnderscores: true,
+        parseImgDimensions: true,
+        tables: true,
+        simpleLineBreaks: true,
+        strikethrough: true,
+        underline: true,
+    });
+    target.innerHTML = DOMPurify.sanitize(loreLibraryMarkdown.makeHtml(String(content ?? '')), {
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form', 'input', 'select', 'button', 'textarea'],
+        FORBID_ATTR: ['style'],
+    });
+}
+
 function initStandaloneLibrary() {
     if (standaloneLibrary) return standaloneLibrary;
     standaloneLibrary = createStandaloneLibrary({
@@ -9364,6 +9385,7 @@ function initStandaloneLibrary() {
             }
         },
         translationFor: librarySavedTranslation,
+        renderReadMarkdown: renderLibraryReadingMarkdown,
         saveContent: saveLibraryOriginal,
         saveTranslation: saveLibraryTranslation,
         translateOne: translateLibraryEntry,
