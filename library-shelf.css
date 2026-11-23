@@ -5013,7 +5013,7 @@
     font-size: .8em;
 }
 #slb-library-overlay .slb-library-mode-ebook .slb-library-cover-title {
-    transform: translateY(-10px);
+    transform: translateY(-14px);
 }
 
 /* Markdown typography is limited to read-only lore content. The original
