@@ -63,6 +63,12 @@ function button(doc, className, label, action, uid = null) {
     return node;
 }
 
+function faIcon(doc, icon) {
+    const node = element(doc, 'i', 'fa-solid fa-' + icon);
+    node.setAttribute('aria-hidden', 'true');
+    return node;
+}
+
 function dateLabel(title) {
     const found = String(title || '').match(/\b(?:19|20)\d{2}[./-](?:0?[1-9]|1[0-2])[./-](?:[0-2]?\d|3[01])\b/);
     return found ? found[0].replace(/[./]/g, '-') : '';
@@ -131,6 +137,7 @@ export function createStandaloneLibrary({
     let tagInitial = '';
     let tagPanelExpanded = false;
     let coverEditor = null;
+    let activeToolsUid = null;
     let appearanceSaving = false;
     // Only the currently opened book can have a pending, explicitly selected
     // image. These File objects are never stored in ST settings.
@@ -156,6 +163,7 @@ export function createStandaloneLibrary({
     function resetEdit() { edit = null; }
     function close() {
         if (coverEditor) return dismissCoverEditor();
+        closeReaderTools();
         if (!isOpen() || !discardOrStay()) return false;
         loadVersion += 1;
         resizeCleanup?.();
@@ -169,11 +177,32 @@ export function createStandaloneLibrary({
         return true;
     }
     function onKeyDown(event) {
-        if (event.key === 'Escape' && isOpen()) {
-            event.preventDefault();
-            if (coverEditor) dismissCoverEditor();
-            else close();
-        }
+        if (event.key !== 'Escape' || !isOpen()) return;
+        event.preventDefault();
+        if (coverEditor) dismissCoverEditor();
+        else if (activeToolsUid !== null) closeReaderTools();
+        else if (settingsOpen) setSettingsOpen(false);
+        else close();
+    }
+    function closeReaderTools() {
+        activeToolsUid = null;
+        if (!overlay) return;
+        for (const menu of overlay.querySelectorAll('.slb-library-tools-popover')) menu.hidden = true;
+        for (const trigger of overlay.querySelectorAll('[data-action="more-tools"]'))
+            trigger.setAttribute('aria-expanded', 'false');
+    }
+    function toggleReaderTools(uid) {
+        if (!isOpen()) return;
+        const id = String(uid);
+        if (activeToolsUid === id) { closeReaderTools(); return; }
+        closeReaderTools();
+        const article = [...overlay.querySelectorAll('.slb-library-detail')]
+            .find(node => node.dataset.uid === id);
+        const menu = article?.querySelector('.slb-library-tools-popover');
+        if (!menu) return;
+        activeToolsUid = id;
+        menu.hidden = false;
+        article.querySelector('[data-action="more-tools"]')?.setAttribute('aria-expanded', 'true');
     }
     function createShell() {
         overlay = element(doc, 'div', 'slb-library-overlay');
@@ -190,29 +219,13 @@ export function createStandaloneLibrary({
         heading.querySelector('h2').id = 'slb-library-title';
         const headerActions = element(doc, 'div', 'slb-library-header-actions');
         const settingsButton = button(doc, 'slb-library-settings-button', '', 'settings');
-        // Compact, theme-independent gear. No icon font dependency.
-        const gear = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        gear.setAttribute('viewBox', '0 0 24 24');
-        gear.setAttribute('width', '19');
-        gear.setAttribute('height', '19');
-        gear.setAttribute('aria-hidden', 'true');
-        gear.setAttribute('fill', 'none');
-        gear.setAttribute('stroke', 'currentColor');
-        gear.setAttribute('stroke-width', '1.7');
-        gear.setAttribute('stroke-linecap', 'round');
-        gear.setAttribute('stroke-linejoin', 'round');
-        const gearCircle = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        gearCircle.setAttribute('cx', '12');
-        gearCircle.setAttribute('cy', '12');
-        gearCircle.setAttribute('r', '3');
-        const gearRing = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-        gearRing.setAttribute('d', 'M19.4 15a1.7 1.7 0 0 0 .33 1.82l-1.9 1.9a1.7 1.7 0 0 0-1.82-.33 1.7 1.7 0 0 0-1 1.51v.1h-3v-.1a1.7 1.7 0 0 0-1-1.51 1.7 1.7 0 0 0-1.82.33l-1.9-1.9A1.7 1.7 0 0 0 7.62 15a1.7 1.7 0 0 0-1.51-1H6v-3h.11a1.7 1.7 0 0 0 1.51-1 1.7 1.7 0 0 0-.33-1.82l1.9-1.9a1.7 1.7 0 0 0 1.82.33 1.7 1.7 0 0 0 1-1.51V5h3v.1a1.7 1.7 0 0 0 1 1.51 1.7 1.7 0 0 0 1.82-.33l1.9 1.9a1.7 1.7 0 0 0-.33 1.82 1.7 1.7 0 0 0 1.51 1H21v3h-.09a1.7 1.7 0 0 0-1.51 1z');
-        gear.append(gearRing, gearCircle);
-        settingsButton.append(gear);
+        // SillyTavern provides Font Awesome; use the existing solid icons.
+        settingsButton.append(faIcon(doc, 'gear'));
         settingsButton.setAttribute('aria-label', '서재 설정');
         settingsButton.setAttribute('aria-controls', 'slb-library-settings-panel');
         settingsButton.setAttribute('aria-expanded', 'false');
-        const closeButton = button(doc, 'slb-library-close', '×', 'close');
+        const closeButton = button(doc, 'slb-library-close', '', 'close');
+        closeButton.append(faIcon(doc, 'xmark'));
         closeButton.setAttribute('aria-label', '서재 닫기');
         headerActions.append(settingsButton, closeButton);
         top.append(heading, headerActions);
@@ -299,6 +312,7 @@ export function createStandaloneLibrary({
         resizeGrip.addEventListener('keydown', onResizeKeyDown);
         overlay.addEventListener('click', event => {
             if (settingsOpen && !event.target.closest('.slb-library-settings-panel, [data-action="settings"]')) setSettingsOpen(false);
+            if (activeToolsUid !== null && !event.target.closest('.slb-library-tools-popover, [data-action="more-tools"]')) closeReaderTools();
             if (event.target === overlay) close();
         });
         overlay.addEventListener('click', onClick);
@@ -589,6 +603,7 @@ export function createStandaloneLibrary({
         const searchSelection = restoreSearchFocus
             ? overlay.querySelector('#slb-library-shelf-search')?.selectionStart : null;
         resetEdit();
+        closeReaderTools();
         currentBook = '';
         pendingImages.clear();
         currentData = null;
@@ -677,8 +692,6 @@ export function createStandaloneLibrary({
                 const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-tone-' + spineTone(item.name)
                     + ' slb-library-cover-design-' + (spineTone(item.name) % 8)
                     + ' slb-library-cover-type-' + type);
-                art.append(element(doc, 'span', 'slb-library-cover-overline',
-                    String(index + 1).padStart(2, '0') + ' / EDITION'));
                 art.append(element(doc, 'span', 'slb-library-cover-title', item.name));
                 art.append(element(doc, 'span', 'slb-library-cover-type-label',
                     { general: 'RECORD', memory: 'JOURNAL', world: 'WORLD', people: 'PEOPLE' }[type]));
@@ -718,7 +731,7 @@ export function createStandaloneLibrary({
             name.lang = /[가-힣]/.test(item.name) ? 'ko' : 'en';
             spine.append(name);
             spine.append(element(doc, 'span', 'slb-library-spine-bottom',
-                type === 'people' ? 'A–Z' : String(index + 1).padStart(2, '0')));
+                { general: 'FILE', memory: 'DIARY', world: 'ATLAS', people: 'A–Z' }[type]));
             spines.append(spine);
         }
         if (!shown.length) {
@@ -823,6 +836,7 @@ export function createStandaloneLibrary({
     async function selectBook(book) {
         if (!bookNames.includes(book) || !discardOrStay()) return;
         resetEdit();
+        closeReaderTools();
         const version = ++loadVersion;
         currentBook = book;
         pendingImages.clear();
@@ -1190,20 +1204,44 @@ export function createStandaloneLibrary({
         const record = translationFor(currentBook, entry) || {};
         const hasTranslation = Boolean(String(record.text || ''));
         const view = entryReadViews.get(uid) || (hasTranslation ? 'translated' : 'source');
+        const imagePath = safeLibraryImagePath(getEntryImage(currentBook, entry));
+        const selectedImage = pendingImages.get(uid);
         const tools = element(doc, 'div', 'slb-library-reader-tools');
         const toggle = button(doc, 'slb-library-view-toggle',
             view === 'translated' ? '원문 보기' : '번역 보기', 'toggle-view', uid);
         tools.append(toggle);
-        const editorTools = element(doc, 'div', 'slb-library-editor-tools');
-        editorTools.append(button(doc, '', '수정', 'edit', uid));
-        editorTools.append(button(doc, '', 'AI 번역', 'translate', uid));
-        editorTools.append(button(doc, 'slb-library-advanced',
-            '로어북 바로가기', 'advanced', uid));
-        tools.append(editorTools);
+        const more = button(doc, 'slb-library-more-tools', '', 'more-tools', uid);
+        more.append(faIcon(doc, 'ellipsis'));
+        more.setAttribute('aria-label', '기록 추가 기능');
+        more.setAttribute('title', '수정 · 번역 · 이미지 등 추가 기능');
+        more.setAttribute('aria-haspopup', 'true');
+        more.setAttribute('aria-expanded', String(activeToolsUid === uid));
+        const menu = element(doc, 'div', 'slb-library-tools-popover');
+        menu.hidden = activeToolsUid !== uid;
+        menu.setAttribute('role', 'group');
+        menu.setAttribute('aria-label', '기록 추가 기능');
+        menu.append(button(doc, '', '수정', 'edit', uid));
+        menu.append(button(doc, '', 'AI 번역', 'translate', uid));
+        menu.append(button(doc, '', '로어북 바로가기', 'advanced', uid));
+        menu.append(button(doc, '', '태그 편집', 'tag-edit', uid));
+        const imageControls = element(doc, 'div', 'slb-library-entry-image-controls');
+        const fileInput = element(doc, 'input', 'slb-library-image-file');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/png,image/jpeg,image/webp,image/gif';
+        fileInput.dataset.uid = uid;
+        fileInput.hidden = true;
+        fileInput.setAttribute('aria-label', '로어 이미지 파일 선택');
+        imageControls.append(fileInput, button(doc, 'slb-library-image-pick',
+            imagePath ? '이미지 교체' : '참고 이미지 추가', 'image-pick', uid));
+        if (selectedImage) {
+            imageControls.append(element(doc, 'small', 'slb-library-image-file-name', selectedImage.name));
+            imageControls.append(button(doc, 'slb-library-image-save', '이미지 저장', 'image-save', uid));
+        }
+        if (imagePath) imageControls.append(button(doc, 'slb-library-image-remove', '이미지 연결 해제', 'image-remove', uid));
+        menu.append(imageControls);
+        tools.append(more, menu);
         article.append(tools);
-        // An entry's optional picture is display metadata, not injected lore
-        // content. It is constructed only for an opened detail, never the shelf.
-        const imagePath = safeLibraryImagePath(getEntryImage(currentBook, entry));
+        // The saved picture is user metadata; render only when the detail is open.
         if (imagePath) {
             const frame = element(doc, 'figure', 'slb-library-entry-image');
             const img = element(doc, 'img', 'slb-library-entry-image-element');
@@ -1214,22 +1252,6 @@ export function createStandaloneLibrary({
             frame.append(img);
             article.append(frame);
         }
-        const media = element(doc, 'div', 'slb-library-entry-image-controls');
-        const fileInput = element(doc, 'input', 'slb-library-image-file');
-        fileInput.type = 'file';
-        fileInput.accept = 'image/png,image/jpeg,image/webp,image/gif';
-        fileInput.dataset.uid = uid;
-        fileInput.hidden = true;
-        fileInput.setAttribute('aria-label', '로어 이미지 파일 선택');
-        media.append(fileInput, button(doc, 'slb-library-image-pick',
-            imagePath ? '이미지 교체' : '이미지 추가', 'image-pick', uid));
-        const selectedImage = pendingImages.get(uid);
-        if (selectedImage) {
-            media.append(element(doc, 'small', 'slb-library-image-file-name', selectedImage.name));
-            media.append(button(doc, 'slb-library-image-save', '이미지 저장', 'image-save', uid));
-        }
-        if (imagePath) media.append(button(doc, 'slb-library-image-remove', '이미지 연결 해제', 'image-remove', uid));
-        article.append(media);
         const pages = element(doc, 'div', 'slb-library-pages');
         pages.append(contentText(entry, view));
         article.append(pages);
@@ -1270,6 +1292,7 @@ export function createStandaloneLibrary({
         try {
             await uploadEntryImage(currentBook, entry, file);
             pendingImages.delete(String(uid));
+            closeReaderTools();
             replaceEntryDetail(uid);
             notifyStatus('이미지가 연결되었습니다.', 'success');
         } catch (error) {
@@ -1287,6 +1310,7 @@ export function createStandaloneLibrary({
         try {
             await removeEntryImage(currentBook, entry);
             pendingImages.delete(String(uid));
+            closeReaderTools();
             replaceEntryDetail(uid);
             notifyStatus('이미지 연결이 해제되었습니다.', 'success');
         } catch (error) {
@@ -1298,6 +1322,7 @@ export function createStandaloneLibrary({
     function showEntry(uid) {
         if (!discardOrStay({ allowTags: true })) return;
         resetEdit();
+        closeReaderTools();
         selectedUid = String(uid);
         worldIndexOpen = false;
         renderBook();
@@ -1395,7 +1420,18 @@ export function createStandaloneLibrary({
         if (!target || !overlay?.contains(target)) return;
         const action = target.dataset.action, uid = target.dataset.uid;
         if (coverEditor && !coverEditor.backdrop.contains(target)) return;
+        if (['edit', 'translate', 'advanced'].includes(action)) closeReaderTools();
         if (action === 'settings') setSettingsOpen(!settingsOpen);
+        else if (action === 'more-tools') toggleReaderTools(uid);
+        else if (action === 'tag-edit') {
+            closeReaderTools();
+            tagPanelExpanded = true;
+            const tagPanel = overlay.querySelector('.slb-library-book-meta');
+            if (tagPanel) {
+                tagPanel.open = true;
+                tagPanel.querySelector('#slb-library-book-tag-input')?.focus();
+            }
+        }
         else if (action === 'cover-config') openCoverEditor(target.dataset.book);
         else if (action === 'cover-cancel') dismissCoverEditor();
         else if (action === 'cover-save') void commitCover(false);
@@ -1581,6 +1617,7 @@ export function createStandaloneLibrary({
         tagInitial = '';
         tagPanelExpanded = false;
         coverEditor = null;
+        activeToolsUid = null;
         appearanceSaving = false;
         pendingImages.clear();
         currentBook = '';

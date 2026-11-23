@@ -2283,3 +2283,458 @@
     #slb-library-overlay .slb-library-cover-art { padding: 7px 5px; }
     #slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-tag-select { max-width: 110px; }
 }
+
+/* v45 · preserve the physical two-board bookshelf; distinguish actual book
+   structures by type rather than forcing all books to a single type color. */
+#slb-library-overlay .slb-library-bookshelf,
+#slb-library-overlay .slb-library-book-spines {
+    /* Physical shelf remains the owner of both rows and their plank shadows. */
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-general {
+    border-top: 4px solid color-mix(in srgb, var(--ll-spine-ink), transparent 12%);
+    border-left-width: 6px;
+    border-bottom: 1px solid color-mix(in srgb, var(--ll-spine-ink), transparent 50%);
+}
+#slb-library-overlay .slb-library-spine-type-general .slb-library-spine-ornament {
+    min-width: 21px;
+    padding: 2px;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+    opacity: .78;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-memory {
+    border-top: 1px solid color-mix(in srgb, var(--ll-spine-ink), transparent 50%);
+    border-bottom: 3px solid color-mix(in srgb, var(--ll-spine-ink), transparent 20%);
+    border-left: 5px double color-mix(in srgb, var(--ll-spine-ink), #17191e 58%);
+}
+#slb-library-overlay .slb-library-spine-type-memory::after {
+    content: '';
+    right: 3px;
+    bottom: 1px;
+    top: auto;
+    width: 3px;
+    height: 25px;
+    background: #bb6354;
+    opacity: .82;
+    border-radius: 0 0 2px 2px;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-world {
+    border-top: 3px double var(--ll-spine-ink);
+    border-bottom: 3px double var(--ll-spine-ink);
+    border-left: 6px solid color-mix(in srgb, var(--ll-spine-color), black 36%);
+}
+#slb-library-overlay .slb-library-spine-type-world .slb-library-spine-ornament {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+}
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-people {
+    border-top: 1px solid var(--ll-spine-ink);
+    border-bottom: 2px solid var(--ll-spine-ink);
+    border-left: 6px solid color-mix(in srgb, var(--ll-spine-color), black 32%);
+}
+#slb-library-overlay .slb-library-spine-type-people::after {
+    content: '';
+    top: 25px;
+    right: 0;
+    width: 5px;
+    height: 21px;
+    opacity: .95;
+    background: color-mix(in srgb, var(--ll-spine-ink), #ffffff 10%);
+    border-radius: 2px 0 0 2px;
+}
+#slb-library-overlay .slb-library-spine-type-people .slb-library-spine-bottom {
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    padding: 0 2px;
+}
+#slb-library-overlay .slb-library-book-spine .slb-library-spine-bottom {
+    letter-spacing: 0;
+    font-size: .59em;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-cover-title {
+    margin: auto 0;
+}
+#slb-library-overlay .slb-library-cover-art .slb-library-cover-overline {
+    display: none;
+}
+
+/* Existing Font Awesome solid icons, not bespoke inline gear geometry. */
+#slb-library-overlay .slb-library-header-actions { gap: 5px; }
+#slb-library-overlay button.slb-library-settings-button,
+#slb-library-overlay button.slb-library-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 27px;
+    min-width: 27px;
+    height: 27px;
+    min-height: 27px;
+    flex: 0 0 27px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
+    line-height: 1;
+    font-size: .85em;
+    opacity: .9;
+}
+#slb-library-overlay button.slb-library-settings-button .fa-solid,
+#slb-library-overlay button.slb-library-close .fa-solid {
+    pointer-events: none;
+}
+#slb-library-overlay .slb-library-settings-panel {
+    width: min(280px, calc(100% - 24px));
+    right: 10px;
+    top: 44px;
+    padding: 12px;
+    max-height: min(60dvh, 270px);
+}
+#slb-library-overlay .slb-library-settings-panel .slb-library-appearance {
+    gap: 7px;
+    padding-bottom: 9px;
+    margin-bottom: 9px;
+}
+#slb-library-overlay .slb-library-settings-panel .slb-library-appearance label {
+    min-width: 0;
+    white-space: nowrap;
+    gap: 5px;
+    font-size: .84em;
+}
+#slb-library-overlay .slb-library-settings-panel select.slb-library-theme-select {
+    display: block !important;
+    box-sizing: border-box !important;
+    flex: 0 0 132px !important;
+    width: 132px !important;
+    min-width: 132px !important;
+    max-width: 132px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 3px 7px !important;
+    margin: 0 !important;
+    border: 1px solid var(--ll-line) !important;
+    border-radius: 6px !important;
+    background: var(--ll-paper-light) !important;
+    color: var(--ll-ink) !important;
+    box-shadow: none !important;
+    appearance: auto !important;
+    line-height: 1.2 !important;
+    font-size: .82em !important;
+}
+#slb-library-overlay .slb-library-settings-panel .slb-library-linked-setting {
+    font-size: .85em;
+}
+
+/* One primary reading toggle, one small ellipsis with the rest of the tools. */
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 5px;
+    position: relative;
+    margin: 0 0 12px;
+    padding: 0 0 9px;
+    border-bottom: 1px solid var(--ll-line);
+    overflow: visible;
+    z-index: 3;
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools > button {
+    width: auto;
+    min-width: 0;
+    min-height: 27px;
+    height: 27px;
+    padding: 4px 9px;
+    margin: 0;
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+    box-shadow: none;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: .79em;
+    line-height: 1.3;
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools > .slb-library-view-toggle {
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools > button.slb-library-more-tools {
+    display: grid;
+    place-items: center;
+    margin-left: auto;
+    width: 27px;
+    min-width: 27px;
+    padding: 0;
+}
+#slb-library-overlay .slb-library-more-tools .fa-solid { pointer-events: none; }
+#slb-library-overlay .slb-library-tools-popover {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 1px);
+    z-index: 25;
+    width: min(202px, 80vw);
+    max-height: min(50dvh, 310px);
+    overflow-y: auto;
+    padding: 5px;
+    border: 1px solid var(--ll-line);
+    border-radius: 8px;
+    background: var(--ll-paper-light);
+    box-shadow: 0 9px 24px #00000026;
+    color: var(--ll-ink);
+    white-space: normal;
+}
+#slb-library-overlay .slb-library-tools-popover[hidden] { display: none !important; }
+#slb-library-overlay .slb-library-tools-popover button {
+    display: block;
+    width: 100%;
+    min-height: 27px;
+    height: auto;
+    text-align: left;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 5px;
+    box-shadow: none;
+    background: transparent;
+    color: var(--ll-ink);
+    font-size: .78em;
+    line-height: 1.35;
+    white-space: normal;
+}
+#slb-library-overlay .slb-library-tools-popover button:hover {
+    background: var(--ll-warm);
+}
+#slb-library-overlay .slb-library-tools-popover .slb-library-entry-image-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin: 3px 0 0;
+    padding: 4px 0 0;
+    border-top: 1px solid var(--ll-line);
+    border-bottom: 0;
+}
+#slb-library-overlay .slb-library-tools-popover .slb-library-image-file-name {
+    max-width: 100%;
+    padding: 0 7px;
+    font-size: .69em;
+}
+#slb-library-overlay .slb-library-book-meta {
+    width: 100%;
+    margin: 0 0 9px;
+    border: 1px solid var(--ll-line);
+    border-radius: 7px;
+    box-shadow: none;
+    background: var(--ll-paper-light);
+}
+#slb-library-overlay .slb-library-book-meta-summary {
+    min-height: 29px;
+    padding: 4px 9px;
+}
+#slb-library-overlay .slb-library-book-meta-summary::after {
+    font-size: .75em;
+}
+#slb-library-overlay .slb-library-book-meta .slb-library-tag-chip,
+#slb-library-overlay .slb-library-book-meta .slb-library-no-tags {
+    padding: 2px 8px;
+    font-size: .79em;
+}
+#slb-library-overlay .slb-library-book-tag-field {
+    gap: 6px;
+    padding: 7px 9px;
+}
+#slb-library-overlay #slb-library-book-tag-input {
+    min-height: 29px;
+    height: 29px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: .79em;
+}
+#slb-library-overlay button.slb-library-book-tag-save {
+    min-height: 29px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: .79em;
+}
+
+/* Antique reader: physical paper surfaces without nested wooden picture frames.
+   The *shelf* keeps its two actual wood boards and physical book spines. */
+#slb-library-overlay .slb-library-reader-frame.slb-library-reader-classic {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ll-ink);
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-classic-banner {
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 3px 1px 10px;
+    border-bottom: 1px solid var(--ll-line);
+    color: var(--ll-muted);
+    letter-spacing: .04em;
+    font-size: .75em;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-reader-inner > .slb-library-book-meta,
+#slb-library-overlay .slb-library-reader-classic .slb-library-reader-inner > .slb-library-section-head,
+#slb-library-overlay .slb-library-reader-classic .slb-library-section-head small,
+#slb-library-overlay .slb-library-reader-classic .slb-library-diary-pager,
+#slb-library-overlay .slb-library-reader-classic .slb-library-record-index label {
+    color: var(--ll-muted);
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-frame {
+    position: relative;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-frame::before {
+    content: none;
+    display: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog {
+    margin: 0 auto;
+    padding: 12px 12px 16px;
+    max-width: 680px;
+    border: 1px solid #ddd8ce;
+    border-radius: 5px;
+    background: #eeeae3;
+    box-shadow: inset 0 2px 7px #0000000a;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card {
+    width: 100%;
+    min-height: 52px;
+    margin: 0;
+    padding: 11px 15px;
+    border: 0;
+    border-bottom: 1px solid #e6e2dc;
+    border-radius: 2px;
+    background: #fffefb;
+    color: #33383c;
+    box-shadow: 1px 2px 4px #00000008;
+    transform: none;
+    font-size: .9em;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card + button {
+    margin-top: -5px;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-card::before,
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-card::after {
+    content: none;
+    display: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-card:nth-child(n) {
+    transform: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-card strong {
+    font-weight: 620;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-detail {
+    border: 1px solid #e0ddd6;
+    border-radius: 7px;
+    padding: 14px;
+    background: #fffefa;
+    color: #33383c;
+    box-shadow: 0 2px 7px #0000000b;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-journal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    padding: 5px;
+    border: 1px solid #d8d3cb;
+    border-radius: 5px;
+    background: #d9d2c7;
+    box-shadow: 0 3px 8px #00000010;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-diary-page {
+    min-width: 0;
+    border: 0;
+    padding: 15px 15px 19px 22px;
+    border-radius: 2px;
+    background: repeating-linear-gradient(to bottom, #fffefa 0, #fffefa 29px, #ede9e3 30px, #fffefa 31px);
+    color: #33383c;
+    box-shadow: inset -3px 0 7px #00000008;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-diary-page .slb-library-detail {
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+    padding: 0;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-index-layout {
+    display: grid;
+    grid-template-columns: minmax(145px, 34%) minmax(0, 1fr);
+    min-height: 300px;
+    gap: 0;
+    padding: 0;
+    border: 1px solid #dcdedc;
+    border-radius: 6px;
+    background: #fffefa;
+    box-shadow: 0 2px 7px #0000000a;
+    overflow: hidden;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-index {
+    padding: 12px 10px;
+    background: #f2f2f0;
+    border: 0;
+    border-right: 1px solid #dcdedc;
+    max-height: min(55dvh, 480px);
+    overflow-y: auto;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-index-paper {
+    min-width: 0;
+    background: #fffefa;
+    color: #33383c;
+    padding: 16px 17px;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-index-paper .slb-library-detail {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-person-directory,
+#slb-library-overlay .slb-library-reader-classic .slb-library-person-profile {
+    width: min(100%, 690px);
+    padding: 16px 17px;
+    border: 1px solid #dddcd7;
+    border-radius: 7px;
+    background: #fffefa;
+    color: #33383c;
+    box-shadow: 0 2px 7px #0000000a;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-person-directory::before,
+#slb-library-overlay .slb-library-reader-classic .slb-library-person-profile::before {
+    display: none;
+    content: none;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-person-profile .slb-library-detail {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+@media(max-width:760px) {
+    #slb-library-overlay .slb-library-reader-classic .slb-library-index-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #slb-library-overlay .slb-library-reader-classic .slb-library-index-layout .slb-library-index {
+        border: 0;
+        border-bottom: 1px solid #dcdedc;
+    }
+}
