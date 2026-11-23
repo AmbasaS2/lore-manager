@@ -248,7 +248,7 @@ export function createStandaloneLibrary({
         search.id = 'slb-library-search';
         search.type = 'search';
         search.autocomplete = 'off';
-        search.placeholder = '제목·키워드·내용 검색';
+        search.placeholder = '내용 검색';
         search.setAttribute('aria-label', '로어북 내 검색');
         const navTools = element(doc, 'div', 'slb-library-nav-tools');
         navTools.append(filters, search);
@@ -329,9 +329,22 @@ export function createStandaloneLibrary({
         const opener = overlay.querySelector('[data-action="settings"]');
         if (opener) opener.setAttribute('aria-expanded', String(settingsOpen));
     }
-    // Pointer-based bottom-right resizing: one start event, temporary move/up
-    // listeners only while dragging, and one geometry read at drag start.
-    // The top-left corner stays anchored while dragging like a desktop window.
+    function refreshAfterResize() {
+        if (!isOpen()) return;
+        if (!currentBook) { bookList(); return; }
+        // Only the journal depends on the reader's actual width for its
+        // record count. Reuse the loaded entries, never reload or auto-save.
+        // Do not replace an editor/unfinished upload in progress.
+        if (currentData && getType(currentBook) === 'memory'
+            && !edit && !tagSaving && !saving && !pendingImages.size) {
+            const body = overlay.querySelector('.slb-library-body');
+            const previousScroll = body?.scrollTop || 0;
+            renderBook();
+            if (body) body.scrollTop = previousScroll;
+        }
+    }
+    // Center-anchored drag: one geometry read at the start. Temporary pointer
+    // listeners are removed on release; no global resize observer or polling.
     function beginResize(event) {
         if (event.button !== 0 && event.pointerType !== 'touch') return;
         const shell = overlay?.querySelector('.slb-library-shell');
@@ -361,7 +374,7 @@ export function createStandaloneLibrary({
             if (move && move.pointerId !== event.pointerId) return;
             resizeCleanup?.();
             resizeCleanup = null;
-            if (isOpen() && !currentBook) bookList();
+            refreshAfterResize();
         };
         resizeCleanup = () => {
             win.removeEventListener('pointermove', onMove);
@@ -385,7 +398,7 @@ export function createStandaloneLibrary({
             rect.width + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0))) + 'px';
         shell.style.height = Math.max(260, Math.min(doc.defaultView.innerHeight - 12,
             rect.height + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0))) + 'px';
-        if (!currentBook) bookList();
+        refreshAfterResize();
     }
     // This editor is mounted only when a user explicitly opens a cover
     // setting; neither book data nor images are fetched for the antique shelf.
@@ -692,6 +705,8 @@ export function createStandaloneLibrary({
                 const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-tone-' + spineTone(item.name)
                     + ' slb-library-cover-design-' + (spineTone(item.name) % 8)
                     + ' slb-library-cover-type-' + type);
+                art.append(element(doc, 'span', 'slb-library-cover-mark',
+                    { general: '▤', memory: '✧', world: '✥', people: 'A–Z' }[type]));
                 art.append(element(doc, 'span', 'slb-library-cover-title', item.name));
                 art.append(element(doc, 'span', 'slb-library-cover-type-label',
                     { general: 'RECORD', memory: 'JOURNAL', world: 'WORLD', people: 'PEOPLE' }[type]));
@@ -906,8 +921,7 @@ export function createStandaloneLibrary({
         const dots = element(doc, 'span', 'slb-library-window-dots');
         dots.setAttribute('aria-hidden', 'true');
         dots.append(element(doc, 'i'), element(doc, 'i'), element(doc, 'i'));
-        chrome.append(dots, element(doc, 'strong', '', '로어 라이브러리 · ' + title),
-            element(doc, 'small', '', 'LORE LIBRARY'));
+        chrome.append(dots, element(doc, 'strong', '', title));
         return chrome;
     }
     function cleanReaderSidebar(type) {
@@ -943,12 +957,6 @@ export function createStandaloneLibrary({
         frame.dataset.bookType = type;
         const inner = element(doc, 'div', 'slb-library-reader-inner');
         if (clean) {
-            if (variant === 'blackberry') {
-                const deviceBar = element(doc, 'div', 'slb-library-device-top',
-                    '●                       LORE LIBRARY                       ▰▰  14:05');
-                deviceBar.setAttribute('aria-hidden', 'true');
-                frame.append(deviceBar);
-            }
             frame.append(cleanReaderChrome(type));
             const workspace = element(doc, 'div', 'slb-library-clean-workspace');
             workspace.append(cleanReaderSidebar(type), inner);
@@ -1057,11 +1065,12 @@ export function createStandaloneLibrary({
         renderBook();
     }
     function diaryStep() {
-        // Use actual reader width, not window width; floating windows can be
-        // resized narrow without changing the browser viewport.
-        const width = overlay?.querySelector('.slb-library-body')?.clientWidth
+        // A narrow floating window renders ONE actual journal page, not a
+        // two-page spread with the second page hidden by CSS.
+        const readerWidth = overlay?.querySelector('.slb-library-reader-inner')?.clientWidth
+            || overlay?.querySelector('.slb-library-body')?.clientWidth
             || doc.defaultView.innerWidth || 1024;
-        return getTheme() === 'antique' && width > 680 ? 2 : 1;
+        return getTheme() === 'antique' && readerWidth > 710 ? 2 : 1;
     }
     function renderDiary(body, found) {
         diaryIndex = Math.min(Math.max(0, diaryIndex), found.length - 1);
@@ -1080,13 +1089,13 @@ export function createStandaloneLibrary({
         heading.append(label, select);
         body.append(heading);
         const journal = element(doc, 'div', 'slb-library-journal');
-        const numberOfPages = getTheme() === 'clean' ? 1 : 2;
+        const numberOfPages = diaryStep();
         for (const [offset, entry] of found.slice(diaryIndex, diaryIndex + numberOfPages).entries()) {
             const page = element(doc, 'article', 'slb-library-diary-page');
             page.dataset.uid = String(entry.uid);
             const head = element(doc, 'header', 'slb-library-diary-heading');
-            const date = dateLabel(entry.comment) || '날짜 미지정';
-            head.append(element(doc, 'span', 'slb-library-diary-date', date));
+            const date = dateLabel(entry.comment);
+            if (date) head.append(element(doc, 'span', 'slb-library-diary-date', date));
             head.append(element(doc, 'h3', '', titleOf(entry)));
             page.append(head, renderDetail(entry, 'memory'));
             page.append(element(doc, 'small', 'slb-library-diary-page-number',
@@ -1111,7 +1120,7 @@ export function createStandaloneLibrary({
         if (!selectedUid) selectedUid = String(chosen.uid);
         const layout = element(doc, 'div', 'slb-library-index-layout');
         layout.classList.toggle('is-index-open', worldIndexOpen);
-        const menu = button(doc, 'slb-library-world-menu', '☰ 목차 열기 · 항목 검색', 'world-menu');
+        const menu = button(doc, 'slb-library-world-menu', '목차', 'world-menu');
         menu.setAttribute('aria-expanded', String(worldIndexOpen));
         body.append(menu);
         const index = element(doc, 'nav', 'slb-library-index');
@@ -1120,7 +1129,7 @@ export function createStandaloneLibrary({
         const search = element(doc, 'input', 'slb-library-world-search');
         search.id = 'slb-library-world-search';
         search.type = 'search';
-        search.placeholder = '설정 항목 검색';
+        search.placeholder = '항목 검색';
         search.setAttribute('aria-label', '세계관 항목 검색');
         search.value = worldQuery;
         index.append(search);
@@ -1130,8 +1139,9 @@ export function createStandaloneLibrary({
             const uid = String(entry.uid);
             const item = button(doc, 'slb-library-index-item', '', 'entry', uid);
             if (String(chosen.uid) === uid) item.classList.add('is-selected');
+            const originalPosition = found.indexOf(entry) + 1;
             item.append(element(doc, 'span', 'slb-library-index-initial',
-                String(position + 1).padStart(2,'0')));
+                String(originalPosition).padStart(2,'0')));
             item.append(element(doc, 'span', '', titleOf(entry)));
             index.append(item);
         }
@@ -1155,8 +1165,8 @@ export function createStandaloneLibrary({
         const search = element(doc, 'input', 'slb-library-people-search');
         search.type = 'search';
         search.id = 'slb-library-people-search';
-        search.setAttribute('aria-label', '인물 이름 검색');
-        search.placeholder = '⌕  인물 이름 검색';
+        search.setAttribute('aria-label', '이름 검색');
+        search.placeholder = '⌕  이름 검색';
         search.value = peopleQuery;
         directory.append(search);
         const candidates = peopleQuery.trim() ? found.filter(e =>

@@ -2738,3 +2738,497 @@
         border-bottom: 1px solid #dcdedc;
     }
 }
+
+/* v46: Compact UI controls only. Content prose and the user's inherited
+   typeface/reading size are deliberately untouched. */
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-books-head {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 0 4px;
+    margin: 0;
+    min-height: 32px;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-search {
+    flex: 0 1 124px;
+    display: block;
+    width: 124px;
+    max-width: 124px;
+    min-width: 0;
+    height: 29px;
+    min-height: 29px;
+    max-height: 29px;
+    margin: 0 0 0 auto;
+    padding: 4px 8px;
+    border: 1px solid var(--ll-line);
+    border-radius: 7px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: .79em;
+    line-height: 1.25;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-navigation.slb-library-has-book {
+    gap: 7px;
+    padding: 7px 12px 9px;
+}
+#slb-library-overlay .slb-library-nav-top {
+    gap: 9px;
+    min-height: 28px;
+}
+#slb-library-overlay .slb-library-nav-top > button,
+#slb-library-overlay .slb-library-person-back,
+#slb-library-overlay .slb-library-catalog-detail-nav > button,
+#slb-library-overlay .slb-library-catalog-pager > button,
+#slb-library-overlay .slb-library-diary-pager > button {
+    min-height: 28px;
+    height: 28px;
+    width: auto;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: .8em;
+    line-height: 1.25;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-current {
+    font-size: .86em;
+    line-height: 1.3;
+}
+#slb-library-overlay .slb-library-nav-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-nav-tools .slb-library-filters {
+    flex: 0 1 148px;
+    min-width: 0;
+    gap: 5px;
+}
+#slb-library-overlay .slb-library-filters label {
+    font-size: .79em;
+    flex: 0 0 auto;
+}
+#slb-library-overlay .slb-library-navigation #slb-library-book-type,
+#slb-library-overlay .slb-library-navigation #slb-library-search {
+    display: block;
+    box-sizing: border-box;
+    flex: 0 1 148px;
+    width: 148px;
+    max-width: 148px;
+    min-width: 0;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 4px 8px !important;
+    margin: 0;
+    border: 1px solid var(--ll-line);
+    border-radius: 7px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: .8em !important;
+    line-height: 1.2 !important;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-navigation #slb-library-search {
+    flex: 0 1 148px;
+}
+#slb-library-overlay button.slb-library-world-menu {
+    min-height: 29px;
+    height: 29px;
+    width: auto;
+    padding: 4px 10px;
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: .8em;
+    line-height: 1.25;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-record-index {
+    gap: 6px;
+    padding: 2px 0 9px;
+    font-size: .8em;
+}
+#slb-library-overlay .slb-library-record-index select,
+#slb-library-overlay .slb-library-people-search,
+#slb-library-overlay .slb-library-world-search {
+    box-sizing: border-box;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    min-width: 0;
+    padding: 4px 8px !important;
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: .8em !important;
+    line-height: 1.25 !important;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-record-index select { max-width: min(100%, 188px); }
+#slb-library-overlay .slb-library-people-search {
+    width: min(100%, 156px);
+    max-width: 156px;
+    margin: 5px 0 10px auto;
+}
+#slb-library-overlay .slb-library-world-search {
+    width: 100%;
+    max-width: 176px;
+    margin: 6px 0 9px auto;
+}
+#slb-library-overlay .slb-library-index-initial {
+    flex: 0 0 29px;
+    width: 29px;
+    min-width: 29px;
+    height: 25px;
+    aspect-ratio: auto;
+    border: 1px solid #c7ced5;
+    border-radius: 5px;
+    background: #e6eaf0;
+    color: #384655;
+    font-size: .78em;
+    font-weight: 750;
+    opacity: 1;
+    font-variant-numeric: tabular-nums;
+}
+#slb-library-overlay[data-theme="antique"] .slb-library-index-initial {
+    border-color: #d2c9b8;
+    background: #eeeae3;
+    color: #514638;
+}
+#slb-library-overlay .slb-library-reader-clean .slb-library-clean-chrome {
+    padding: 8px 11px;
+    justify-content: flex-start;
+    gap: 13px;
+}
+#slb-library-overlay .slb-library-reader-clean .slb-library-clean-chrome strong {
+    flex: 1;
+    min-width: 0;
+    font-size: .88em;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-reader-blackberry .slb-library-clean-chrome {
+    padding: 8px 11px;
+}
+
+/* Actual single-page journal for a narrow floating modal, with the same
+   responsive width as the JS pager (container width, not outer viewport). */
+@container (max-width: 710px) {
+    .slb-library-reader-classic .slb-library-journal {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .slb-library-reader-classic .slb-library-diary-page {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+    }
+}
+
+/* Classic catalog: genuinely separate index cards, never a single flat sheet. */
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    padding: 12px 16px 17px;
+    border: 0;
+    border-radius: 7px;
+    background: #eae8e2;
+    box-shadow: inset 0 2px 8px #3543530c;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card {
+    display: flex;
+    align-items: center;
+    width: calc(100% - 12px);
+    min-height: 54px;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid #d4d1c9;
+    border-left: 4px solid #909aa1;
+    border-radius: 3px;
+    background: #fffefa;
+    color: #30373c;
+    box-shadow: 2px 3px 0 #d2cec5, 3px 4px 7px #1825360d;
+    font-size: .9em;
+    transform: none;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card + button {
+    margin-top: 0;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card:nth-child(odd) {
+    margin-left: 0;
+    transform: translateX(-3px);
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card:nth-child(even) {
+    margin-left: 10px;
+    transform: translateX(0);
+    border-left-color: #c1ab8a;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card:hover {
+    transform: translateY(-2px);
+    background: #ffffff;
+    border-color: #a1aab0;
+    box-shadow: 2px 5px 0 #d2cec5, 4px 8px 12px #18253616;
+}
+#slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card strong {
+    flex: 1;
+    min-width: 0;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-card::after,
+#slb-library-overlay .slb-library-reader-classic .slb-library-catalog-card::before {
+    content: none;
+    display: none;
+}
+
+/* Distinct silhouette/material by stored book type, with stable user-custom
+   image precedence and name-order color variation preserved. */
+#slb-library-overlay .slb-library-cover-art .slb-library-cover-mark {
+    display: grid;
+    place-items: center;
+    z-index: 1;
+    position: relative;
+    margin: 0 auto;
+    min-width: 23px;
+    min-height: 21px;
+    color: inherit;
+    font-size: .92em;
+    font-weight: 700;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world {
+    border-top: 3px double currentColor;
+    border-bottom: 3px double currentColor;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world::before {
+    inset: auto;
+    width: 61%;
+    height: auto;
+    aspect-ratio: 1;
+    left: 19%;
+    top: 27%;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: transparent;
+    opacity: .22;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-world .slb-library-cover-mark {
+    border: 1px solid currentColor;
+    border-radius: 50%;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory {
+    border-left: 5px double color-mix(in srgb, currentColor, transparent 30%);
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory::before {
+    inset: 0 12% 0 auto;
+    width: 4px;
+    background: #d06b59;
+    opacity: .65;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-memory .slb-library-cover-mark {
+    border-bottom: 1px solid currentColor;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people {
+    border-left: 5px solid color-mix(in srgb, currentColor, transparent 28%);
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people::before {
+    inset: 29% 0 auto auto;
+    width: 12%;
+    height: 29%;
+    border-radius: 2px 0 0 2px;
+    background: currentColor;
+    opacity: .25;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-people .slb-library-cover-mark {
+    width: fit-content;
+    padding: 2px 3px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: .73em;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general {
+    border-top: 4px solid color-mix(in srgb, currentColor, transparent 30%);
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general::before {
+    inset: 22% 14% auto 14%;
+    height: 25%;
+    border: 1px solid currentColor;
+    border-left-width: 4px;
+    opacity: .2;
+    background: transparent;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general .slb-library-cover-mark {
+    width: 23px;
+    border: 1px solid currentColor;
+}
+
+/* Compact tag chips, separate from the prose font size. */
+#slb-library-overlay .slb-library-reader-frame details.slb-library-book-meta {
+    display: block;
+    width: fit-content;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 0 11px;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+}
+#slb-library-overlay .slb-library-book-meta-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 27px;
+    padding: 2px 8px 2px 3px;
+    border: 1px solid var(--ll-line);
+    border-radius: 20px;
+    background: var(--ll-paper-light);
+    color: var(--ll-muted);
+    font-size: .81em;
+}
+#slb-library-overlay .slb-library-book-meta-summary::after {
+    font-size: .8em;
+    margin-left: 2px;
+}
+#slb-library-overlay .slb-library-book-meta .slb-library-book-chips {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+}
+#slb-library-overlay .slb-library-book-meta .slb-library-tag-chip,
+#slb-library-overlay .slb-library-book-meta .slb-library-no-tags {
+    display: inline-block;
+    padding: 3px 8px;
+    border: 0;
+    border-radius: 20px;
+    background: var(--ll-warm);
+    color: var(--ll-ink);
+    font-size: .94em;
+    font-weight: 550;
+}
+#slb-library-overlay .slb-library-reader-frame details.slb-library-book-meta[open] {
+    width: min(310px, 100%);
+    max-width: 100%;
+}
+#slb-library-overlay .slb-library-reader-frame details.slb-library-book-meta[open] > .slb-library-book-tag-field {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 8px;
+    border: 1px solid var(--ll-line);
+    border-radius: 8px;
+    background: var(--ll-paper-light);
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-book-tag-field input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-book-meta[open] .slb-library-book-meta-summary {
+    border-color: var(--ll-brass);
+}
+@media(max-width:520px) {
+    #slb-library-overlay .slb-library-navigation.slb-library-has-book {
+        padding: 7px 10px 8px;
+    }
+    #slb-library-overlay .slb-library-nav-tools .slb-library-filters {
+        flex: 1 1 45%;
+    }
+    #slb-library-overlay .slb-library-navigation #slb-library-book-type,
+    #slb-library-overlay .slb-library-navigation #slb-library-search {
+        width: 100%;
+        max-width: none;
+    }
+    #slb-library-overlay .slb-library-navigation #slb-library-search {
+        flex: 1 1 45%;
+    }
+    #slb-library-overlay .slb-library-reader-classic .slb-library-catalog {
+        padding: 9px 11px 14px;
+    }
+    #slb-library-overlay .slb-library-reader-classic button.slb-library-catalog-card {
+        min-height: 51px;
+    }
+    #slb-library-overlay .slb-library-people-search {
+        width: 152px;
+    }
+}
+
+/* Keep the compact title search and tag picker at the same width, including
+   in the old 500px media-query branch. */
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-tag-select {
+    box-sizing: border-box;
+    flex: 0 0 124px;
+    width: 124px;
+    max-width: 124px;
+    min-width: 0;
+    height: 29px;
+    min-height: 29px;
+    max-height: 29px;
+}
+
+/* The old classic 2-page rule has ID specificity. Override it at equal
+   specificity inside the resizable modal's own container query. */
+@container (max-width: 710px) {
+    #slb-library-overlay .slb-library-reader-classic .slb-library-journal {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 760px) {
+    #slb-library-overlay .slb-library-reader-classic .slb-library-journal {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Draw the tag disclosure chevron with borders, not an unsupported glyph
+   that becomes an empty square under user-selected UI fonts. */
+#slb-library-overlay .slb-library-book-meta .slb-library-book-meta-summary::after {
+    content: '' !important;
+    display: inline-block;
+    flex: 0 0 5px;
+    width: 5px;
+    height: 5px;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: rotate(45deg);
+    margin: -3px 3px 0 3px;
+}
+#slb-library-overlay .slb-library-book-meta[open] > .slb-library-book-meta-summary::after {
+    content: '' !important;
+    transform: rotate(225deg);
+    margin-top: 2px;
+}
+
+/* Keep the accessible native label without consuming half the compact
+   reader-mode selector's width on desktop. */
+#slb-library-overlay .slb-library-navigation .slb-library-filters label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-navigation .slb-library-filters {
+    flex: 0 1 148px;
+}
+#slb-library-overlay .slb-library-navigation #slb-library-book-type {
+    flex: 1 1 148px;
+    max-width: 148px;
+}
