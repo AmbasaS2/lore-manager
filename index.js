@@ -26,7 +26,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.47';
+const VERSION = '1.4.85-ambasa.48';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -355,7 +355,12 @@ function getSettings() {
         || Array.isArray(settings.libraryEntryImages)) settings.libraryEntryImages = {};
     if (!settings.libraryBookCovers || typeof settings.libraryBookCovers !== 'object'
         || Array.isArray(settings.libraryBookCovers)) settings.libraryBookCovers = {};
-    if (!['antique', 'clean', 'light', 'dark', 'st'].includes(settings.libraryTheme)) settings.libraryTheme = 'antique';
+    // One-time in-memory migration: legacy clean displayed an ebook cover shelf
+    // regardless of the Mac/BlackBerry reader variant. Keep that shelf visually
+    // familiar instead of silently moving the user into a new folder/app mode.
+    if (settings.libraryTheme === 'clean') settings.libraryTheme = 'ebook';
+    if (!['antique', 'mac', 'blackberry', 'ebook', 'light', 'dark', 'st'].includes(settings.libraryTheme))
+        settings.libraryTheme = 'antique';
     if (!['mac', 'blackberry'].includes(settings.libraryCleanVariant)) settings.libraryCleanVariant = 'mac';
     settings.libraryLinkedOnly = settings.libraryLinkedOnly !== false;
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
@@ -9313,9 +9318,10 @@ function initStandaloneLibrary() {
                 throw error;
             }
         },
-        getTheme: () => getSettings().libraryTheme === 'clean' ? 'clean' : 'antique',
+        getTheme: () => ['antique', 'mac', 'blackberry', 'ebook'].includes(getSettings().libraryTheme)
+            ? getSettings().libraryTheme : 'antique',
         setTheme: async theme => {
-            if (!['antique', 'clean'].includes(theme)) return;
+            if (!['antique', 'mac', 'blackberry', 'ebook'].includes(theme)) return;
             const settings = getSettings(), previous = settings.libraryTheme;
             settings.libraryTheme = theme;
             try { await saveSettings(); } catch (error) { settings.libraryTheme = previous; throw error; }

@@ -23,7 +23,7 @@ test('library settings have a readable standalone launcher without a redundant t
 });
 
 test('antique remains default while the new clean theme is an explicit saved choice', () => {
-    assert.match(index, /getTheme:\s*\(\)\s*=>\s*getSettings\(\)\.libraryTheme === 'clean'/);
+    assert.match(index, /getTheme:\s*\(\)\s*=>\s*\['antique', 'mac', 'blackberry', 'ebook'\]/);
     assert.match(index, /setTheme: async theme =>/);
     assert.match(index, /libraryCleanVariant:\s*'mac'/);
     assert.doesNotMatch(index, /const libraryThemeControl = document.getElementById/);
