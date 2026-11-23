@@ -35,5 +35,5 @@ test('text-only change preserves key actions, stored data model and four book ty
   assert.match(shelf,/action === 'translate'/);
   assert.match(index,/saveWorldInfo\(book, fresh, true\)/);
   assert.match(index,/translationFiles\.flushBook\(book\)/);
-  assert.match(index,/getTheme: \(\) => 'antique'/);
+  assert.match(index,/getTheme: \(\) => getSettings\(\)\.libraryTheme === 'clean'/);
 });
