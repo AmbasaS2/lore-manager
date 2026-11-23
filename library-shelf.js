@@ -110,6 +110,8 @@ export function createStandaloneLibrary({
     setTheme = async () => {},
     getListPageSize = () => 5,
     setListPageSize = async () => {},
+    getListOrder = () => 'normal',
+    setListOrder = async () => {},
     getCleanVariant = () => 'mac',
     setCleanVariant = async () => {},
     getLinkedOnly = () => true,
@@ -186,6 +188,9 @@ export function createStandaloneLibrary({
         const page = Math.min(Math.max(0, current), pageCount - 1);
         return { size, page, pageCount, start: page * size };
     }
+    function libraryListOrder() {
+        return getListOrder() === 'reverse' ? 'reverse' : 'normal';
+    }
     function pageSizePicker() {
         // A single persisted setting shared across the four reader styles.
         // Place its selector next to each contents pager, never in settings.
@@ -200,10 +205,116 @@ export function createStandaloneLibrary({
         select.value = String(libraryPageSize());
         return select;
     }
+    function pageOrderPicker() {
+        const select = element(doc, 'select', 'slb-library-order-select');
+        select.setAttribute('aria-label', '목록 정렬 순서');
+        select.setAttribute('title', '목록 정렬 순서');
+        for (const [value, label] of [['normal', '기본순'], ['reverse', '역순']]) {
+            const option = element(doc, 'option', '', label);
+            option.value = value;
+            select.append(option);
+        }
+        select.value = libraryListOrder();
+        return select;
+    }
+    function pageOptions() {
+        const options = element(doc, 'div', 'slb-library-page-options');
+        options.append(pageSizePicker(), pageOrderPicker());
+        return options;
+    }
     function pageNavigation(previous, index, next) {
         const group = element(doc, 'div', 'slb-library-page-navigation');
-        group.append(previous, element(doc, 'small', '', index), next);
+        const [pageText, countText] = index.split(' / ');
+        const page = Number(pageText) || 1;
+        const pageCount = Math.max(1, Number(countText) || 1);
+        const prefix = previous.dataset.action.replace(/-prev$/, '');
+        const jump = button(doc, 'slb-library-page-jump', '', 'page-jump');
+        jump.dataset.prefix = prefix;
+        jump.dataset.page = String(page);
+        jump.dataset.pageCount = String(pageCount);
+        jump.setAttribute('aria-label', '페이지 이동 · ' + page + ' / ' + pageCount);
+        jump.setAttribute('title', '페이지 번호를 눌러 이동');
+        jump.append(element(doc, 'small', '', index));
+        const editor = element(doc, 'span', 'slb-library-page-jump-editor');
+        editor.hidden = true;
+        const input = element(doc, 'input', 'slb-library-page-jump-input');
+        input.type = 'number';
+        input.inputMode = 'numeric';
+        input.min = '1';
+        input.max = String(pageCount);
+        input.step = '1';
+        input.value = String(page);
+        input.dataset.prefix = prefix;
+        input.setAttribute('aria-label', '이동할 페이지 번호 (1–' + pageCount + ')');
+        input.autocomplete = 'off';
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                event.stopPropagation();
+                finishPageJump(input, true);
+            } else if (event.key === 'Escape') {
+                // Escape cancels only this numeric input, not the whole reader.
+                event.preventDefault();
+                event.stopPropagation();
+                finishPageJump(input, false);
+            }
+        });
+        input.addEventListener('blur', () => {
+            if (!editor.hidden) finishPageJump(input, true);
+        });
+        editor.append(input, element(doc, 'small', '', '/ ' + pageCount));
+        group.append(previous, jump, editor, next);
         return group;
+    }
+    function openPageJump(buttonNode) {
+        const group = buttonNode.closest('.slb-library-page-navigation');
+        const editor = group?.querySelector('.slb-library-page-jump-editor');
+        const input = editor?.querySelector('.slb-library-page-jump-input');
+        if (!input) return;
+        // Number inputs cannot reliably select their contents in Chrome.
+        // Start blank with the current page as a hint, so typing 18 goes
+        // directly to page 18 instead of accidentally appending to "1".
+        input.value = '';
+        input.placeholder = buttonNode.dataset.page;
+        buttonNode.hidden = true;
+        editor.hidden = false;
+        input.focus();
+    }
+    function finishPageJump(input, commit) {
+        const editor = input.closest('.slb-library-page-jump-editor');
+        if (!editor || editor.hidden) return;
+        editor.hidden = true;
+        const group = editor.closest('.slb-library-page-navigation');
+        const jump = group?.querySelector('[data-action="page-jump"]');
+        if (!jump) return;
+        jump.hidden = false;
+        const pageCount = Number(jump.dataset.pageCount);
+        const currentPage = Number(jump.dataset.page);
+        const inputPage = Number(input.value);
+        if (!commit || !Number.isFinite(inputPage) || input.value.trim() === '') {
+            jump.focus?.();
+            return;
+        }
+        const target = Math.max(1, Math.min(Math.trunc(inputPage), pageCount));
+        if (target === currentPage) { jump.focus?.(); return; }
+        if (!discardOrStay({ allowTags: true })) {
+            jump.focus?.();
+            return;
+        }
+        const prefix = input.dataset.prefix;
+        if (prefix === 'catalog-list') {
+            catalogPage = target - 1;
+            if (['mac', 'blackberry'].includes(libraryTheme())) selectedUid = null;
+        } else if (prefix === 'memory-list') {
+            diaryTocPage = target - 1;
+        } else if (prefix === 'world') {
+            worldTocPage = target - 1;
+        } else if (prefix === 'people') {
+            peoplePage = target - 1;
+        } else return;
+        resetEdit();
+        renderBook();
+        overlay?.querySelector('[data-action="page-jump"][data-prefix="' + prefix + '"]')?.focus?.();
     }
     function pageButtons(actionPrefix, page, total, label) {
         const info = pageData(total, page);
@@ -216,7 +327,7 @@ export function createStandaloneLibrary({
         next.disabled = info.page >= info.pageCount - 1;
         next.setAttribute('aria-label', '다음 ' + label);
         pager.append(pageNavigation(previous, (info.page + 1) + ' / ' + info.pageCount, next),
-            pageSizePicker());
+            pageOptions());
         return pager;
     }
     function contentsHeading(title, count, action, open, contentsId) {
@@ -1052,6 +1163,42 @@ export function createStandaloneLibrary({
             }
         }
     }
+    async function updateLibraryListOrder(value) {
+        const selects = [...(overlay?.querySelectorAll('.slb-library-order-select') || [])];
+        if (!isOpen() || appearanceSaving || !['normal', 'reverse'].includes(value)) {
+            for (const select of selects) select.value = libraryListOrder();
+            return;
+        }
+        if (!discardOrStay({ allowTags: true })) {
+            for (const select of selects) select.value = libraryListOrder();
+            return;
+        }
+        if (value === libraryListOrder()) return;
+        appearanceSaving = true;
+        for (const select of selects) select.disabled = true;
+        try {
+            await setListOrder(value);
+            // The first page in reverse starts at the most recent (last
+            // original-order) record. This applies to the journal reading
+            // spread as well as every index/preview.
+            catalogPage = 0;
+            diaryTocPage = 0;
+            diaryIndex = 0;
+            worldTocPage = 0;
+            peoplePage = 0;
+            selectedUid = null;
+            resetEdit();
+            if (currentData) renderBook();
+        } catch (error) {
+            notifyStatus('정렬 순서 저장 실패: ' + (error?.message || error), 'error');
+        } finally {
+            appearanceSaving = false;
+            for (const select of overlay?.querySelectorAll('.slb-library-order-select') || []) {
+                select.disabled = false;
+                select.value = libraryListOrder();
+            }
+        }
+    }
     async function updateLibraryLinkedOnly(enabled) {
         if (!isOpen() || appearanceSaving || coverEditor) return;
         const old = Boolean(getLinkedOnly());
@@ -1564,9 +1711,16 @@ export function createStandaloneLibrary({
         }
     }
     function filtered() {
+        // Reverse presentation only. Never reverse the live WorldInfo entries
+        // array or mutate the source data/UID/displayIndex when reading.
         const needle = query.toLocaleLowerCase().trim();
-        if (!needle) return entries;
-        return entries.filter(item => searchIndex.get(String(item.uid))?.includes(needle));
+        const found = needle
+            ? entries.filter(item => searchIndex.get(String(item.uid))?.includes(needle))
+            : entries.slice();
+        return libraryListOrder() === 'reverse' ? found.reverse() : found;
+    }
+    function originalEntryNumber(entry) {
+        return entries.findIndex(item => String(item.uid) === String(entry.uid)) + 1;
     }
     function titleOf(entry) {
         const name = String(entry.comment || '').trim();
@@ -1765,7 +1919,7 @@ export function createStandaloneLibrary({
                 (position === diaryIndex ? ' is-selected' : ''), '', 'diary-entry', String(entry.uid));
             item.dataset.index = String(position);
             item.append(element(doc, 'span', 'slb-library-index-initial',
-                String(position + 1).padStart(2, '0')),
+                String(originalEntryNumber(entry)).padStart(2, '0')),
                 element(doc, 'span', '', titleOf(entry)));
             index.append(item);
         }
@@ -1783,7 +1937,7 @@ export function createStandaloneLibrary({
             head.append(element(doc, 'h3', '', titleOf(entry)));
             page.append(head, renderDetail(entry, 'memory'));
             page.append(element(doc, 'small', 'slb-library-diary-page-number',
-                String(diaryIndex + offset + 1).padStart(2, '0') + ' / ' + String(found.length).padStart(2, '0')));
+                String(originalEntryNumber(entry)).padStart(2, '0') + ' / ' + String(found.length).padStart(2, '0')));
             journal.append(page);
         }
         body.append(journal);
@@ -1794,8 +1948,9 @@ export function createStandaloneLibrary({
         previous.disabled = diaryIndex === 0;
         const next = button(doc, '', '다음 페이지 ›', 'diary-next');
         next.disabled = diaryIndex + diaryStep() >= found.length;
-        pager.append(previous, element(doc, 'span', '', String(diaryIndex + 1).padStart(2, '0')
-            + '–' + String(Math.min(found.length, diaryIndex + numberOfPages)).padStart(2, '0')
+        pager.append(previous, element(doc, 'span', '',
+            String(originalEntryNumber(found[diaryIndex])).padStart(2, '0') + '–'
+            + String(originalEntryNumber(found[Math.min(found.length - 1, diaryIndex + numberOfPages - 1)])).padStart(2, '0')
             + ' / ' + String(found.length).padStart(2, '0')), next);
         body.append(pager);
     }
@@ -1842,7 +1997,7 @@ export function createStandaloneLibrary({
         next.setAttribute('title', '다음 목차');
         next.disabled = worldTocPage >= pageCount - 1;
         pages.append(pageNavigation(prev, (worldTocPage + 1) + ' / ' + pageCount, next),
-            pageSizePicker());
+            pageOptions());
         index.append(pages);
         const paper = element(doc, 'div', 'slb-library-index-paper');
         paper.append(renderDetail(chosen, type));
@@ -1890,7 +2045,7 @@ export function createStandaloneLibrary({
         next.setAttribute('title', '다음 인물');
         next.disabled = peoplePage >= pages - 1;
         pager.append(pageNavigation(prev, (peoplePage + 1) + ' / ' + pages, next),
-            pageSizePicker());
+            pageOptions());
         contents.append(pager);
         directory.append(contents);
         body.append(directory);
@@ -2153,7 +2308,8 @@ export function createStandaloneLibrary({
         const action = target.dataset.action, uid = target.dataset.uid;
         if (coverEditor && !coverEditor.backdrop.contains(target)) return;
         if (['edit', 'translate', 'advanced'].includes(action)) closeReaderTools();
-        if (action === 'minimize') setMinimized(true);
+        if (action === 'page-jump') openPageJump(target);
+        else if (action === 'minimize') setMinimized(true);
         else if (action === 'restore') {
             // A drag of the collapsed launcher is not a request to reopen.
             if (ignoreMinimizedClick && event.detail !== 0) ignoreMinimizedClick = false;
@@ -2324,6 +2480,10 @@ export function createStandaloneLibrary({
         }
         if (event.target?.classList?.contains('slb-library-page-size-select')) {
             void updateLibraryPageSize(event.target.value);
+            return;
+        }
+        if (event.target?.classList?.contains('slb-library-order-select')) {
+            void updateLibraryListOrder(event.target.value);
             return;
         }
         if (event.target?.classList?.contains('slb-library-image-file')) {

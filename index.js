@@ -27,7 +27,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.55';
+const VERSION = '1.4.85-ambasa.56';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -125,6 +125,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryCleanVariant: 'mac',
     libraryLinkedOnly: true,
     libraryListPageSize: 5,
+    libraryListOrder: 'normal',
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -367,6 +368,7 @@ function getSettings() {
     settings.libraryLinkedOnly = settings.libraryLinkedOnly !== false;
     settings.libraryListPageSize = [5, 10, 20].includes(Number(settings.libraryListPageSize))
         ? Number(settings.libraryListPageSize) : 5;
+    settings.libraryListOrder = settings.libraryListOrder === 'reverse' ? 'reverse' : 'normal';
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -9446,6 +9448,16 @@ function initStandaloneLibrary() {
             settings.libraryListPageSize = value;
             try { await saveSettings(); } catch (error) {
                 settings.libraryListPageSize = previous;
+                throw error;
+            }
+        },
+        getListOrder: () => getSettings().libraryListOrder,
+        setListOrder: async value => {
+            if (!['normal', 'reverse'].includes(value)) return;
+            const settings = getSettings(), previous = settings.libraryListOrder;
+            settings.libraryListOrder = value;
+            try { await saveSettings(); } catch (error) {
+                settings.libraryListOrder = previous;
                 throw error;
             }
         },

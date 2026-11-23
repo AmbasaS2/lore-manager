@@ -16,6 +16,6 @@ test('ebook cover title rises only 4px from ambasa.54 without changing other ski
     assert.match(matching[1][1], /transform:\s*translateY\(-14px\)/);
     assert.doesNotMatch(css, /translateY\(-10px\)/);
     assert.match(js, /element\(doc, 'span', 'slb-library-cover-title', item\.name\)/);
-    assert.equal(manifest.version, '1.4.85-ambasa.55');
+    assert.equal(manifest.version, '1.4.85-ambasa.56');
     assert.ok(rule);
 });

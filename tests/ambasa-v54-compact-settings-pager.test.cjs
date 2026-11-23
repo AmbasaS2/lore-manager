@@ -101,7 +101,7 @@ test('each type in each theme has one small 5 / page dropdown beside its content
                 assert.deepEqual([...select.options].map(option => option.textContent),
                     ['5 / page', '10 / page', '20 / page']);
                 assert.ok(f.q(pager + ' .slb-library-page-navigation'));
-                assert.ok(f.q(pager + ' .slb-library-page-navigation > small'));
+                assert.ok(f.q(pager + ' .slb-library-page-navigation > .slb-library-page-jump > small'));
                 assert.equal(f.all('.slb-library-page-size-select').length, 1);
                 if (type === 'memory')
                     assert.equal(f.q('.slb-library-diary-pager select'), null, 'journal reading pages unchanged');

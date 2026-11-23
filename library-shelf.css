@@ -5626,3 +5626,117 @@
 #slb-library-overlay button.slb-library-minimized-launcher .fa-solid {
     pointer-events: none;
 }
+
+/* ambasa.56: saved normal/reverse viewing order beside the shared page-size
+   picker; tapping the page counter exposes a bounded numeric jump field. */
+#slb-library-overlay .slb-library-page-options {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    min-width: 0;
+    margin-left: auto;
+}
+#slb-library-overlay select.slb-library-order-select {
+    display: block !important;
+    flex: 0 0 71px;
+    box-sizing: border-box !important;
+    width: 71px !important;
+    min-width: 71px !important;
+    max-width: 71px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    margin: 0 !important;
+    padding: 3px 5px !important;
+    border: 1px solid var(--ll-line) !important;
+    border-radius: 6px !important;
+    background: var(--ll-paper-light) !important;
+    color: var(--ll-ink) !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+    font-weight: 450 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    appearance: auto !important;
+    cursor: pointer;
+}
+#slb-library-overlay .slb-library-page-navigation > button.slb-library-page-jump {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 39px;
+    min-height: 27px;
+    height: 27px;
+    margin: 0;
+    padding: 2px 5px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ll-muted);
+    line-height: 1.2;
+}
+#slb-library-overlay .slb-library-page-navigation > button.slb-library-page-jump:hover {
+    border-color: var(--ll-line);
+    background: var(--ll-warm);
+}
+#slb-library-overlay .slb-library-page-navigation > button.slb-library-page-jump small,
+#slb-library-overlay .slb-library-page-jump-editor > small {
+    font-size: 11px !important;
+    font-weight: 450;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-page-navigation > button.slb-library-page-jump[hidden],
+#slb-library-overlay .slb-library-page-jump-editor[hidden] {
+    display: none !important;
+}
+#slb-library-overlay .slb-library-page-jump-editor {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex: 0 0 auto;
+    min-height: 27px;
+    white-space: nowrap;
+}
+#slb-library-overlay input.slb-library-page-jump-input {
+    box-sizing: border-box !important;
+    width: 43px !important;
+    min-width: 43px !important;
+    max-width: 43px !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    max-height: 27px !important;
+    margin: 0 !important;
+    padding: 3px 4px !important;
+    border: 1px solid var(--ll-brass) !important;
+    border-radius: 5px !important;
+    background: var(--ll-paper-light) !important;
+    color: var(--ll-ink) !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    appearance: textfield;
+}
+#slb-library-overlay input.slb-library-page-jump-input::-webkit-inner-spin-button,
+#slb-library-overlay input.slb-library-page-jump-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+@container (max-width: 390px) {
+    #slb-library-overlay .slb-library-list-pages,
+    #slb-library-overlay .slb-library-world-pages,
+    #slb-library-overlay .slb-library-people-pages {
+        flex-wrap: wrap;
+        row-gap: 5px;
+    }
+    #slb-library-overlay .slb-library-page-options {
+        margin-left: auto;
+    }
+}
