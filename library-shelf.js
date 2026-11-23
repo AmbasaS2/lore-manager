@@ -132,6 +132,8 @@ export function createStandaloneLibrary({
     let worldIndexOpen = false;
     let settingsOpen = false;
     let resizeCleanup = null;
+    let viewportCleanup = null;
+    let floatingSize = null;
     let tagSaving = false;
     let tagDraft = '';
     let tagInitial = '';
@@ -168,6 +170,9 @@ export function createStandaloneLibrary({
         loadVersion += 1;
         resizeCleanup?.();
         resizeCleanup = null;
+        viewportCleanup?.();
+        viewportCleanup = null;
+        floatingSize = null;
         doc.removeEventListener('keydown', onKeyDown);
         overlay.remove();
         overlay = null;
@@ -343,32 +348,97 @@ export function createStandaloneLibrary({
             if (body) body.scrollTop = previousScroll;
         }
     }
-    // Center-anchored drag: one geometry read at the start. Temporary pointer
-    // listeners are removed on release; no global resize observer or polling.
+    // Phrase Desk reference: position the window in viewport pixel coordinates
+    // with fixed left/top and transform:none. Do not mix absolute 50% anchors
+    // and translation during resizing: other ST themes can move that anchor.
+    function visibleLibraryViewport() {
+        const win = doc.defaultView;
+        const visual = win.visualViewport;
+        const width = visual?.width || win.innerWidth || doc.documentElement.clientWidth || 360;
+        const height = visual?.height || win.innerHeight || doc.documentElement.clientHeight || 640;
+        return {
+            left: visual?.offsetLeft || 0,
+            top: visual?.offsetTop || 0,
+            width: Math.max(1, width),
+            height: Math.max(1, height),
+        };
+    }
+    function placeFloatingShell(shell, requestedWidth, requestedHeight, centerX, centerY) {
+        const vp = visibleLibraryViewport();
+        const margin = vp.width <= 760 ? 10 : 16;
+        const widthMax = Math.max(1, vp.width - margin * 2);
+        const heightMax = Math.max(1, vp.height - margin * 2);
+        const minWidth = Math.min(280, widthMax);
+        const minHeight = Math.min(310, heightMax);
+        const width = Math.min(widthMax, Math.max(minWidth, requestedWidth));
+        const height = Math.min(heightMax, Math.max(minHeight, requestedHeight));
+        const left = Math.min(vp.left + vp.width - margin - width,
+            Math.max(vp.left + margin, centerX - width / 2));
+        const top = Math.min(vp.top + vp.height - margin - height,
+            Math.max(vp.top + margin, centerY - height / 2));
+        // Local inline important declarations override the user's ST/theme
+        // modal positioning while this independent reader is open.
+        const set = (name, value) => shell.style.setProperty(name, value, 'important');
+        set('position', 'fixed');
+        set('left', left + 'px');
+        set('top', top + 'px');
+        set('right', 'auto');
+        set('bottom', 'auto');
+        set('transform', 'none');
+        set('margin', '0');
+        set('width', width + 'px');
+        set('height', height + 'px');
+        set('min-width', minWidth + 'px');
+        set('min-height', minHeight + 'px');
+        set('max-width', widthMax + 'px');
+        set('max-height', heightMax + 'px');
+        floatingSize = { width, height };
+        return { width, height, left, top };
+    }
+    function placeOnViewportChange() {
+        if (!isOpen() || !floatingSize) return;
+        const shell = overlay.querySelector('.slb-library-shell');
+        if (!shell) return;
+        const vp = visibleLibraryViewport();
+        placeFloatingShell(shell, floatingSize.width, floatingSize.height,
+            vp.left + vp.width / 2, vp.top + vp.height / 2);
+        refreshAfterResize();
+    }
+    function bindLibraryViewport() {
+        viewportCleanup?.();
+        const win = doc.defaultView;
+        win.addEventListener('resize', placeOnViewportChange);
+        win.visualViewport?.addEventListener?.('resize', placeOnViewportChange);
+        win.visualViewport?.addEventListener?.('scroll', placeOnViewportChange);
+        viewportCleanup = () => {
+            win.removeEventListener('resize', placeOnViewportChange);
+            win.visualViewport?.removeEventListener?.('resize', placeOnViewportChange);
+            win.visualViewport?.removeEventListener?.('scroll', placeOnViewportChange);
+        };
+    }
     function beginResize(event) {
         if (event.button !== 0 && event.pointerType !== 'touch') return;
         const shell = overlay?.querySelector('.slb-library-shell');
         if (!shell || !isOpen() || coverEditor) return;
         event.preventDefault();
         resizeCleanup?.();
-        const bounds = shell.getBoundingClientRect();
-        const win = doc.defaultView;
+        const rect = shell.getBoundingClientRect();
+        const vp = visibleLibraryViewport();
+        const width = rect.width || floatingSize?.width || Math.min(1000, vp.width - 32);
+        const height = rect.height || floatingSize?.height || Math.min(785, vp.height - 32);
+        const centerX = rect.width ? rect.left + rect.width / 2 : vp.left + vp.width / 2;
+        const centerY = rect.height ? rect.top + rect.height / 2 : vp.top + vp.height / 2;
         const startX = event.clientX, startY = event.clientY;
-        const width = bounds.width, height = bounds.height;
-        // Resize symmetrically around the same modal center, not its top-left.
-        shell.style.position = 'absolute';
-        shell.style.left = '50%';
-        shell.style.top = '50%';
-        shell.style.transform = 'translate(-50%, -50%)';
-        shell.style.width = width + 'px';
-        shell.style.height = height + 'px';
+        // The initial fixed coordinates exactly preserve the current rectangle.
+        placeFloatingShell(shell, width, height, centerX, centerY);
         const grip = event.currentTarget;
+        const win = doc.defaultView;
         const onMove = move => {
             if (move.pointerId !== event.pointerId) return;
-            const maxWidth = Math.max(260, win.innerWidth - 20);
-            const maxHeight = Math.max(260, win.innerHeight - 20);
-            shell.style.width = Math.min(maxWidth, Math.max(260, width + 2 * (move.clientX - startX))) + 'px';
-            shell.style.height = Math.min(maxHeight, Math.max(260, height + 2 * (move.clientY - startY))) + 'px';
+            placeFloatingShell(shell,
+                width + 2 * (move.clientX - startX),
+                height + 2 * (move.clientY - startY),
+                centerX, centerY);
         };
         const stop = move => {
             if (move && move.pointerId !== event.pointerId) return;
@@ -380,9 +450,11 @@ export function createStandaloneLibrary({
             win.removeEventListener('pointermove', onMove);
             win.removeEventListener('pointerup', stop);
             win.removeEventListener('pointercancel', stop);
-            grip.releasePointerCapture?.(event.pointerId);
+            try {
+                if (grip.hasPointerCapture?.(event.pointerId)) grip.releasePointerCapture?.(event.pointerId);
+            } catch {}
         };
-        grip.setPointerCapture?.(event.pointerId);
+        try { grip.setPointerCapture?.(event.pointerId); } catch {}
         win.addEventListener('pointermove', onMove);
         win.addEventListener('pointerup', stop);
         win.addEventListener('pointercancel', stop);
@@ -393,11 +465,16 @@ export function createStandaloneLibrary({
         if (!shell) return;
         event.preventDefault();
         const rect = shell.getBoundingClientRect();
+        const vp = visibleLibraryViewport();
+        const width = rect.width || floatingSize?.width || 800;
+        const height = rect.height || floatingSize?.height || 640;
+        const centerX = rect.width ? rect.left + rect.width / 2 : vp.left + vp.width / 2;
+        const centerY = rect.height ? rect.top + rect.height / 2 : vp.top + vp.height / 2;
         const step = event.shiftKey ? 50 : 20;
-        shell.style.width = Math.max(260, Math.min(doc.defaultView.innerWidth - 12,
-            rect.width + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0))) + 'px';
-        shell.style.height = Math.max(260, Math.min(doc.defaultView.innerHeight - 12,
-            rect.height + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0))) + 'px';
+        placeFloatingShell(shell,
+            width + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0),
+            height + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0),
+            centerX, centerY);
         refreshAfterResize();
     }
     // This editor is mounted only when a user explicitly opens a cover
@@ -702,11 +779,10 @@ export function createStandaloneLibrary({
                 const opener = button(doc, 'slb-library-cover-open', '', 'select-book');
                 opener.dataset.book = item.name;
                 opener.setAttribute('aria-label', item.name + ' · 로어북 열기');
-                const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-tone-' + spineTone(item.name)
-                    + ' slb-library-cover-design-' + (spineTone(item.name) % 8)
-                    + ' slb-library-cover-type-' + type);
+                const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-type-' + type
+                    + ' slb-library-type-variant-' + (spineTone(item.name) % 3));
                 art.append(element(doc, 'span', 'slb-library-cover-mark',
-                    { general: '▤', memory: '✧', world: '✥', people: 'A–Z' }[type]));
+                    { general: 'F', memory: 'J', world: 'W', people: 'A–Z' }[type]));
                 art.append(element(doc, 'span', 'slb-library-cover-title', item.name));
                 art.append(element(doc, 'span', 'slb-library-cover-type-label',
                     { general: 'RECORD', memory: 'JOURNAL', world: 'WORLD', people: 'PEOPLE' }[type]));
@@ -732,15 +808,17 @@ export function createStandaloneLibrary({
                 continue;
             }
             const tone = spineTone(item.name);
-            const binding = ['leather', 'cloth', 'cloth', 'linen', 'cloth', 'leather',
-                'linen', 'cloth', 'leather', 'cloth', 'linen', 'leather'][tone];
-            const spine = button(doc, 'slb-library-book-spine slb-library-spine-tone-' + tone
-                + ' slb-library-binding-' + binding + ' slb-library-spine-type-' + type, '', 'select-book');
+            // The saved book type owns its cover/binding identity. The shelf
+            // position changes ONLY the shade within that same type template.
+            const binding = { general: 'linen', memory: 'cloth', world: 'leather', people: 'cloth' }[type];
+            const spine = button(doc, 'slb-library-book-spine slb-library-spine-type-' + type
+                + ' slb-library-type-variant-' + (tone % 3)
+                + ' slb-library-binding-' + binding, '', 'select-book');
             spine.dataset.book = item.name;
             spine.dataset.bookType = type;
             spine.title = item.name;
             spine.setAttribute('aria-label', item.name + ' · 로어북 열기');
-            const adornment = { general: '◇', memory: '✧', world: '✣', people: '♧' };
+            const adornment = { general: 'F', memory: 'J', world: 'W', people: 'A–Z' };
             spine.append(element(doc, 'span', 'slb-library-spine-ornament', adornment[type]));
             const name = element(doc, 'span', 'slb-library-spine-title', item.name);
             name.lang = /[가-힣]/.test(item.name) ? 'ko' : 'en';
@@ -1640,6 +1718,15 @@ export function createStandaloneLibrary({
         ++loadVersion;
         const shell = createShell();
         doc.body.append(overlay);
+        // Convert the flex/grid centered initial rectangle to viewport-fixed
+        // pixels *before* any drag, avoiding a positioning-mode jump.
+        const vp = visibleLibraryViewport();
+        const rect = shell.getBoundingClientRect();
+        placeFloatingShell(shell,
+            rect.width || Math.min(1000, vp.width - 32),
+            rect.height || Math.min(785, vp.height - 32),
+            vp.left + vp.width / 2, vp.top + vp.height / 2);
+        bindLibraryViewport();
         syncAppearanceControls();
         setSettingsOpen(false);
         doc.addEventListener('keydown', onKeyDown);

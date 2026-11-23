@@ -47,7 +47,7 @@ test('general, diary, encyclopedia and address book have distinct physical spine
   const spines=[...w.document.querySelectorAll('.slb-library-book-spine')];
   assert.equal(spines.length,4);
   assert.deepEqual(spines.map(x=>x.dataset.bookType),['general','memory','world','people']);
-  assert.deepEqual(spines.map(x=>x.querySelector('.slb-library-spine-ornament').textContent),['◇','✧','✣','♧']);
+  assert.deepEqual(spines.map(x=>x.querySelector('.slb-library-spine-ornament').textContent),['F','J','W','A–Z']);
   assert.equal(spines[3].querySelector('.slb-library-spine-bottom').textContent,'A–Z');
   assert.equal(loads,0,'shelf does not load world data to identify book types');
   spines[0].click();

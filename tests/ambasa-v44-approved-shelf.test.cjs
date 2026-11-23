@@ -70,8 +70,8 @@ test('classic binding material/palette follows book identity, not book type or a
         assert.equal(f.qa('.slb-library-book-spine').length,12);
         const book=f.q('.slb-library-book-spine');
         assert.ok(/slb-library-binding-(leather|linen|cloth)/.test(book.className));
-        assert.ok(f.q('[data-action="select-book"][data-book="Book 3"]').classList.contains('slb-library-spine-tone-2'),
-            'third shelf book is the approved slate replacement, not ochre');
+        assert.ok(f.q('[data-action="select-book"][data-book="Book 3"]').classList.contains('slb-library-spine-type-general'),
+            'general book must use FILE binding, regardless of shelf color order');
         const originalClass=book.className;
         f.q('#slb-library-shelf-search').value='Book 1';
         f.q('#slb-library-shelf-search').dispatchEvent(new f.w.Event('input',{bubbles:true}));
@@ -109,7 +109,9 @@ test('uploaded cover and editor remain available while default art is unique and
         assert.ok(f.q('.slb-library-cover-image'),'preexisting user cover remains visible');
         assert.equal(f.q('.slb-library-cover-image').loading,'lazy');
         assert.ok(f.q('[data-action="cover-config"][data-book="Book 1"]'));
-        assert.equal(f.qa('.slb-library-cover-design-0, .slb-library-cover-design-1, .slb-library-cover-design-2, .slb-library-cover-design-3, .slb-library-cover-design-4, .slb-library-cover-design-5, .slb-library-cover-design-6, .slb-library-cover-design-7').length,12);
+        assert.equal(f.qa('.slb-library-cover-type-general').length,12,
+            'stored general book type owns the cover template');
+        assert.equal(f.qa('.slb-library-type-variant-0, .slb-library-type-variant-1, .slb-library-type-variant-2').length,12);
         assert.match(css,/width:\s*min\(100%,\s*110px\)/);
         assert.match(css,/repeat\(var\(--slb-shelf-columns,\s*6\),\s*minmax\(0,\s*1fr\)\)/);
         assert.equal(f.stats.loads,0);
