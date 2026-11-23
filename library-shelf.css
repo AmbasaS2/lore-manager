@@ -5982,3 +5982,57 @@
     font-size: 12px !important;
     line-height: 1 !important;
 }
+
+/* ambasa.62 — use the same « ‹ position › » controls for actual card
+   records and journal reading pages; the .61 TOC arrows remain untouched. */
+#slb-library-overlay .slb-library-catalog-pager,
+#slb-library-overlay .slb-library-diary-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-catalog-pager > button,
+#slb-library-overlay .slb-library-diary-pager > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 26px;
+    box-sizing: border-box;
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    max-height: 27px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid var(--ll-line) !important;
+    border-radius: 5px !important;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    font-size: 14px !important;
+    font-weight: 500;
+    line-height: 1 !important;
+    text-shadow: none;
+    box-shadow: none;
+}
+#slb-library-overlay .slb-library-catalog-pager > button:disabled,
+#slb-library-overlay .slb-library-diary-pager > button:disabled {
+    opacity: .32 !important;
+    cursor: default;
+}
+#slb-library-overlay .slb-library-catalog-pager > small,
+#slb-library-overlay .slb-library-diary-pager > span {
+    flex: 0 1 auto;
+    min-width: 47px;
+    margin: 0 2px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    font-size: 11px !important;
+    line-height: 1.2;
+    letter-spacing: normal;
+}

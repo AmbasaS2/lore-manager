@@ -1840,12 +1840,19 @@ export function createStandaloneLibrary({
             nav.append(element(doc, 'span', 'slb-library-catalog-position',
                 String(selectedIndex + 1).padStart(2, '0') + ' / ' + String(found.length).padStart(2, '0')));
             body.append(nav, renderDetail(found[selectedIndex], 'general'));
-            const pager = element(doc, 'div', 'slb-library-catalog-pager');
-            const prev = button(doc, '', '‹ 이전', 'catalog-prev');
-            prev.disabled = selectedIndex === 0;
-            const next = button(doc, '', '다음 ›', 'catalog-next');
-            next.disabled = selectedIndex === found.length - 1;
-            pager.append(prev, element(doc, 'small', '', 'RECORD'), next);
+            const pager = element(doc, 'nav', 'slb-library-catalog-pager');
+            pager.setAttribute('aria-label', '카드 기록 탐색');
+            const first = button(doc, '', '«', 'catalog-first');
+            const prev = button(doc, '', '‹', 'catalog-prev');
+            const next = button(doc, '', '›', 'catalog-next');
+            const last = button(doc, '', '»', 'catalog-last');
+            first.disabled = prev.disabled = selectedIndex === 0;
+            next.disabled = last.disabled = selectedIndex === found.length - 1;
+            for (const [control, caption] of [
+                [first, '첫 기록'], [prev, '이전 기록'], [next, '다음 기록'], [last, '마지막 기록'],
+            ]) control.setAttribute('aria-label', caption);
+            pager.append(first, prev, element(doc, 'small', '',
+                (selectedIndex + 1) + ' / ' + found.length), next, last);
             body.append(pager);
             return;
         }
@@ -1956,14 +1963,21 @@ export function createStandaloneLibrary({
         // The reading spread remains one/two actual pages, independently of
         // the number of entries displayed in the TOC.
         const pager = element(doc, 'nav', 'slb-library-diary-pager');
-        const previous = button(doc, '', '‹ 이전 페이지', 'diary-prev');
-        previous.disabled = diaryIndex === 0;
-        const next = button(doc, '', '다음 페이지 ›', 'diary-next');
-        next.disabled = diaryIndex + diaryStep() >= found.length;
-        pager.append(previous, element(doc, 'span', '',
+        pager.setAttribute('aria-label', '일기 페이지 탐색');
+        const first = button(doc, '', '«', 'diary-first');
+        const previous = button(doc, '', '‹', 'diary-prev');
+        const next = button(doc, '', '›', 'diary-next');
+        const last = button(doc, '', '»', 'diary-last');
+        first.disabled = previous.disabled = diaryIndex === 0;
+        next.disabled = last.disabled = diaryIndex + numberOfPages >= found.length;
+        for (const [control, caption] of [
+            [first, '첫 일기 페이지'], [previous, '이전 일기 페이지'],
+            [next, '다음 일기 페이지'], [last, '마지막 일기 페이지'],
+        ]) control.setAttribute('aria-label', caption);
+        pager.append(first, previous, element(doc, 'span', '',
             String(originalEntryNumber(found[diaryIndex])).padStart(2, '0') + '–'
             + String(originalEntryNumber(found[Math.min(found.length - 1, diaryIndex + numberOfPages - 1)])).padStart(2, '0')
-            + ' / ' + String(found.length).padStart(2, '0')), next);
+            + ' / ' + String(found.length).padStart(2, '0')), next, last);
         body.append(pager);
     }
     function renderIndex(body, found, type) {
@@ -2424,11 +2438,24 @@ export function createStandaloneLibrary({
             renderBook();
         } else if (action === 'catalog-prev') shiftCatalog(-1);
         else if (action === 'catalog-next') shiftCatalog(1);
-        else if (action === 'diary-prev' || action === 'diary-next') {
+        else if (action === 'catalog-first' || action === 'catalog-last') {
             if (!discardOrStay({ allowTags: true })) return;
             const found = filtered();
-            diaryIndex = Math.min(Math.max(0,
-                diaryIndex + (action === 'diary-next' ? diaryStep() : -diaryStep())), found.length - 1);
+            if (!found.length) return;
+            const targetIndex = action === 'catalog-first' ? 0 : found.length - 1;
+            resetEdit();
+            selectedUid = String(found[targetIndex].uid);
+            catalogPage = Math.floor(targetIndex / libraryPageSize());
+            renderBook();
+        } else if (/^diary-(first|prev|next|last)$/.test(action)) {
+            if (!discardOrStay({ allowTags: true })) return;
+            const found = filtered();
+            if (!found.length) return;
+            const step = diaryStep();
+            const lastSpread = Math.floor((found.length - 1) / step) * step;
+            diaryIndex = action === 'diary-first' ? 0
+                : action === 'diary-last' ? lastSpread
+                : Math.max(0, Math.min(diaryIndex + (action === 'diary-next' ? step : -step), lastSpread));
             diaryTocPage = Math.floor(diaryIndex / libraryPageSize());
             resetEdit();
             renderBook();
