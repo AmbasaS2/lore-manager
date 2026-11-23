@@ -79,15 +79,15 @@ test('mac shelf renders accessible Finder folders with working sidebar type filt
  try{
   assert.ok(f.q('.slb-library-finder'));
   assert.ok(f.q('.slb-library-finder-titlebar'));
-  assert.equal(f.qa('.slb-library-folder-card').length,10);
+  assert.equal(f.qa('.slb-library-folder-card').length,15);
   assert.equal(f.qa('.slb-library-book-spine,.slb-library-cover-art,.slb-library-app-card').length,0);
   assert.deepEqual(f.qa('.slb-library-folder-card').slice(0,4).map(n=>n.querySelector('.slb-library-folder-symbol').textContent),
     ['W','J','A–Z','F']);
   f.click('[data-action="shelf-type"][data-filter="world"]');
-  assert.equal(f.qa('.slb-library-folder-card').length,10);
+  assert.equal(f.qa('.slb-library-folder-card').length,10,'all ten saved world books remain discoverable');
   assert.ok(f.qa('.slb-library-folder-card').every(n=>types[n.dataset.book]==='world'));
   f.click('[data-action="shelf-type"][data-filter="all"]');
-  assert.equal(f.qa('.slb-library-folder-card').length,10);
+  assert.equal(f.qa('.slb-library-folder-card').length,15);
   assert.deepEqual([f.stats.loads,f.stats.translationReads,f.stats.ai,f.stats.coverReads],[0,0,0,0]);
  }finally{f.dom.window.close()}
 });
@@ -96,7 +96,7 @@ test('BlackBerry shelf is a distinct app grid and device keyboard, without a for
  const f=await fixture({theme:'blackberry'});
  try{
   assert.ok(f.q('.slb-library-app-device'));
-  assert.equal(f.qa('.slb-library-app-card').length,10);
+  assert.equal(f.qa('.slb-library-app-card').length,15);
   assert.ok(f.q('.slb-library-app-device .slb-library-device-keyboard'));
   assert.deepEqual(f.qa('.slb-library-app-card').slice(0,4).map(n=>n.querySelector('.slb-library-app-symbol').textContent),
     ['W','J','A–Z','F']);
@@ -109,7 +109,7 @@ test('BlackBerry shelf is a distinct app grid and device keyboard, without a for
 test('Ebook shelf alone shows cover-facing front art, upload overlays and editor buttons',async()=>{
  const f=await fixture({theme:'ebook'});
  try{
-  assert.equal(f.qa('.slb-library-cover-art').length,12);
+  assert.equal(f.qa('.slb-library-cover-art').length,18);
   assert.equal(f.qa('.slb-library-folder-card,.slb-library-app-card,.slb-library-book-spine').length,0);
   const image=f.q('[data-action="select-book"][data-book="World Book"] .slb-library-cover-image');
   assert.ok(image);assert.equal(image.getAttribute('src'),'/user/images/personal-world.png');
@@ -153,7 +153,7 @@ test('the four theme selector persists, rerenders shelf and restores failed save
  }finally{f.dom.window.close()}
 });
 
-test('narrow columns preserve exactly two rows and more reveals two more rows',async()=>{
+test('narrow columns preserve exactly three rows and more reveals two more rows',async()=>{
  for(const [theme,sizes] of [
   ['mac',[[360,3],[440,3]]],
   ['blackberry',[[360,3],[440,4]]],
@@ -166,9 +166,9 @@ test('narrow columns preserve exactly two rows and more reveals two more rows',a
     const grid=f.q(theme==='mac'?'.slb-library-folder-grid':theme==='blackberry'?'.slb-library-app-grid':'.slb-library-cover-grid');
     const selector=theme==='mac'?'.slb-library-folder-card':theme==='blackberry'?'.slb-library-app-card':'.slb-library-cover-item';
     assert.equal(grid.style.getPropertyValue('--slb-shelf-columns'),String(columns));
-    assert.equal(f.qa(selector).length,columns*2);
+    assert.equal(f.qa(selector).length,columns*3);
     f.click('[data-action="shelf-more"]');
-    assert.equal(f.qa(selector).length,columns*4);
+    assert.equal(f.qa(selector).length,columns*5);
    }
    assert.equal(f.stats.loads,0);
   }finally{f.dom.window.close()}

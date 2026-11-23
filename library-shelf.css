@@ -4266,3 +4266,422 @@
     border-bottom: 1.5px solid currentColor;
     transform: rotate(-45deg);
 }
+
+/* ambasa.49 - compact three-row shelf, KongTalk-style movable titlebar,
+   one actual reader search, bounded world TOC and book-like spines.
+   All selectors stay inside the independent Lore Library overlay. */
+
+/* Remove the doubled grey top rim: the header is flush with its frame. */
+#slb-library-overlay .slb-library-shell {
+    border-top: 0 !important;
+    box-shadow: 0 14px 42px #0c121c55;
+}
+#slb-library-overlay .slb-library-top {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+#slb-library-overlay .slb-library-shell.slb-library-is-dragging .slb-library-top {
+    cursor: grabbing;
+}
+#slb-library-overlay .slb-library-top .slb-library-header-actions,
+#slb-library-overlay .slb-library-top button {
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* No overlap even when a user narrows the floating modal while the desktop
+   viewport remains wide. Container queries follow its actual body width. */
+#slb-library-overlay .slb-library-body[data-type="books"] {
+    container-type: inline-size;
+}
+#slb-library-overlay .slb-library-shelf-toolbar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+    min-width: 0;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-tagbar {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+    width: auto;
+    gap: 4px;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-tagbar button {
+    min-width: 0;
+    flex: 0 0 auto;
+    padding: 5px 7px;
+    white-space: nowrap;
+    font-size: .77em;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-shelf-tag-select {
+    flex: 0 1 78px;
+    min-width: 52px;
+    max-width: 78px;
+    width: 78px;
+    padding: 3px 4px;
+    font-size: .76em;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-books-head {
+    position: relative;
+    flex: 0 0 92px;
+    width: 92px;
+    min-width: 0;
+    margin-left: auto;
+    padding: 0;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-shelf-search {
+    width: 92px;
+    max-width: 92px;
+    height: 29px;
+    min-height: 29px;
+    max-height: 29px;
+    padding: 4px 8px;
+    font-size: .79em;
+}
+#slb-library-overlay .slb-library-shelf-search-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 29px;
+    min-height: 29px;
+    padding: 3px 6px;
+    border: 1px solid var(--ll-line);
+    border-radius: 6px;
+    background: var(--ll-paper-light);
+    color: var(--ll-ink);
+    white-space: nowrap;
+    font-size: .78em;
+}
+#slb-library-overlay .slb-library-shelf-search-toggle .fa-solid { font-size: .91em; }
+
+/* 460px default shell has room for 3-row physical / digital shelves. */
+#slb-library-overlay button.slb-library-book-spine {
+    border-radius: 11px 12px 3px 3px / 14px 14px 3px 3px;
+    box-shadow: inset 3px 0 5px #fff3, inset -4px 0 5px #0003, 2px 2px 5px #0005;
+    background-image: linear-gradient(90deg,#0004 0%, #ffffff25 16%, transparent 38%, #ffffff17 69%, #0004 100%);
+}
+#slb-library-overlay button.slb-library-book-spine::before {
+    border-radius: 8px 8px 1px 1px;
+}
+#slb-library-overlay .slb-library-spine-ornament {
+    max-width: 18px;
+    min-width: 0;
+    width: 18px;
+    max-height: 17px;
+    height: 17px;
+    min-height: 0;
+    padding: 1px !important;
+    font-size: .66em !important;
+    line-height: 1.1;
+}
+#slb-library-overlay .slb-library-spine-type-world .slb-library-spine-ornament {
+    width: 18px;
+    height: 18px;
+}
+#slb-library-overlay .slb-library-cover-art .slb-library-cover-mark {
+    min-width: 16px;
+    width: 16px;
+    min-height: 17px;
+    height: 17px;
+    margin: 0 auto;
+    padding: 1px 2px;
+    font-size: .7em;
+    font-weight: 650;
+}
+
+/* Single-row tags + diary selector / world TOC control. */
+#slb-library-overlay .slb-library-reader-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 9px;
+}
+#slb-library-overlay .slb-library-reader-meta-row > .slb-library-book-meta {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 55%;
+    margin: 0;
+}
+#slb-library-overlay .slb-library-reader-meta-row .slb-library-record-index {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+}
+#slb-library-overlay .slb-library-reader-meta-row .slb-library-record-index label {
+    flex: 0 0 auto;
+    font-size: .77em;
+    color: var(--ll-muted);
+}
+#slb-library-overlay .slb-library-reader-meta-row .slb-library-record-index #slb-library-diary-select {
+    flex: 0 1 190px;
+    width: 100%;
+    min-width: 0;
+    max-width: 190px;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 4px 7px !important;
+    font-size: .95em !important;
+    font-weight: 650;
+    line-height: 1.2;
+}
+#slb-library-overlay .slb-library-reader-meta-row button.slb-library-world-menu {
+    display: inline-flex !important;
+    justify-content: center;
+    align-items: center;
+    margin: 0 0 0 auto;
+    min-width: 0;
+    width: auto;
+    min-height: 28px;
+    height: 28px;
+    padding: 3px 10px;
+    font-size: .8em;
+}
+#slb-library-overlay .slb-library-reader-meta-row button.slb-library-world-menu[aria-expanded="true"] {
+    border-color: var(--ll-brass);
+    background: var(--ll-warm);
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools {
+    justify-content: flex-end;
+}
+#slb-library-overlay .slb-library-detail .slb-library-reader-tools > .slb-library-view-toggle {
+    margin-left: auto;
+}
+
+/* Ebook on a narrow resizable shell: ONE full-width reference article, not a
+   squeezed 150px column next to a phantom empty second page. */
+@container (max-width: 650px) {
+    #slb-library-overlay .slb-library-reader-ebook .slb-library-index-layout,
+    #slb-library-overlay .slb-library-reader-classic .slb-library-index-layout,
+    #slb-library-overlay .slb-library-reader-clean .slb-library-index-layout {
+        display: grid;
+        grid-template-columns: minmax(0,1fr);
+        min-width: 0;
+    }
+    #slb-library-overlay .slb-library-index-layout > .slb-library-index {
+        display: none;
+        width: 100%;
+        min-width: 0;
+        overflow-y: visible;
+        max-height: none;
+    }
+    #slb-library-overlay .slb-library-index-layout.is-index-open > .slb-library-index {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-height: none;
+        border-right: 0;
+        border-bottom: 1px solid var(--ll-line);
+    }
+    #slb-library-overlay .slb-library-index-layout > .slb-library-index-paper {
+        min-width: 0;
+        width: 100%;
+        padding: 12px;
+    }
+    #slb-library-overlay .slb-library-index-paper .slb-library-detail {
+        min-width: 0;
+        width: 100%;
+    }
+    #slb-library-overlay .slb-library-reader-meta-row .slb-library-record-index label {
+        display: none;
+    }
+}
+@container (max-width: 380px) {
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-books-head {
+        flex: 0 0 56px !important;
+        width: 56px !important;
+        min-width: 0 !important;
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-books-head .slb-library-shelf-search {
+        display: none !important;
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-books-head .slb-library-shelf-search-toggle {
+        display: inline-flex !important;
+        width: 56px;
+        height: 29px;
+        min-height: 29px;
+        padding: 3px 5px;
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar.is-search-open .slb-library-books-head .slb-library-shelf-search {
+        display: block !important;
+        position: absolute;
+        z-index: 12;
+        top: calc(100% + 4px);
+        right: 0;
+        width: min(210px, 86vw);
+        max-width: min(210px, 86vw);
+        min-width: 150px;
+        height: 30px;
+        background: var(--ll-paper-light);
+        box-shadow: 0 5px 17px #0002;
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-tagbar {
+        flex: 1 1 auto;
+        min-width: 0;
+        gap: 3px;
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-tagbar button {
+        padding: 5px 5px;
+        font-size: .72em;
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-shelf-tag-select {
+        flex: 1 1 55px;
+        width: 60px;
+        min-width: 46px;
+        max-width: 67px;
+        padding: 3px 1px;
+        font-size: .72em;
+    }
+}
+
+/* Five TOC items at a time; page buttons replace the scrollable index. */
+#slb-library-overlay .slb-library-index {
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: hidden;
+}
+#slb-library-overlay .slb-library-world-pages {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px;
+    width: 100%;
+    padding: 9px 4px 1px;
+    border-top: 1px solid var(--ll-line);
+    color: var(--ll-muted);
+    font-size: .79em;
+}
+#slb-library-overlay .slb-library-world-pages button {
+    min-height: 26px;
+    height: 26px;
+    min-width: 0;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: .82em;
+}
+#slb-library-overlay .slb-library-index-item {
+    min-height: 31px;
+}
+#slb-library-overlay .slb-library-person-directory > small {
+    display: none;
+}
+#slb-library-overlay .slb-library-person-directory,
+#slb-library-overlay .slb-library-people-list {
+    min-width: 0;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-reader-ebook .slb-library-person-directory {
+    padding: 10px 14px;
+}
+
+/* Remove the BlackBerry row of pretend navigation buttons. Keep a restrained
+   centered trackpad and physical keyboard; nothing in this row is clickable. */
+#slb-library-overlay .slb-library-device-controls {
+    display: grid;
+    place-items: center;
+    min-height: 21px;
+    height: 21px;
+    padding: 2px;
+    gap: 0;
+}
+#slb-library-overlay .slb-library-device-trackpad {
+    display: block;
+    width: 20px;
+    height: 16px;
+    border: 1px solid #8fa4aa;
+    border-radius: 6px;
+    background: linear-gradient(#37474d, #27363d);
+    box-shadow: inset 0 1px #afc1c43d;
+}
+
+/* Compact search glyph and 5-item contents, without changing lore text. */
+#slb-library-overlay .slb-library-shelf-search-icon {
+    position: absolute;
+    z-index: 1;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--ll-muted);
+    font-size: .73em;
+}
+#slb-library-overlay .slb-library-body[data-type="books"] .slb-library-shelf-toolbar .slb-library-shelf-search {
+    padding-left: 23px;
+}
+#slb-library-overlay .slb-library-index {
+    padding: 8px 9px;
+    gap: 1px;
+}
+#slb-library-overlay .slb-library-index-heading {
+    padding: 4px 5px 7px;
+    margin: 0 0 3px;
+    line-height: 1.35;
+    font-size: .79em;
+    letter-spacing: .05em;
+}
+#slb-library-overlay button.slb-library-index-item {
+    min-height: 27px;
+    height: auto;
+    max-height: 31px;
+    padding: 3px 4px;
+    gap: 6px;
+    line-height: 1.25;
+    font-size: .82em;
+}
+#slb-library-overlay .slb-library-index-initial {
+    height: 21px;
+    min-height: 21px;
+    flex-basis: 26px;
+    width: 26px;
+    min-width: 26px;
+}
+#slb-library-overlay .slb-library-world-pages {
+    min-height: 27px;
+    margin: 3px 0 0;
+    padding: 3px 0 0;
+}
+#slb-library-overlay .slb-library-world-pages button {
+    min-height: 24px;
+    height: 24px;
+    padding: 2px 7px;
+    font-size: .79em;
+}
+@container (max-width: 380px) {
+    #slb-library-overlay .slb-library-shelf-search-icon { display: none; }
+    #slb-library-overlay .slb-library-shelf-toolbar.is-search-open .slb-library-shelf-search-icon {
+        display: block;
+        left: auto;
+        right: 183px;
+        transform: translateY(-50%);
+    }
+    #slb-library-overlay .slb-library-shelf-toolbar.is-search-open .slb-library-shelf-search {
+        padding-left: 8px !important;
+    }
+}
+
+/* The compact mobile search button already carries a Font Awesome icon. Do
+   not leave an additional decorative glyph behind the opened input. */
+@container (max-width: 380px) {
+    #slb-library-overlay .slb-library-shelf-toolbar .slb-library-shelf-search-icon,
+    #slb-library-overlay .slb-library-shelf-toolbar.is-search-open .slb-library-shelf-search-icon {
+        display: none !important;
+    }
+}
