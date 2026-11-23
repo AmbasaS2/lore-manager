@@ -195,6 +195,7 @@ export function createStandaloneLibrary({
         viewportCleanup = null;
         floatingSize = null;
         doc.removeEventListener('keydown', onKeyDown);
+        doc.removeEventListener('click', onOutsideSearchClick, true);
         overlay.remove();
         overlay = null;
         resetEdit();
@@ -208,16 +209,28 @@ export function createStandaloneLibrary({
         if (coverEditor) dismissCoverEditor();
         else if (activeToolsUid !== null) closeReaderTools();
         else if (settingsOpen) setSettingsOpen(false);
-        else if (overlay?.querySelector('.slb-library-shelf-toolbar.is-search-open')) {
-            shelfSearchOpen = false;
-            const bar = overlay.querySelector('.slb-library-shelf-toolbar');
-            bar.classList.remove('is-search-open');
-            bar.querySelector('[data-action="shelf-search-toggle"]')?.setAttribute('aria-expanded', 'false');
-        } else if (overlay?.querySelector('.slb-library-navigation.is-search-open')) {
-            readerSearchOpen = false;
-            overlay.querySelector('.slb-library-navigation').classList.remove('is-search-open');
-            overlay.querySelector('[data-action="reader-search-toggle"]')?.setAttribute('aria-expanded', 'false');
-        } else close();
+        else if (shelfSearchOpen) closeShelfSearch();
+        else if (readerSearchOpen) closeReaderSearch();
+        else close();
+    }
+    function closeShelfSearch() {
+        shelfSearchOpen = false;
+        const bar = overlay?.querySelector('.slb-library-shelf-toolbar');
+        bar?.classList.remove('is-search-open');
+        bar?.querySelector('[data-action="shelf-search-toggle"]')?.setAttribute('aria-expanded', 'false');
+    }
+    function closeReaderSearch() {
+        readerSearchOpen = false;
+        overlay?.querySelector('.slb-library-navigation')?.classList.remove('is-search-open');
+        overlay?.querySelector('[data-action="reader-search-toggle"]')?.setAttribute('aria-expanded', 'false');
+    }
+    // One listener exists only while the floating library is open. Clicking
+    // outside a search control dismisses its field without closing the window.
+    function onOutsideSearchClick(event) {
+        if (!isOpen() || coverEditor) return;
+        const target = event.target;
+        if (shelfSearchOpen && !target.closest?.('.slb-library-books-head')) closeShelfSearch();
+        if (readerSearchOpen && !target.closest?.('.slb-library-reader-search-toggle, #slb-library-search')) closeReaderSearch();
     }
     function closeReaderTools() {
         activeToolsUid = null;
@@ -244,7 +257,7 @@ export function createStandaloneLibrary({
         overlay.id = 'slb-library-overlay';
         const shell = element(doc, 'section', 'slb-library-shell');
         shell.setAttribute('role', 'dialog');
-        shell.setAttribute('aria-modal', 'true');
+        shell.setAttribute('aria-modal', 'false');
         shell.setAttribute('aria-labelledby', 'slb-library-title');
         shell.tabIndex = -1;
         const top = element(doc, 'header', 'slb-library-top');
@@ -611,7 +624,9 @@ export function createStandaloneLibrary({
             if (event.target === backdrop) dismissCoverEditor();
         });
         coverEditor = { book, backdrop, preview, file: null, previewUrl: null, focus: doc.activeElement, saving: false };
-        overlay.append(backdrop);
+        // Keep the picker inside the movable shell rather than centering it
+        // on the full-screen overlay after the shell has been dragged.
+        overlay.querySelector('.slb-library-shell').append(backdrop);
         fileLabel.tabIndex = 0;
         fileLabel.addEventListener('keydown', event => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -751,7 +766,8 @@ export function createStandaloneLibrary({
             || Math.min(doc.defaultView.innerWidth || 1024, 1000);
         const width = body.clientWidth || Math.max(260, shellWidth - 32);
         if (mode === 'ebook') return Math.max(3, Math.min(6, Math.floor((shellWidth - 14) / 96)));
-        if (mode === 'mac') return Math.max(3, Math.min(5, Math.floor((shellWidth - 20) / 136)));
+        // The Finder sidebar is now 56px instead of 135px; use the reclaimed width.
+        if (mode === 'mac') return Math.max(3, Math.min(5, Math.floor((shellWidth - 20) / 106)));
         if (mode === 'blackberry') return Math.max(3, Math.min(5, Math.floor((shellWidth - 16) / 98)));
         return Math.max(3, Math.min(14, Math.floor((width - 28 + 4) / 47)));
     }
@@ -957,6 +973,12 @@ export function createStandaloneLibrary({
                     (shelfType === value ? ' is-active' : ''), label, 'shelf-type');
                 tab.dataset.filter = value;
                 tab.setAttribute('aria-pressed', String(shelfType === value));
+                tab.setAttribute('aria-label', label);
+                tab.title = label;
+                tab.replaceChildren(faIcon(doc, {
+                    all: 'layer-group', general: 'address-card',
+                    memory: 'book-open', world: 'globe', people: 'users',
+                }[value]));
                 sidebar.append(tab);
             }
             workspace.append(sidebar, scroll);
@@ -1938,6 +1960,7 @@ export function createStandaloneLibrary({
         syncAppearanceControls();
         setSettingsOpen(false);
         doc.addEventListener('keydown', onKeyDown);
+        doc.addEventListener('click', onOutsideSearchClick, true);
         bookList();
         shell.focus();
     }

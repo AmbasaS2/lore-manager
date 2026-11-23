@@ -4876,3 +4876,83 @@
 #slb-library-overlay .slb-library-reader-blackberry .slb-library-app-reading-screen {
     max-height: min(57dvh, 450px);
 }
+
+
+/* ambasa.51: the library is a non-blocking Phrase Desk-style floating window.
+   Its full-viewport wrapper must not tint SillyTavern's top toolbar. */
+#slb-library-overlay {
+    background: transparent !important;
+    pointer-events: none;
+}
+#slb-library-overlay .slb-library-shell {
+    pointer-events: auto;
+}
+
+/* The cover picker belongs to the movable window, including after drag and
+   viewport resize, and stays scrollable on a small viewport. */
+#slb-library-overlay .slb-library-cover-backdrop {
+    inset: 0;
+    padding: 12px;
+}
+#slb-library-overlay .slb-library-cover-dialog {
+    max-height: calc(100% - 4px);
+}
+
+/* Cardfile bindings: equal left/right edges keep the title and index label
+   geometrically centered, without removing the file-material appearance. */
+#slb-library-overlay button.slb-library-book-spine.slb-library-spine-type-general {
+    border-left: 3px solid #94948c;
+    border-right: 3px solid #a39e95;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general {
+    border-left: 3px solid #818b90;
+    border-right: 3px solid #aab1b5;
+}
+#slb-library-overlay .slb-library-cover-art.slb-library-cover-type-general::before {
+    inset: 21% 12% auto;
+    border-left-width: 1px;
+}
+
+/* The title aligns visually above the decorative middle of each cover.
+   Translation does not change the width or height of long book titles. */
+#slb-library-overlay .slb-library-mode-ebook .slb-library-cover-title {
+    transform: translateY(-5px);
+}
+
+/* Finder: accessible Font Awesome category buttons instead of a text-heavy
+   sidebar. Restore usable folder width on both desktop and narrow windows. */
+#slb-library-overlay .slb-library-finder-workspace {
+    grid-template-columns: 56px minmax(0,1fr);
+}
+#slb-library-overlay .slb-library-finder-sidebar {
+    align-items: center;
+    padding: 12px 5px;
+    gap: 5px;
+}
+#slb-library-overlay .slb-library-finder-sidebar small {
+    display: none;
+}
+#slb-library-overlay button.slb-library-finder-category {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    min-width: 42px;
+    height: 34px;
+    min-height: 34px;
+    padding: 5px;
+    text-align: center;
+    font-size: .98em;
+}
+@media (max-width: 760px) {
+    #slb-library-overlay .slb-library-finder-workspace {
+        grid-template-columns: 52px minmax(0,1fr);
+    }
+    #slb-library-overlay .slb-library-finder-sidebar {
+        padding: 11px 3px;
+    }
+    #slb-library-overlay button.slb-library-finder-category {
+        width: 42px;
+        min-width: 42px;
+        padding: 5px;
+    }
+}
