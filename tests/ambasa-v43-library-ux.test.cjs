@@ -159,7 +159,7 @@ test('contacts show full-width searchable names then replace list with one profi
  const f=await setup({type:'people'});
  try{
    await f.load();
-   assert.equal(f.all('.slb-library-person-row').length,24);
+   assert.equal(f.all('.slb-library-person-row').length,5);
    assert.equal(f.q('.slb-library-detail-people'),null);
    f.input('#slb-library-search','Entry 18');
    assert.equal(f.all('.slb-library-person-row').length,1);
