@@ -28,7 +28,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.57';
+const VERSION = '1.4.85-ambasa.58';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -5016,6 +5016,34 @@ function createWorkspace() {
     const entries = document.getElementById('world_popup_entries_list');
     if (!popup || !entries) return;
 
+    // ST rebuilds the *entry rows* on pagination but keeps the surrounding
+    // popup/list element. Rebuilding our toolbar/filter sections on every
+    // same-book page turn is redundant. Do not cache native row/editor nodes:
+    // ST clears their event handlers and recreates its sortable separately.
+    const workspace = state.workspace;
+    const toolbar = workspace?.toolbar;
+    const token = workspace?.tokenSection;
+    const filter = workspace?.filterSection;
+    if (!isFoldyLinkedMode()
+        && workspace?.entries === entries
+        && state.observer
+        && state.workspaceObserver
+        && workspace?.popup === popup
+        && workspace?.book === currentBookName()
+        && toolbar?.parentElement === popup
+        && toolbar.nextElementSibling === entries
+        && token?.parentElement === toolbar
+        && token.querySelector('#slb-token-strip')
+        && filter?.parentElement === toolbar
+        && filter.querySelector('#slb-entry-filters')
+        && toolbar.firstElementChild === token
+        && token.nextElementSibling === filter
+        && filter.nextElementSibling === toolbar.querySelector(':scope > .slb-bulk-mode-label')) {
+        popup.classList.toggle('slb-no-book-selected', !currentBookName());
+        syncFilterButtons();
+        return;
+    }
+
     const { section: tokenSection } = ensureWorkspaceSummarySection({
         id: 'slb-token-summary-section',
         bodyId: 'slb-token-strip',
@@ -5041,6 +5069,12 @@ function createWorkspace() {
     popup.classList.toggle('slb-no-book-selected', !currentBookName());
     bindWorkspaceEntries(entries);
     bindWorkspacePopupObserver(popup);
+    if (state.workspace?.entries === entries) {
+        Object.assign(state.workspace, {
+            popup, book: currentBookName(), toolbar: selectionToolbar,
+            tokenSection, filterSection,
+        });
+    }
     syncFilterButtons();
     // 각 새 헤더가 자기 배지를 연결하므로 여기서 전체 목록을 다시 훑지 않는다.
     applyMobileDisplaySettings(false);

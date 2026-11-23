@@ -1,5 +1,14 @@
 # 로어북 매니저 · AmbasaS2 베타 변경 기록
 
+## v1.4.85-ambasa.58 · 2026-11-23 · 통합 관리탭 페이지 넘김 시 중복 Workspace 재구성 생략
+
+- **직전 정본:** GitHub main 0b6e4549fc66463c8f6a1f162083ea0700caa45b, manifest 1.4.85-ambasa.57. 다른 개발 채팅에서 .57에 이미 반영한 **기존 MutationObserver 기반 새 페이지 첫 2행 조기 헤더 준비**를 그대로 보존해 그 위에만 병합. 사용자 Windows ST 설치/활성 테마·브라우저는 실제 연결되지 않아 현장 체감/로딩 시간은 미실측.
+- **원인:** 실리태번 네이티브 displayWorldEntries는 페이지 넘김마다 clearEntryList로 기존 이벤트·DOM을 삭제하고 새 페이지를 생성. 포크 enhanceAll이 새 행의 통합 헤더/열린 편집기를 다시 그리면서 기본 페이지 이동 비용이 커짐. 또 createWorkspace가 토큰/항목 필터/선택 도구 영역을 페이지 전환 때마다 다시 확인·삽입·바인딩하는 중복 작업이 있었음.
+- **국소 구현:** index.js의 createWorkspace() 한 함수에서 **같은 책 + 같은 live 팝업·목록 + 토큰/필터/선택 툴바 위치·요소·기존 observer가 모두 온전함**을 확인하면 workspace 섹션 재조립/observer 재등록/모바일 UI 이중 동기화를 생략하고 필터 상태만 갱신. 동시에 실리태번이 sortable을 재생성할 수 있어 기존 compactNativeSort·enableNativeEntryDrag는 fast path에서도 반드시 호출. 다른 로어북, 새 네이티브 목록 DOM, 필터 섹션 손상, 관찰자 유실, Foldy 모드는 종전 완전 초기화 경로 유지. .57 조기 헤더 표시는 그대로 사용.
+- **검증 수치 (모의 경로):** Node 22/JSDOM으로 **동일 로어북 페이지 100회 전환을 모사**했을 때 token/filter 섹션 구성 함수는 첫 호출의 2회만, 선택 툴바 생성은 1회만 수행(변경 전에는 매 페이지마다 재호출). 정렬·드래그 연결 점검은 매번 유지. 다른 책 전환/DOM 교체/Observer 유실/Foldy에서는 기존 경로로 되돌아가며, .57 조기 첫 2행 테스트 8개도 그대로 통과. 전체 자동 **441/441 PASS** (.57의 435 + 신규 6), node --check 및 git diff --check 통과. 실제 사용자 Windows ST 페이지 체감이 해당 횟수만큼 빨라졌다는 주장은 하지 않음.
+- **보존/범위:** 새 Observer/Interval/Timeout/RAF/자동 AI 작업, 새 데이터 다운로드, 편집 저장/번역/로어북 UID/원본 순서, 실리태번 원래 페이지 생성, Foldy 동작 변경 없음. ST가 이전 페이지 DOM 자체를 삭제하는 비용과 열린 편집기 신규 렌더는 일부 남음. 실제 PC에서 체감이 계속 느리면 네이티브 렌더와 확장 꾸미기 시간을 분리해 계측한 뒤 별도 단계 개선 필요.
+- **파일/롤백:** index.js, manifest.json, 이 노트, 기존 E북 표지 테스트 버전 검사, 신규 tests/ambasa-v58-integrated-page-reuse.test.cjs만 변경. 이상 시 직전 안정 .57 0b6e4549fc66463c8f6a1f162083ea0700caa45b의 확장 코드만 되돌리고 사용자 원문·번역·이미지/설정은 보존.
+
 ## v1.4.85-ambasa.57 · 2026-11-23 · 통합 관리탭 네이티브 페이지 전환 최초 행 표시 경량화
 
 - **정본:** [GitHub main `0892c69de449d7792f8f50374f4c8cf1721291ee`](https://github.com/AmbasaS2/lore-manager/commit/0892c69de449d7792f8f50374f4c8cf1721291ee), manifest `1.4.85-ambasa.56`. 사용자 불만: <b>독립 서재가 아니라 통합 로어북 관리 탭</b>에서 항목을 펼쳐 읽고 네이티브 페이지를 넘길 때 전체가 재로딩되고 다시 그려지는 사용감. 현재 사용자 Windows 설치 파일·브라우저 네트워크 프로파일과 실제 ST 버전은 미연결, 공개 ST `world-info.js`와 최신 포크 코드를 재검사한 기준.
