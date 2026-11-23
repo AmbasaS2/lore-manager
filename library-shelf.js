@@ -14,6 +14,8 @@ const LIBRARY_THEME_LABELS = Object.freeze({
     ebook: 'E북 서재',
 });
 const LIBRARY_TYPE_MARKS = Object.freeze({ general: 'F', memory: 'J', world: 'W', people: 'A–Z' });
+// Korean 가나다 order, Latin alphabetical order, natural numeric sorting.
+const LIBRARY_TITLE_COLLATOR = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' });
 
 export function orderedLoreEntries(book) {
     const entries = Object.values(book?.entries || {}).filter(item => item && typeof item.content === 'string');
@@ -189,7 +191,8 @@ export function createStandaloneLibrary({
         return { size, page, pageCount, start: page * size };
     }
     function libraryListOrder() {
-        return getListOrder() === 'reverse' ? 'reverse' : 'normal';
+        const order = getListOrder();
+        return ['normal', 'reverse', 'title-asc', 'title-desc'].includes(order) ? order : 'normal';
     }
     function pageSizePicker() {
         // A single persisted setting shared across the four reader styles.
@@ -209,7 +212,10 @@ export function createStandaloneLibrary({
         const select = element(doc, 'select', 'slb-library-order-select');
         select.setAttribute('aria-label', '목록 정렬 순서');
         select.setAttribute('title', '목록 정렬 순서');
-        for (const [value, label] of [['normal', '기본순'], ['reverse', '역순']]) {
+        for (const [value, label] of [
+            ['normal', '목록순'], ['reverse', '목록 역순'],
+            ['title-asc', '제목 A–Z'], ['title-desc', '제목 Z–A'],
+        ]) {
             const option = element(doc, 'option', '', label);
             option.value = value;
             select.append(option);
@@ -1173,7 +1179,7 @@ export function createStandaloneLibrary({
     }
     async function updateLibraryListOrder(value) {
         const selects = [...(overlay?.querySelectorAll('.slb-library-order-select') || [])];
-        if (!isOpen() || appearanceSaving || !['normal', 'reverse'].includes(value)) {
+        if (!isOpen() || appearanceSaving || !['normal', 'reverse', 'title-asc', 'title-desc'].includes(value)) {
             for (const select of selects) select.value = libraryListOrder();
             return;
         }
@@ -1186,9 +1192,8 @@ export function createStandaloneLibrary({
         for (const select of selects) select.disabled = true;
         try {
             await setListOrder(value);
-            // The first page in reverse starts at the most recent (last
-            // original-order) record. This applies to the journal reading
-            // spread as well as every index/preview.
+            // Start at the first visible entry in the selected reading order.
+            // This also moves the journal's actual first reading page.
             catalogPage = 0;
             diaryTocPage = 0;
             diaryIndex = 0;
@@ -1719,13 +1724,22 @@ export function createStandaloneLibrary({
         }
     }
     function filtered() {
-        // Reverse presentation only. Never reverse the live WorldInfo entries
-        // array or mutate the source data/UID/displayIndex when reading.
+        // Presentation-only sort: preserve live WorldInfo entries, UIDs,
+        // displayIndex and translation/source data. Filter before ordering.
         const needle = query.toLocaleLowerCase().trim();
         const found = needle
             ? entries.filter(item => searchIndex.get(String(item.uid))?.includes(needle))
             : entries.slice();
-        return libraryListOrder() === 'reverse' ? found.reverse() : found;
+        const order = libraryListOrder();
+        if (order === 'normal') return found;
+        if (order === 'reverse') return found.reverse();
+        const direction = order === 'title-desc' ? -1 : 1;
+        // Read the same translated/original title shown in the UI only once
+        // per entry, not on every O(n log n) comparison.
+        return found.map((entry, index) => ({ entry, index, title: titleOf(entry) }))
+            .sort((a, b) => direction * LIBRARY_TITLE_COLLATOR.compare(a.title, b.title)
+                || a.index - b.index)
+            .map(item => item.entry);
     }
     function originalEntryNumber(entry) {
         return entries.findIndex(item => String(item.uid) === String(entry.uid)) + 1;

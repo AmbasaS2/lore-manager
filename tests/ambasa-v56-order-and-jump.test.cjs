@@ -104,8 +104,10 @@ test('normal/reverse and page-size selectors sit together on each of 16 theme/ty
                 const order = options.querySelector('.slb-library-order-select');
                 assert.ok(size && order);
                 assert.equal(size.nextElementSibling, order);
-                assert.deepEqual([...order.options].map(x => x.textContent), ['기본순', '역순']);
-                assert.deepEqual([...order.options].map(x => x.value), ['normal', 'reverse']);
+                assert.deepEqual([...order.options].map(x => x.textContent),
+                    ['목록순', '목록 역순', '제목 A–Z', '제목 Z–A']);
+                assert.deepEqual([...order.options].map(x => x.value),
+                    ['normal', 'reverse', 'title-asc', 'title-desc']);
                 assert.equal(order.value, 'normal');
                 assert.ok(pager.querySelector('[data-action="page-jump"]'));
                 assert.equal(f.q('.slb-library-settings-panel .slb-library-order-select'), null);
@@ -281,9 +283,10 @@ test('order selection persists within session through type and theme changes; fa
 
 test('ordering and page jumps are read-only and use compact, scoped UI controls', () => {
     assert.match(index, /libraryListOrder:\s*'normal'/);
-    assert.match(index, /settings\.libraryListOrder = settings\.libraryListOrder === 'reverse'/);
+    assert.match(index, /\['normal', 'reverse', 'title-asc', 'title-desc'\]\.includes\(settings\.libraryListOrder\)/);
     assert.match(index, /setListOrder:\s*async value =>/);
-    assert.match(js, /return libraryListOrder\(\) === 'reverse' \? found\.reverse\(\) : found/);
+    assert.match(js, /if \(order === 'reverse'\) return found\.reverse\(\);/);
+    assert.match(js, /LIBRARY_TITLE_COLLATOR\.compare/);
     assert.match(js, /function finishPageJump\(input, commit\)/);
     const scoped = css.slice(css.lastIndexOf('/* ambasa.56'));
     assert.match(scoped, /select\.slb-library-order-select\s*\{[^}]*font-size:\s*11px !important/s);

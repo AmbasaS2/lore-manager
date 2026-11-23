@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.62';
+const VERSION = '1.4.85-ambasa.63';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -375,7 +375,8 @@ function getSettings() {
     settings.libraryLinkedOnly = settings.libraryLinkedOnly !== false;
     settings.libraryListPageSize = [5, 10, 20].includes(Number(settings.libraryListPageSize))
         ? Number(settings.libraryListPageSize) : 5;
-    settings.libraryListOrder = settings.libraryListOrder === 'reverse' ? 'reverse' : 'normal';
+    if (!['normal', 'reverse', 'title-asc', 'title-desc'].includes(settings.libraryListOrder))
+        settings.libraryListOrder = 'normal';
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -9589,7 +9590,7 @@ function initStandaloneLibrary() {
         },
         getListOrder: () => getSettings().libraryListOrder,
         setListOrder: async value => {
-            if (!['normal', 'reverse'].includes(value)) return;
+            if (!['normal', 'reverse', 'title-asc', 'title-desc'].includes(value)) return;
             const settings = getSettings(), previous = settings.libraryListOrder;
             settings.libraryListOrder = value;
             try { await saveSettings(); } catch (error) {

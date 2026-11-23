@@ -5640,11 +5640,11 @@
 }
 #slb-library-overlay select.slb-library-order-select {
     display: block !important;
-    flex: 0 0 71px;
+    flex: 0 0 106px;
     box-sizing: border-box !important;
-    width: 71px !important;
-    min-width: 71px !important;
-    max-width: 71px !important;
+    width: 106px !important;
+    min-width: 106px !important;
+    max-width: 106px !important;
     height: 28px !important;
     min-height: 28px !important;
     max-height: 28px !important;
