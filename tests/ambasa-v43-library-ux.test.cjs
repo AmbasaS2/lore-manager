@@ -140,7 +140,7 @@ test('MacBook journal uses a single clean card and Blackberry adds a distinct de
  }
 });
 
-test('world reference has vertical searchable index and separate detail; mobile menu can collapse',async()=>{
+test('world reference keeps the vertical searchable index visible beside its detail',async()=>{
  const f=await setup({type:'world'});
  try{
    await f.load();
@@ -151,7 +151,8 @@ test('world reference has vertical searchable index and separate detail; mobile 
    assert.equal(f.all('.slb-library-index-item').length,1);
    f.click('[data-action="entry"][data-uid="17"]');
    assert.equal(f.q('.slb-library-detail-world').dataset.uid,'17');
-   assert.equal(f.q('.slb-library-index-layout.is-index-open'),null);
+   assert.ok(f.q('.slb-library-index-layout.is-index-open'),'world TOC no longer collapses');
+   assert.equal(f.q('[data-action="world-menu"]'),null);
    assert.equal(f.stats.bookReads,1);
  }finally{f.dom.window.close()}
 });

@@ -6036,3 +6036,157 @@
     line-height: 1.2;
     letter-spacing: normal;
 }
+
+/* ambasa.64 — reader-first layout. Remove the redundant nested card/contents
+   borders and folding rows, preserving each skin's actual reader surface. */
+#slb-library-overlay .slb-library-body:has(.slb-library-reader-frame) {
+    padding: 10px !important;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-paged-contents,
+#slb-library-overlay .slb-library-reader-frame .slb-library-paged-list,
+#slb-library-overlay .slb-library-reader-frame .slb-library-contents-frame,
+#slb-library-overlay .slb-library-reader-frame .slb-library-person-directory,
+#slb-library-overlay .slb-library-reader-frame .slb-library-catalog-frame {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    margin: 0 0 5px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-index-layout,
+#slb-library-overlay .slb-library-reader-frame .slb-library-index,
+#slb-library-overlay .slb-library-reader-frame .slb-library-index-paper {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-index-layout {
+    gap: 10px;
+}
+#slb-library-overlay .slb-library-reader-frame .slb-library-catalog,
+#slb-library-overlay .slb-library-reader-frame .slb-library-journal {
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+/* A narrow popup must not compete with the actual text for width. Book-tag
+   editing remains in the book header, not in this record-level ellipsis. */
+#slb-library-overlay .slb-library-reader-tools > .slb-library-tools-popover {
+    width: min(146px, calc(100% - 8px), calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+    max-width: 146px !important;
+    padding: 4px !important;
+    gap: 1px;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-tools-popover button {
+    min-height: 25px;
+    padding: 4px 6px;
+    font-size: 11px !important;
+}
+
+/* The selectors are intentionally smaller; the original 106px order field
+   plus the 4-arrow pager could exceed a 300px reader's inner width. */
+#slb-library-overlay select.slb-library-page-size-select {
+    flex: 0 0 72px;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    padding: 3px 3px !important;
+    font-size: 10px !important;
+}
+#slb-library-overlay select.slb-library-order-select {
+    flex: 0 0 88px;
+    width: 88px !important;
+    min-width: 88px !important;
+    max-width: 88px !important;
+    padding: 3px 3px !important;
+    font-size: 10px !important;
+}
+#slb-library-overlay .slb-library-page-options {
+    gap: 4px;
+    max-width: 100%;
+}
+#slb-library-overlay .slb-library-list-pages,
+#slb-library-overlay .slb-library-world-pages,
+#slb-library-overlay .slb-library-people-pages {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Layout depends on the actual floating reader width, NOT only the phone
+   viewport. The arrows get their own centered row below 420px; the two
+   selects share a second row instead of overlapping or overflowing. */
+@container (max-width: 420px) {
+    #slb-library-overlay .slb-library-list-pages,
+    #slb-library-overlay .slb-library-world-pages,
+    #slb-library-overlay .slb-library-people-pages {
+        display: flex;
+        flex-wrap: wrap !important;
+        justify-content: center;
+        align-items: center;
+        column-gap: 4px;
+        row-gap: 4px;
+    }
+    #slb-library-overlay .slb-library-page-navigation {
+        flex: 0 0 100%;
+        width: 100%;
+        min-width: 0;
+        justify-content: center;
+    }
+    #slb-library-overlay .slb-library-page-options {
+        flex: 0 0 auto;
+        min-width: 0;
+        margin: 0 auto;
+        justify-content: center;
+    }
+    #slb-library-overlay .slb-library-reader-classic {
+        padding: 8px !important;
+    }
+    #slb-library-overlay .slb-library-reader-ebook .slb-library-ebook-paper,
+    #slb-library-overlay .slb-library-reader-blackberry .slb-library-reader-inner {
+        padding: 7px !important;
+    }
+}
+
+/* Unusually narrow (under 260px content) handheld/floating reader: never
+   squeeze all four arrows or two selects into a single overflowing row. */
+@container (max-width: 260px) {
+    #slb-library-overlay .slb-library-page-navigation {
+        gap: 2px;
+    }
+    #slb-library-overlay .slb-library-page-navigation > button:not(.slb-library-page-jump) {
+        flex: 0 0 19px;
+        width: 19px !important;
+        min-width: 19px !important;
+        max-width: 19px !important;
+    }
+    #slb-library-overlay .slb-library-page-navigation > button.slb-library-page-jump {
+        min-width: 34px;
+        padding: 2px;
+    }
+    #slb-library-overlay .slb-library-page-options {
+        flex: 0 0 100%;
+        width: 100%;
+        flex-wrap: wrap;
+        row-gap: 3px;
+        justify-content: center;
+    }
+}

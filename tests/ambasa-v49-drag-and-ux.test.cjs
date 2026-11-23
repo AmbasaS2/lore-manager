@@ -118,15 +118,15 @@ test('classic journal and encyclopedia keep tag beside title with independent bo
    assert.ok(f.q('.slb-library-reader-book-tags > .slb-library-book-meta'));
    assert.equal(f.q('.slb-library-reader-meta-row'),null);
    if(kind==='memory'){
-    assert.ok(f.q('[data-action="memory-menu"]'));
+    assert.equal(f.q('[data-action="memory-menu"]'),null);
+    assert.equal(f.q('#slb-library-memory-contents').hidden,false);
     assert.ok(f.q('[data-action="memory-list-next"]'));
     assert.equal(f.qa('[data-action="diary-entry"]').length,5);
     assert.ok(f.q('.slb-library-diary-page'));
    }else{
-    assert.ok(f.q('.slb-library-reader-inner .slb-library-contents-frame > [data-action="world-menu"]'));
-    assert.equal(f.q('.slb-library-reader-meta-row [data-action="world-menu"]'),null);
-    assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-expanded'),'true');
-    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
+    assert.equal(f.q('[data-action="world-menu"]'),null);
+    assert.ok(f.q('.slb-library-reader-inner .slb-library-contents-frame .slb-library-index-layout.is-index-open'));
+    assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'),/22개 항목/);
    }
    assert.equal(f.data.loads,1);
   }finally{f.dom.window.close()}
@@ -141,9 +141,8 @@ test('world contents pages exactly five records and forwards without scrolling o
   assert.deepEqual(f.qa('.slb-library-index-initial').map(x=>x.textContent),['06','07','08','09','10']);
   f.click('[data-action="entry"][data-uid="7"]');
   assert.equal(f.q('.slb-library-detail-world').dataset.uid,'7');
-  assert.equal(f.q('.slb-library-index-layout.is-index-open'),null);
-  f.click('[data-action="world-menu"]');
-  assert.ok(f.q('.slb-library-index-layout.is-index-open'));
+  assert.ok(f.q('.slb-library-index-layout.is-index-open'),'contents stay accessible beside detail');
+  assert.equal(f.q('[data-action="world-menu"]'),null);
   assert.equal(f.data.loads,1);
   assert.equal(f.data.ai,0);
  }finally{f.dom.window.close()}

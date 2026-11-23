@@ -90,20 +90,19 @@ test('all 16 theme/type readers show exactly one real book title and tag editor 
     }
 });
 
-test('all 16 index headings have only the compact functional label and inline item count', async () => {
+test('all 16 reading modes remove folding header and preserve count in accessible pager', async () => {
     for (const theme of ['antique', 'mac', 'blackberry', 'ebook']) {
         for (const type of ['general', 'memory', 'world', 'people']) {
             const f = await fixture({ theme, type });
             try {
                 await f.load();
-                const heading = type === 'general' ? f.q('[data-action="catalog-menu"]')
-                    : type === 'memory' ? f.q('[data-action="memory-menu"]')
-                    : type === 'world' ? f.q('[data-action="world-menu"]')
-                    : f.q('[data-action="people-menu"]');
-                assert.ok(heading);
-                assert.equal(heading.querySelector('span').textContent, expectedTitles[type]);
-                assert.equal(heading.querySelector('small').textContent, '24개 항목');
-                assert.equal(heading.getAttribute('aria-expanded'), 'true');
+                assert.equal(f.all('.slb-library-contents-heading, .slb-library-world-menu').length, 0);
+                const pager = type === 'general' ? f.q('.slb-library-list-pages')
+                    : type === 'memory' ? f.q('.slb-library-diary-toc .slb-library-list-pages')
+                    : type === 'world' ? f.q('.slb-library-world-pages')
+                    : f.q('.slb-library-people-pages');
+                assert.ok(pager);
+                assert.match(pager.getAttribute('aria-label'), /24개 항목/);
                 assert.equal(f.all('.slb-library-section-head').length, 0);
                 const text = f.q('.slb-library-reader-frame').textContent;
                 assert.doesNotMatch(text, /CATALOGUE|DRAWER 01|PERSONAL JOURNAL|PRIVATE COLLECTION|CONFIDENTIAL|ENCYCLOPAEDIA · VOL|PERSONAL REGISTER|SELECTED RECORD|ARCHIVE FILE|CONTACT RECORD/);

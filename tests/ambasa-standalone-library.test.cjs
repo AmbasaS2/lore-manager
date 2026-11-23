@@ -140,7 +140,7 @@ test('catalog shows title-only overlapping stack OR one detail, with back/next/p
         await f.load();
         assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 3);
         assert.equal(f.w.document.querySelectorAll('.slb-library-detail').length, 0);
-        assert.equal(f.w.document.querySelector('.slb-library-contents-count').textContent, '3개 항목');
+        assert.match(f.w.document.querySelector('.slb-library-list-pages').getAttribute('aria-label'),/3개 항목/);
         assert.equal(f.w.document.querySelector('.slb-library-catalog-card p'), null, 'cards contain only title');
         const firstTitle=f.w.document.querySelector('.slb-library-catalog-card').textContent;
         assert.equal(firstTitle, '번역 제목 0');

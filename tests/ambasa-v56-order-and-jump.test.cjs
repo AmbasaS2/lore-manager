@@ -249,7 +249,7 @@ test('reverse order search filters first, then reverses matching results without
         assert.match(titles[0], /Record 29/);
         assert.match(titles[1], /Record 28/);
         assert.match(titles[2], /Record 27/);
-        assert.equal(f.q('.slb-library-world-count').textContent, '11개 항목');
+        assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'),/11개 항목/);
         assert.equal(JSON.stringify(f.entries), f.original);
         assert.equal(f.stats.loads, 1);
     } finally { f.dom.window.close(); }

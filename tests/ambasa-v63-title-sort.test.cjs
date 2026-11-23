@@ -189,7 +189,7 @@ test('title search filters entries before alphabetic sorting, and first/last pag
         search.value = 'group-even';
         search.dispatchEvent(new f.win.Event('input', { bubbles: true }));
         await f.setOrder('title-asc');
-        assert.equal(f.q('.slb-library-world-count').textContent, '120개 항목');
+        assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'), /120개 항목/);
         assert.equal(f.q('.slb-library-page-jump').textContent, '1 / 24');
         f.click('[data-action="world-last"]');
         assert.equal(f.q('.slb-library-page-jump').textContent, '24 / 24');

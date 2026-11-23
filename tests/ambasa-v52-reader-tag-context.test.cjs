@@ -118,29 +118,20 @@ test('long-press opens menu without opening book; scrolling gesture cancels hold
     } finally { f.dom.window.close(); }
 });
 
-test('TOC heading contains count and toggles without a re-render or changing tag row, all themes', async () => {
+test('world TOC stays visible with count in existing pager, no redundant heading, all themes', async () => {
     for (const theme of ['antique', 'mac', 'blackberry', 'ebook']) {
         const f = await fixture({ theme, kind: 'world' });
         try {
             await f.load();
-            const heading = f.q('[data-action="world-menu"]');
-            assert.ok(heading);
-            assert.ok(heading.classList.contains('slb-library-index-heading'));
-            assert.match(heading.textContent, /CONTENTS/);
-            assert.match(heading.textContent, /7개 항목/);
-            assert.equal(heading.getAttribute('aria-expanded'), 'true');
-            assert.equal(f.qa('.slb-library-section-head').length, 0, 'count is not duplicated above reader');
+            assert.equal(f.q('[data-action="world-menu"]'), null);
+            assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'), /7개 항목/);
+            assert.equal(f.qa('.slb-library-section-head').length, 0, 'no duplicate headings above content');
             assert.ok(f.q('.slb-library-reader-book-tags > details.slb-library-book-meta'));
             assert.equal(f.q('.slb-library-reader-meta-row'), null);
             assert.equal(f.qa('.slb-library-index-item').length, 5);
             const record = f.q('.slb-library-detail-world');
-            f.click('[data-action="world-menu"]');
-            assert.equal(heading.getAttribute('aria-expanded'), 'false');
-            assert.equal(heading.getAttribute('aria-label'), '목차 펼치기');
-            assert.equal(f.q('.slb-library-index-layout.is-index-open'), null);
+            assert.ok(f.q('.slb-library-index-layout.is-index-open'));
             assert.equal(f.q('.slb-library-detail-world'), record, 'no unnecessary detail rerender');
-            f.click('[data-action="world-menu"]');
-            assert.equal(heading.getAttribute('aria-expanded'), 'true');
             assert.equal(f.stats.loads, 1);
             assert.equal(f.stats.writes, 0);
             if (theme === 'ebook') assert.equal(f.q('.slb-library-ebook-heading'), null);
@@ -154,7 +145,7 @@ test('tag menu lists existing tags, reuses them without writes, stays detached f
         await f.load();
         const row = f.q('.slb-library-reader-book-tags');
         const tags = f.q('details.slb-library-book-meta');
-        const toc = f.q('[data-action="world-menu"]');
+        const toc = f.q('.slb-library-index-layout');
         assert.ok(tags && !tags.open);
         assert.equal(f.qa('.slb-library-book-tag-suggestion').length, 2);
         tags.querySelector('summary').click();
@@ -166,7 +157,7 @@ test('tag menu lists existing tags, reuses them without writes, stays detached f
         assert.equal(f.q('[data-action="book-tag-suggest"][data-tag="beta"]').getAttribute('aria-pressed'), 'true');
         assert.equal(f.stats.writes, 0);
         assert.equal(f.q('.slb-library-reader-book-tags'), row);
-        assert.equal(f.q('[data-action="world-menu"]'), toc);
+        assert.equal(f.q('.slb-library-index-layout'), toc);
         f.click('[data-action="book-tag-save"]');
         await tick();
         assert.deepEqual(f.tags['Book Alpha'], ['alpha', 'beta']);

@@ -91,22 +91,16 @@ test('all reader types in all four themes use a single icon-only and working sea
  }
 });
 
-test('all encyclopedias default open and toggle labels match the actual state',async()=>{
+test('all encyclopedias keep the table of contents visible without a folding bar',async()=>{
  for(const theme of ['antique','mac','blackberry','ebook']){
   const f=await fixture({theme,type:'world'});
   try{
    await f.load();
    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
-   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 접기');
-   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-expanded'),'true');
+   assert.equal(f.q('[data-action="world-menu"]'),null);
    assert.equal(f.qa('.slb-library-index-item').length,5);
-   f.click('[data-action="world-menu"]');
-   assert.equal(f.q('.slb-library-index-layout.is-index-open'),null);
-   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 펼치기');
-   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-expanded'),'false');
-   f.click('[data-action="world-menu"]');
-   assert.equal(f.q('.slb-library-world-menu').getAttribute('aria-label'),'목차 접기');
-   assert.ok(f.q('.slb-library-index-layout.is-index-open'));
+   assert.equal(f.q('.slb-library-index-layout.is-index-open')!==null,true);
+   assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'),/개 항목/);
    assert.equal(f.q('[data-action="world-prev"]').textContent,'‹');
    assert.equal(f.q('[data-action="world-next"]').textContent,'›');
    assert.equal(f.q('[data-action="world-prev"]').getAttribute('aria-label'),'이전 목차');

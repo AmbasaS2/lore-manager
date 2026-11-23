@@ -102,9 +102,8 @@ test('cardfile archive/ebook shows a bounded five-card list with next and back r
             f.click('[data-action="catalog-back"]');
             assert.equal(f.q('.slb-library-list-pages small').textContent, '2 / 48');
             assert.ok(f.q('[data-action="entry"][data-uid="7"]'));
-            f.click('[data-action="catalog-menu"]');
-            assert.equal(f.q('#slb-library-catalog-contents').hidden, true);
-            f.click('[data-action="catalog-menu"]');
+            assert.equal(f.q('[data-action="catalog-menu"]'), null);
+            assert.equal(f.q('#slb-library-catalog-contents').hidden, false);
             assert.equal(f.all('.slb-library-catalog-card').length, 5);
             assert.deepEqual([f.stats.loads, f.stats.contentWrites, f.stats.translations], [1, 0, 0]);
         } finally { f.dom.window.close(); }
@@ -146,8 +145,8 @@ test('memory TOC is truly bounded (no 240-option select) while journal spread st
             f.click('[data-action="diary-entry"][data-index="62"]');
             assert.equal(f.q('.slb-library-diary-page').dataset.uid, '62');
             assert.equal(f.all('.slb-library-diary-page').length, count);
-            assert.equal(f.q('#slb-library-memory-contents').hidden, true);
-            f.click('[data-action="memory-menu"]');
+            assert.equal(f.q('#slb-library-memory-contents').hidden, false);
+            assert.equal(f.q('[data-action="memory-menu"]'),null);
             assert.equal(f.q('.slb-library-list-pages small').textContent, '13 / 48');
             assert.equal(f.stats.loads, 1);
             assert.equal(f.stats.contentWrites, 0);
@@ -161,7 +160,7 @@ test('encyclopedia contents use the shared page size without overwriting selecte
         try {
             await f.load();
             assert.equal(f.all('.slb-library-index-item').length, 5);
-            assert.equal(f.q('.slb-library-world-count').textContent, '240개 항목');
+            assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'), /240개 항목/);
             assert.equal(f.q('.slb-library-world-pages small').textContent, '1 / 48');
             await f.setSize(10);
             assert.equal(f.all('.slb-library-index-item').length, 10);
@@ -170,7 +169,8 @@ test('encyclopedia contents use the shared page size without overwriting selecte
             assert.equal(f.q('.slb-library-world-pages small').textContent, '2 / 24');
             f.click('[data-action="entry"][data-uid="12"]');
             assert.equal(f.q('.slb-library-detail-world').dataset.uid, '12');
-            f.click('[data-action="world-menu"]');
+            assert.equal(f.q('[data-action="world-menu"]'),null);
+            assert.ok(f.q('.slb-library-index-layout.is-index-open'));
             assert.equal(f.q('.slb-library-world-pages small').textContent, '2 / 24');
             await f.setSize(20);
             assert.equal(f.all('.slb-library-index-item').length, 20);

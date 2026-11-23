@@ -107,13 +107,10 @@ test('only source/translation toggle and ellipsis appear until record actions ar
         f.click('[data-action="more-tools"]');
         assert.equal(f.q('.slb-library-tools-popover').hidden,false);
         assert.deepEqual(f.qa('.slb-library-tools-popover [data-action]').map(n=>n.dataset.action),
-            ['edit','translate','advanced','tag-edit','image-pick']);
+            ['edit','translate','advanced','image-pick']);
         assert.equal(f.stats.ai.length,0);
-        f.click('[data-action="tag-edit"]');
-        assert.equal(f.q('.slb-library-book-meta').open,true);
-        assert.equal(f.w.document.activeElement.id,'slb-library-book-tag-input');
-        assert.equal(f.q('.slb-library-tools-popover').hidden,true);
-        f.click('[data-action="more-tools"]');
+        assert.equal(f.q('[data-action="tag-edit"]'),null,'redundant per-record tag edit removed');
+        assert.ok(f.q('.slb-library-reader-book-tags .slb-library-book-meta'),'book-level tags still editable');
         f.w.document.dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
         assert.equal(f.q('.slb-library-tools-popover').hidden,true);
         assert.equal(f.q('#slb-library-overlay')!==null,true,'Escape dismisses menu, not the whole modal');
