@@ -86,7 +86,7 @@ test('linked-book choice lives in saved library setting, not native global ST fi
 test('shelf title search filters metadata only and preserves input caret, without fetching books',async()=>{
  const f=await setup({nBooks:35,linkedOnly:false});
  try{
-   assert.equal(f.all('.slb-library-book-spine').length,28);
+   assert.equal(f.all('.slb-library-book-spine').length,35);
    f.input('#slb-library-shelf-search','Book 34');
    assert.equal(f.all('.slb-library-book-spine').length,1);
    assert.equal(f.q('.slb-library-book-spine').dataset.book,'Book 34');
@@ -96,15 +96,15 @@ test('shelf title search filters metadata only and preserves input caret, withou
  }finally{f.dom.window.close()}
 });
 
-test('two-row initial shelf adapts to narrow widths and more shows exactly two more rows',async()=>{
+test('three-row initial shelf adapts to narrow widths and more shows two more rows',async()=>{
  const f=await setup({nBooks:40,linkedOnly:false});
  try{
    Object.defineProperty(f.w,'innerWidth',{configurable:true,value:390});
    Object.defineProperty(f.q('.slb-library-body'),'clientWidth',{configurable:true,value:380});
    f.input('#slb-library-shelf-search','Book');
-   assert.equal(f.all('.slb-library-book-spine').length,14);
+   assert.equal(f.all('.slb-library-book-spine').length,21);
    f.click('[data-action="shelf-more"]');
-   assert.equal(f.all('.slb-library-book-spine').length,28);
+   assert.equal(f.all('.slb-library-book-spine').length,35);
    assert.equal(f.stats.bookReads,0);
  }finally{f.dom.window.close()}
 });
@@ -143,12 +143,11 @@ test('world reference has vertical searchable index and separate detail; mobile 
  const f=await setup({type:'world'});
  try{
    await f.load();
-   assert.equal(f.all('.slb-library-index-item').length,24);
-   assert.equal(f.q('.slb-library-detail-world').dataset.uid,'0');
-   f.input('#slb-library-world-search','Entry 17');
-   assert.equal(f.all('.slb-library-index-item').length,1);
-   f.click('[data-action="world-menu"]');
+   assert.equal(f.all('.slb-library-index-item').length,5);
    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
+   assert.equal(f.q('.slb-library-detail-world').dataset.uid,'0');
+   f.input('#slb-library-search','Entry 17');
+   assert.equal(f.all('.slb-library-index-item').length,1);
    f.click('[data-action="entry"][data-uid="17"]');
    assert.equal(f.q('.slb-library-detail-world').dataset.uid,'17');
    assert.equal(f.q('.slb-library-index-layout.is-index-open'),null);
@@ -162,7 +161,7 @@ test('contacts show full-width searchable names then replace list with one profi
    await f.load();
    assert.equal(f.all('.slb-library-person-row').length,24);
    assert.equal(f.q('.slb-library-detail-people'),null);
-   f.input('#slb-library-people-search','Entry 18');
+   f.input('#slb-library-search','Entry 18');
    assert.equal(f.all('.slb-library-person-row').length,1);
    f.click('[data-action="entry"][data-uid="18"]');
    assert.equal(f.all('.slb-library-person-row').length,0);

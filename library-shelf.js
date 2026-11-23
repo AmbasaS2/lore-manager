@@ -131,7 +131,9 @@ export function createStandaloneLibrary({
     let bookToneByName = new Map();
     let linkedNames = null;
     let shelfTag = 'all';
-    let shelfRows = 2;
+    let shelfRows = 3;
+    let shelfSearchOpen = false;
+    let worldTocPage = 0;
     let shelfType = 'all';
     let shelfQuery = '';
     let diaryIndex = 0;
@@ -140,6 +142,8 @@ export function createStandaloneLibrary({
     let worldIndexOpen = false;
     let settingsOpen = false;
     let resizeCleanup = null;
+    let dragCleanup = null;
+    let movedByUser = false;
     let viewportCleanup = null;
     let floatingSize = null;
     let tagSaving = false;
@@ -183,6 +187,8 @@ export function createStandaloneLibrary({
         loadVersion += 1;
         resizeCleanup?.();
         resizeCleanup = null;
+        dragCleanup?.();
+        dragCleanup = null;
         viewportCleanup?.();
         viewportCleanup = null;
         floatingSize = null;
@@ -200,7 +206,12 @@ export function createStandaloneLibrary({
         if (coverEditor) dismissCoverEditor();
         else if (activeToolsUid !== null) closeReaderTools();
         else if (settingsOpen) setSettingsOpen(false);
-        else if (overlay?.querySelector('.slb-library-navigation.is-search-open')) {
+        else if (overlay?.querySelector('.slb-library-shelf-toolbar.is-search-open')) {
+            shelfSearchOpen = false;
+            const bar = overlay.querySelector('.slb-library-shelf-toolbar');
+            bar.classList.remove('is-search-open');
+            bar.querySelector('[data-action="shelf-search-toggle"]')?.setAttribute('aria-expanded', 'false');
+        } else if (overlay?.querySelector('.slb-library-navigation.is-search-open')) {
             overlay.querySelector('.slb-library-navigation').classList.remove('is-search-open');
             overlay.querySelector('[data-action="reader-search-toggle"]')?.setAttribute('aria-expanded', 'false');
         } else close();
@@ -234,6 +245,7 @@ export function createStandaloneLibrary({
         shell.setAttribute('aria-labelledby', 'slb-library-title');
         shell.tabIndex = -1;
         const top = element(doc, 'header', 'slb-library-top');
+        top.addEventListener('pointerdown', beginHeaderDrag);
         const heading = element(doc, 'div', 'slb-library-heading');
         heading.append(element(doc, 'span', 'slb-library-crest', '✦'),
             element(doc, 'h2', '', 'THE LORE LIBRARY'));
@@ -269,12 +281,13 @@ export function createStandaloneLibrary({
         search.id = 'slb-library-search';
         search.type = 'search';
         search.autocomplete = 'off';
-        search.placeholder = '내용 검색';
+        search.placeholder = '검색';
         search.setAttribute('aria-label', '로어북 내 검색');
         const navTools = element(doc, 'div', 'slb-library-nav-tools');
         const searchToggle = button(doc, 'slb-library-reader-search-toggle', '', 'reader-search-toggle');
         searchToggle.append(faIcon(doc, 'magnifying-glass'));
-        searchToggle.setAttribute('aria-label', '내용 검색');
+        searchToggle.append(element(doc, 'span', 'slb-library-search-word', '검색'));
+        searchToggle.setAttribute('aria-label', '검색');
         searchToggle.setAttribute('aria-controls', 'slb-library-search');
         searchToggle.setAttribute('aria-expanded', 'false');
         navTools.append(filters, searchToggle, search);
@@ -406,13 +419,60 @@ export function createStandaloneLibrary({
         floatingSize = { width, height };
         return { width, height, left, top };
     }
+    function beginHeaderDrag(event) {
+        if (!isOpen() || event.button !== 0 && event.pointerType !== 'touch') return;
+        if (event.target.closest('button, input, select, textarea, a, [contenteditable="true"], [data-no-drag]')) return;
+        const shell = overlay.querySelector('.slb-library-shell');
+        const header = event.currentTarget;
+        if (!shell || coverEditor) return;
+        const rect = shell.getBoundingClientRect();
+        const deltaX = event.clientX - rect.left, deltaY = event.clientY - rect.top;
+        const startX=event.clientX, startY=event.clientY;
+        const win=doc.defaultView;
+        dragCleanup?.();
+        event.preventDefault();
+        let shifted=false;
+        const move = e => {
+            if (e.pointerId !== event.pointerId) return;
+            if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) < 3 && !shifted) return;
+            shifted = true;
+            const bounds = visibleLibraryViewport();
+            const margin = bounds.width <= 760 ? 10 : 16;
+            const x = Math.max(bounds.left + margin,
+                Math.min(e.clientX - deltaX, bounds.left + bounds.width - margin - rect.width));
+            const y = Math.max(bounds.top + margin,
+                Math.min(e.clientY - deltaY, bounds.top + bounds.height - margin - rect.height));
+            shell.style.setProperty('left', x + 'px', 'important');
+            shell.style.setProperty('top', y + 'px', 'important');
+            movedByUser = true;
+        };
+        const end = e => {
+            if (e?.pointerId !== event.pointerId) return;
+            dragCleanup?.();
+            dragCleanup = null;
+        };
+        shell.classList.add('slb-library-is-dragging');
+        dragCleanup = () => {
+            win.removeEventListener('pointermove', move);
+            win.removeEventListener('pointerup', end);
+            win.removeEventListener('pointercancel', end);
+            shell.classList.remove('slb-library-is-dragging');
+            try { if (header.hasPointerCapture?.(event.pointerId)) header.releasePointerCapture(event.pointerId); } catch {}
+        };
+        try { header.setPointerCapture?.(event.pointerId); } catch {}
+        win.addEventListener('pointermove', move);
+        win.addEventListener('pointerup', end);
+        win.addEventListener('pointercancel', end);
+    }
     function placeOnViewportChange() {
         if (!isOpen() || !floatingSize) return;
         const shell = overlay.querySelector('.slb-library-shell');
         if (!shell) return;
         const vp = visibleLibraryViewport();
+        const rect = shell.getBoundingClientRect();
         placeFloatingShell(shell, floatingSize.width, floatingSize.height,
-            vp.left + vp.width / 2, vp.top + vp.height / 2);
+            movedByUser && rect.width ? rect.left + rect.width / 2 : vp.left + vp.width / 2,
+            movedByUser && rect.height ? rect.top + rect.height / 2 : vp.top + vp.height / 2);
         refreshAfterResize();
     }
     function bindLibraryViewport() {
@@ -640,7 +700,7 @@ export function createStandaloneLibrary({
             await setTheme(value);
             // If persistence failed the callback must restore its old value.
             syncAppearanceControls();
-            if (!currentBook) { shelfRows = 2; shelfType = 'all'; bookList(); }
+            if (!currentBook) { shelfRows = 3; shelfType = 'all'; bookList(); }
             else if (currentData) renderBook();
             notifyStatus('서재 테마가 저장되었습니다.', 'success');
         } catch (error) {
@@ -661,7 +721,7 @@ export function createStandaloneLibrary({
         try {
             await setLinkedOnly(enabled);
             allBooks = !enabled;
-            shelfRows = 2;
+            shelfRows = 3;
             if (!currentBook) bookList();
             notifyStatus('연결된 책 표시 설정이 저장되었습니다.', 'success');
         } catch (error) {
@@ -724,14 +784,21 @@ export function createStandaloneLibrary({
             }
         }
         const head = element(doc, 'div', 'slb-library-books-head');
+        const shelfSearchToggle = button(doc, 'slb-library-shelf-search-toggle', '검색', 'shelf-search-toggle');
+        shelfSearchToggle.prepend(faIcon(doc, 'magnifying-glass'));
+        shelfSearchToggle.setAttribute('aria-controls', 'slb-library-shelf-search');
+        shelfSearchToggle.setAttribute('aria-expanded', String(shelfSearchOpen));
+        head.append(shelfSearchToggle);
         const titleSearch = element(doc, 'input', 'slb-library-shelf-search');
         titleSearch.id = 'slb-library-shelf-search';
         titleSearch.type = 'search';
         titleSearch.autocomplete = 'off';
-        titleSearch.placeholder = '⌕  로어북 제목 검색';
+        titleSearch.placeholder = '검색';
         titleSearch.setAttribute('aria-label', '로어북 제목 검색');
         titleSearch.value = shelfQuery;
-        head.append(titleSearch);
+        const shelfSearchIcon = faIcon(doc, 'magnifying-glass');
+        shelfSearchIcon.classList.add('slb-library-shelf-search-icon');
+        head.append(shelfSearchIcon, titleSearch);
 
         const tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
@@ -905,6 +972,7 @@ export function createStandaloneLibrary({
         } else if (ebook) shelf.append(scroll);
         else shelf.append(scroll, element(doc, 'div', 'slb-library-wood-plank'));
         const toolbar = element(doc, 'div', 'slb-library-shelf-toolbar');
+        toolbar.classList.toggle('is-search-open', shelfSearchOpen);
         toolbar.append(tagbar, head);
         body.append(toolbar, shelf);
         const summary = element(doc, 'div', 'slb-library-shelf-summary');
@@ -1012,7 +1080,8 @@ export function createStandaloneLibrary({
         diaryIndex = 0;
         worldQuery = '';
         peopleQuery = '';
-        worldIndexOpen = false;
+        worldIndexOpen = getType(book) === 'world';
+        worldTocPage = 0;
         searchIndex = new Map();
         query = '';
         visibleLimit = getType(book) === 'memory' ? 12 : 24;
@@ -1091,9 +1160,7 @@ export function createStandaloneLibrary({
         keyboard.setAttribute('aria-hidden', 'true');
         const nav = element(doc, 'div', 'slb-library-device-controls');
         nav.setAttribute('aria-hidden', 'true');
-        for (const kind of ['search', 'back', 'home', 'menu', 'return']) {
-            nav.append(element(doc, 'span', 'slb-library-device-nav-symbol slb-library-device-nav-' + kind));
-        }
+        nav.append(element(doc, 'span', 'slb-library-device-trackpad'));
         keyboard.append(nav);
         for (const line of ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM']) {
             const row = element(doc, 'div', 'slb-library-device-key-row');
@@ -1157,7 +1224,9 @@ export function createStandaloneLibrary({
         const inner = readerContainer(body, type);
         // Keep the original book setting editor and tag metadata independent
         // from the physical presentation used for each reading mode.
-        inner.append(renderBookTagPanel());
+        const metaRow = element(doc, 'div', 'slb-library-reader-meta-row');
+        metaRow.append(renderBookTagPanel());
+        inner.append(metaRow);
         if (!(type === 'general' && !['mac', 'blackberry'].includes(libraryTheme())
             && selectedUid && found.some(item => String(item.uid) === selectedUid))) {
             const intro = element(doc, 'div', 'slb-library-section-head');
@@ -1168,8 +1237,8 @@ export function createStandaloneLibrary({
             inner.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
             return;
         }
-        if (type === 'memory') renderDiary(inner, found);
-        else if (type === 'world') renderIndex(inner, found, 'world');
+        if (type === 'memory') renderDiary(inner, found, metaRow);
+        else if (type === 'world') renderIndex(inner, found, 'world', metaRow);
         else if (type === 'people') renderPeople(inner, found);
         else if (['mac', 'blackberry'].includes(libraryTheme())) renderCleanCatalog(inner, found);
         else renderCatalog(inner, found);
@@ -1242,7 +1311,7 @@ export function createStandaloneLibrary({
             || doc.defaultView.innerWidth || 1024;
         return getTheme() === 'antique' && readerWidth > 710 ? 2 : 1;
     }
-    function renderDiary(body, found) {
+    function renderDiary(body, found, metaRow) {
         diaryIndex = Math.min(Math.max(0, diaryIndex), found.length - 1);
         const heading = element(doc, 'div', 'slb-library-record-index');
         const label = element(doc, 'label', '', '기록 목차');
@@ -1257,7 +1326,7 @@ export function createStandaloneLibrary({
         }
         select.value = String(diaryIndex);
         heading.append(label, select);
-        body.append(heading);
+        (metaRow || body).append(heading);
         const journal = element(doc, 'div', 'slb-library-journal');
         const numberOfPages = diaryStep();
         for (const [offset, entry] of found.slice(diaryIndex, diaryIndex + numberOfPages).entries()) {
@@ -1283,7 +1352,7 @@ export function createStandaloneLibrary({
             + ' / ' + String(found.length).padStart(2, '0')), next);
         body.append(pager);
     }
-    function renderIndex(body, found, type) {
+    function renderIndex(body, found, type, metaRow) {
         // World reference retains a separate, vertically scrolling TOC.
         // Contacts use renderPeople and never share this layout.
         const chosen = found.find(item => String(item.uid) === selectedUid) || found[0];
@@ -1292,30 +1361,32 @@ export function createStandaloneLibrary({
         layout.classList.toggle('is-index-open', worldIndexOpen);
         const menu = button(doc, 'slb-library-world-menu', '목차', 'world-menu');
         menu.setAttribute('aria-expanded', String(worldIndexOpen));
-        body.append(menu);
+        (metaRow || body).append(menu);
         const index = element(doc, 'nav', 'slb-library-index');
         index.setAttribute('aria-label', '세계관 목차');
         index.append(element(doc, 'span', 'slb-library-index-heading', '목차 · CONTENTS'));
-        const search = element(doc, 'input', 'slb-library-world-search');
-        search.id = 'slb-library-world-search';
-        search.type = 'search';
-        search.placeholder = '항목 검색';
-        search.setAttribute('aria-label', '세계관 항목 검색');
-        search.value = worldQuery;
-        index.append(search);
-        const needle = worldQuery.toLocaleLowerCase().trim();
-        const indexed = needle ? found.filter(entry => titleOf(entry).toLocaleLowerCase().includes(needle)) : found;
-        for (const [position, entry] of indexed.slice(0, visibleLimit).entries()) {
+        // Global reader search already searches titles, keys, and original content.
+        // One TOC only; render five bounded entries, page via buttons (no horizontal scroll).
+        const perPage = 5;
+        const pageCount = Math.max(1, Math.ceil(found.length / perPage));
+        worldTocPage = Math.min(Math.max(0, worldTocPage), pageCount - 1);
+        for (const [position, entry] of found.slice(worldTocPage * perPage, (worldTocPage + 1) * perPage).entries()) {
             const uid = String(entry.uid);
             const item = button(doc, 'slb-library-index-item', '', 'entry', uid);
             if (String(chosen.uid) === uid) item.classList.add('is-selected');
-            const originalPosition = found.indexOf(entry) + 1;
+            const originalPosition = entries.findIndex(item => String(item.uid) === uid) + 1;
             item.append(element(doc, 'span', 'slb-library-index-initial',
-                String(originalPosition).padStart(2,'0')));
+                String(originalPosition).padStart(2, '0')));
             item.append(element(doc, 'span', '', titleOf(entry)));
             index.append(item);
         }
-        if (indexed.length > visibleLimit) index.append(button(doc, 'slb-library-more', '목차 더 보기', 'more'));
+        const pages = element(doc, 'div', 'slb-library-world-pages');
+        const prev = button(doc, '', '‹ 이전', 'world-prev');
+        prev.disabled = worldTocPage <= 0;
+        const next = button(doc, '', '다음 ›', 'world-next');
+        next.disabled = worldTocPage >= pageCount - 1;
+        pages.append(prev, element(doc, 'small', '', (worldTocPage + 1) + ' / ' + pageCount), next);
+        index.append(pages);
         const paper = element(doc, 'div', 'slb-library-index-paper');
         paper.append(renderDetail(chosen, type));
         layout.append(index, paper);
@@ -1325,22 +1396,15 @@ export function createStandaloneLibrary({
         const selected = found.find(entry => String(entry.uid) === selectedUid);
         if (selected) {
             const detailPage = element(doc, 'div', 'slb-library-person-profile');
-            detailPage.append(button(doc, 'slb-library-person-back', '‹ 이름 목록으로', 'people-back'));
+            detailPage.append(button(doc, 'slb-library-person-back', '‹ 인물록', 'people-back'));
             detailPage.append(renderDetail(selected, 'people'));
             body.append(detailPage);
             return;
         }
         const directory = element(doc, 'div', 'slb-library-person-directory');
-        directory.append(element(doc, 'small', '', 'PERSONAL INDEX'));
-        const search = element(doc, 'input', 'slb-library-people-search');
-        search.type = 'search';
-        search.id = 'slb-library-people-search';
-        search.setAttribute('aria-label', '이름 검색');
-        search.placeholder = '⌕  이름 검색';
-        search.value = peopleQuery;
-        directory.append(search);
-        const candidates = peopleQuery.trim() ? found.filter(e =>
-            titleOf(e).toLocaleLowerCase().includes(peopleQuery.toLocaleLowerCase().trim())) : found;
+        // Book title is already in the header; no redundant PERSONAL INDEX.
+        // Unified reader search; do not repeat a separate name input.
+        const candidates = found;
         const names = element(doc, 'div', 'slb-library-people-list');
         for (const item of candidates.slice(0, visibleLimit)) {
             const row = button(doc, 'slb-library-person-row', '', 'entry', String(item.uid));
@@ -1602,6 +1666,13 @@ export function createStandaloneLibrary({
         if (coverEditor && !coverEditor.backdrop.contains(target)) return;
         if (['edit', 'translate', 'advanced'].includes(action)) closeReaderTools();
         if (action === 'settings') setSettingsOpen(!settingsOpen);
+        else if (action === 'shelf-search-toggle') {
+            shelfSearchOpen = !shelfSearchOpen;
+            const bar = overlay.querySelector('.slb-library-shelf-toolbar');
+            bar?.classList.toggle('is-search-open', shelfSearchOpen);
+            target.setAttribute('aria-expanded', String(shelfSearchOpen));
+            if (shelfSearchOpen) bar?.querySelector('#slb-library-shelf-search')?.focus();
+        }
         else if (action === 'reader-search-toggle') {
             const nav = overlay.querySelector('.slb-library-navigation');
             const isOpen = nav.classList.toggle('is-search-open');
@@ -1629,11 +1700,11 @@ export function createStandaloneLibrary({
             bookList();
         } else if (action === 'shelf-tag') {
             shelfTag = target.dataset.filter || 'all';
-            shelfRows = 2;
+            shelfRows = 3;
             bookList();
         } else if (action === 'shelf-type') {
             shelfType = target.dataset.filter || 'all';
-            shelfRows = 2;
+            shelfRows = 3;
             bookList();
         } else if (action === 'shelf-more') {
             shelfRows += 2;
@@ -1661,6 +1732,10 @@ export function createStandaloneLibrary({
             diaryIndex = Math.min(Math.max(0,
                 diaryIndex + (action === 'diary-next' ? diaryStep() : -diaryStep())), found.length - 1);
             resetEdit();
+            renderBook();
+        } else if (action === 'world-prev' || action === 'world-next') {
+            if (!discardOrStay({ allowTags: true })) return;
+            worldTocPage += action === 'world-next' ? 1 : -1;
             renderBook();
         } else if (action === 'world-menu') {
             worldIndexOpen = !worldIndexOpen;
@@ -1691,7 +1766,7 @@ export function createStandaloneLibrary({
     function onChange(event) {
         if (event.target?.id === 'slb-library-shelf-tag-select') {
             shelfTag = event.target.value || 'all';
-            shelfRows = 2;
+            shelfRows = 3;
             bookList();
             return;
         }
@@ -1739,27 +1814,14 @@ export function createStandaloneLibrary({
         setType(currentBook, event.target.value);
         visibleLimit = event.target.value === 'memory' ? 12 : 24;
         selectedUid = null;
+        worldTocPage = 0;
+        worldIndexOpen = event.target.value === 'world';
         renderBook();
     }
     function onInput(event) {
-        for (const [selector, key] of [
-            ['slb-library-world-search', 'world'],
-            ['slb-library-people-search', 'people'],
-        ]) {
-            if (event.target?.id !== selector) continue;
-            const input = event.target;
-            const position = input.selectionStart;
-            if (key === 'world') worldQuery = input.value;
-            else peopleQuery = input.value;
-            renderBook();
-            const replacement = overlay?.querySelector('#' + selector);
-            replacement?.focus?.();
-            if (position != null) replacement?.setSelectionRange?.(position, position);
-            return;
-        }
         if (event.target?.id === 'slb-library-shelf-search') {
             shelfQuery = event.target.value;
-            shelfRows = 2;
+            shelfRows = 3;
             bookList({ restoreSearchFocus: true });
             return;
         }
@@ -1778,6 +1840,7 @@ export function createStandaloneLibrary({
         query = event.target.value;
         visibleLimit = getType(currentBook) === 'memory' ? 12 : 24;
         selectedUid = null;
+        worldTocPage = 0;
         renderBook();
     }
     function open() {
@@ -1791,9 +1854,12 @@ export function createStandaloneLibrary({
         linkedNames = linkedBooks();
         allBooks = !Boolean(getLinkedOnly());
         shelfTag = 'all';
-        shelfRows = 2;
+        shelfRows = 3;
         shelfType = 'all';
         shelfQuery = '';
+        shelfSearchOpen = false;
+        worldTocPage = 0;
+        movedByUser = false;
         diaryIndex = 0;
         worldQuery = '';
         peopleQuery = '';
@@ -1822,7 +1888,7 @@ export function createStandaloneLibrary({
         const vp = visibleLibraryViewport();
         const rect = shell.getBoundingClientRect();
         placeFloatingShell(shell,
-            rect.width || Math.min(1000, vp.width - 32),
+            Math.min(460, vp.width - 20),
             rect.height || Math.min(785, vp.height - 32),
             vp.left + vp.width / 2, vp.top + vp.height / 2);
         bindLibraryViewport();

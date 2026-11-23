@@ -42,11 +42,11 @@ async function fixture({theme='clean',count=36}={}){
     return {dom,w,lib,q,qa,stats,tags,covers,state,resizeTo};
 }
 
-test('360px clean modal shows 3 covers per row, 440px shows 4, with two rows initially',async()=>{
+test('360px clean modal shows 3 covers per row, 440px shows 4, with three rows initially',async()=>{
     const f=await fixture();
     try{
         f.resizeTo(360,320);
-        assert.equal(f.qa('.slb-library-cover-item').length,6);
+        assert.equal(f.qa('.slb-library-cover-item').length,9);
         assert.equal(f.q('.slb-library-cover-grid').style.getPropertyValue('--slb-shelf-columns'),'3');
         assert.equal(f.qa('.slb-library-cover-face').length,0);
         assert.equal(f.q('.slb-library-cover-image').getAttribute('src'),'/user/images/personal-cover.png');
@@ -54,10 +54,10 @@ test('360px clean modal shows 3 covers per row, 440px shows 4, with two rows ini
         const prior=f.qa('.slb-library-cover-item').map(x=>x.querySelector('[data-action="select-book"]').dataset.book);
         f.resizeTo(440,396);
         assert.equal(f.q('.slb-library-cover-grid').style.getPropertyValue('--slb-shelf-columns'),'4');
-        assert.equal(f.qa('.slb-library-cover-item').length,8);
-        assert.deepEqual(f.qa('.slb-library-cover-item').slice(0,6).map(x=>x.querySelector('[data-action="select-book"]').dataset.book),prior);
+        assert.equal(f.qa('.slb-library-cover-item').length,12);
+        assert.deepEqual(f.qa('.slb-library-cover-item').slice(0,9).map(x=>x.querySelector('[data-action="select-book"]').dataset.book),prior);
         f.q('[data-action="shelf-more"]').click();
-        assert.equal(f.qa('.slb-library-cover-item').length,16,'more displays two additional rows only');
+        assert.equal(f.qa('.slb-library-cover-item').length,20,'more displays two additional rows only');
         assert.deepEqual([f.stats.loads,f.stats.translateReads,f.stats.ai],[0,0,0]);
     }finally{f.dom.window.close();}
 });
@@ -67,7 +67,7 @@ test('classic binding material/palette follows book identity, not book type or a
     try{
         f.resizeTo(360,320);
         assert.equal(f.q('.slb-library-book-spines').style.getPropertyValue('--slb-shelf-columns'),'6');
-        assert.equal(f.qa('.slb-library-book-spine').length,12);
+        assert.equal(f.qa('.slb-library-book-spine').length,18);
         const book=f.q('.slb-library-book-spine');
         assert.ok(/slb-library-binding-(leather|linen|cloth)/.test(book.className));
         assert.ok(f.q('[data-action="select-book"][data-book="Book 3"]').classList.contains('slb-library-spine-type-general'),
@@ -109,9 +109,9 @@ test('uploaded cover and editor remain available while default art is unique and
         assert.ok(f.q('.slb-library-cover-image'),'preexisting user cover remains visible');
         assert.equal(f.q('.slb-library-cover-image').loading,'lazy');
         assert.ok(f.q('[data-action="cover-config"][data-book="Book 1"]'));
-        assert.equal(f.qa('.slb-library-cover-type-general').length,12,
+        assert.equal(f.qa('.slb-library-cover-type-general').length,18,
             'stored general book type owns the cover template');
-        assert.equal(f.qa('.slb-library-type-variant-0, .slb-library-type-variant-1, .slb-library-type-variant-2').length,12);
+        assert.equal(f.qa('.slb-library-type-variant-0, .slb-library-type-variant-1, .slb-library-type-variant-2').length,18);
         assert.match(css,/width:\s*min\(100%,\s*110px\)/);
         assert.match(css,/repeat\(var\(--slb-shelf-columns,\s*6\),\s*minmax\(0,\s*1fr\)\)/);
         assert.equal(f.stats.loads,0);

@@ -132,7 +132,7 @@ test('world search displays readable stable index numbers when filtered',async()
  try{
   await f.load();
   assert.equal(f.q('.slb-library-index-initial').textContent,'01');
-  const search=f.q('#slb-library-world-search');
+  const search=f.q('#slb-library-search');
   search.value='Entry 9';
   search.dispatchEvent(new f.w.Event('input',{bubbles:true}));
   assert.deepEqual(f.qa('.slb-library-index-initial').map(e=>e.textContent),['10']);
@@ -145,8 +145,8 @@ test('people search uses concise names and opens one profile',async()=>{
  const f=await fixture({type:'people',theme:'clean'});
  try{
   await f.load();
-  assert.equal(f.q('#slb-library-people-search').placeholder,'⌕  이름 검색');
-  assert.equal(f.q('#slb-library-people-search').getAttribute('aria-label'),'이름 검색');
+  assert.equal(f.q('#slb-library-search').placeholder,'검색');
+  assert.equal(f.q('.slb-library-people-search'),null,'search is unified at the top');
   assert.equal(f.qa('.slb-library-person-row').length,12);
   f.click('[data-action="entry"][data-uid="1"]');
   assert.equal(f.qa('.slb-library-person-row').length,0);
