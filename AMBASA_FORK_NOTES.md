@@ -5,7 +5,7 @@
 - **요청과 정본:** main .64 (9d6a2bb4) 기반. WorldInfo Info 주입 로어 목록 클릭 시 독립 서재의 같은 로어북·같은 UID 기록으로 이동. 중복/번역 제목을 식별에 사용하지 않음.
 - **기능:** 버전 1 window.__slbLoreLibraryBridge.openEntry({book, uid}) 공개. 유효한 책/UID를 확인한 뒤 4개 테마×4개 유형의 정확한 기록으로 이동하고 페이지 크기·정렬/역순에 맞춰 이동. 열린 편집기 초안 보존·이동 취소 시 false 반환. 사용자 원본·번역·이미지·설정 저장 및 AI 자동 호출 없음.
 - **호환:** WorldInfo Info 없이도 매니저 평소 기능 불변. 옵션은 WorldInfo Info에서 기본 꺼짐. 실패하면 WorldInfo Info의 기존 플로팅 열람창 사용. native/Foldy/통합 관리 페이지 캐시 변경 없음.
-- **검증:** JS 구문 검사, openEntry 메서드 격리 16분기 통과. JSDOM 4테마×4유형, 240항목, 편집 초안 보존 자동 테스트 소스 추가. 실제 전체 Node22/JSDOM 회귀 및 Windows/iOS Safari 실사용 테스트는 아직 실행 전.
+- **검증:** JS 구문 검사 및 openEntry 메서드 격리 16분기 통과. GitHub Actions Node22/JSDOM 전체 tests/*.test.cjs **445/445 PASS**(4테마×4유형, 240항목, 편집 초안 보존 신규 테스트 포함); 월드인포인포 별도 브리지 5/5 PASS. 실제 Windows SillyTavern/iOS Safari 사용자 환경과 타 확장 조합은 현장 미검증.
 - **변경/롤백:** index.js, library-shelf.js, manifest.json, tests/ambasa-v65-worldinfoinfo-link.test.cjs와 기록. 문제시 직전 .64 9d6a2bb4 코드만 복원. 로어북/번역/설정/이미지 파일은 유지.
 
 ## v1.4.85-ambasa.64 · 2026-11-23 · 좁은 창의 불필요 중첩 틀/접기 줄 제거·페이저 겹침/기록 메뉴 폭 수정
