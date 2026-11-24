@@ -22,12 +22,12 @@ test('library settings have a readable standalone launcher without a redundant t
     dom.window.close();
 });
 
-test('antique remains default while the new clean theme is an explicit saved choice', () => {
+test('Mac is the default for new settings while existing theme choices remain valid', () => {
     assert.match(index, /getTheme:\s*\(\)\s*=>\s*\['antique', 'mac', 'blackberry', 'ebook'\]/);
     assert.match(index, /setTheme: async theme =>/);
     assert.match(index, /libraryCleanVariant:\s*'mac'/);
     assert.doesNotMatch(index, /const libraryThemeControl = document.getElementById/);
-    assert.match(index, /libraryTheme:\s*'antique'/, 'keep existing settings schema for backward compatibility');
+    assert.match(index, /libraryTheme:\s*'mac'/, 'new installs default to Mac without resetting stored values');
     assert.match(index, /function openStandaloneLibrary\(/, 'the original launcher stays available');
 });
 
