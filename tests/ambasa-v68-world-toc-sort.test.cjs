@@ -52,12 +52,12 @@ test('encyclopedia TOC collapses/expands in all 4 themes without recreating the 
       assert.equal(toggle.getAttribute('aria-expanded'),'true');
       assert.equal(layout.classList.contains('is-index-open'),true);
       toggle.click();
-      assert.equal(toggle.textContent,'목차 펼치기');
+      assert.equal(toggle.querySelector('.slb-library-toc-chevron').textContent,'▾');
       assert.equal(toggle.getAttribute('aria-expanded'),'false');
       assert.equal(layout.classList.contains('is-index-open'),false);
       assert.equal(f.q('.slb-library-detail-world'),detail,'must preserve live detail and draft nodes');
       toggle.click();
-      assert.equal(toggle.textContent,'목차 접기');
+      assert.equal(toggle.querySelector('.slb-library-toc-chevron').textContent,'▴');
       assert.equal(layout.classList.contains('is-index-open'),true);
       assert.equal(f.q('.slb-library-detail-world'),detail);
       assert.deepEqual(f.stats(),{loads:1,writes:0});
@@ -107,5 +107,5 @@ test('sort controls keep all 4 values, use short readable labels, and CSS is 62p
   assert.match(last,/> #slb-library-world-contents\s*\{[^}]*display: none !important;/s);
   assert.doesNotMatch(last,/MutationObserver|ResizeObserver|setInterval|setTimeout|font-family/);
   assert.doesNotMatch(js,/setInterval\(/);
-  assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.69');
+  assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.70');
 });
