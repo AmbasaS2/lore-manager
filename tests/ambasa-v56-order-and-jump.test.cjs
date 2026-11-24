@@ -23,7 +23,7 @@ async function fixture({ theme = 'ebook', kind = 'world', n = 12, order = 'norma
     Object.defineProperty(win, 'innerWidth', { configurable: true, value: width });
     const entries = Object.fromEntries(Array.from({ length: n }, (_, i) => [
         i, {
-            uid: i, displayIndex: i, comment: 'Record ' + i,
+            uid: i, order: i, displayIndex: n - i, comment: 'Record ' + i,
             content: 'Original content ' + i, key: ['tag'],
         },
     ]));
@@ -105,7 +105,7 @@ test('normal/reverse and page-size selectors sit together on each of 16 theme/ty
                 assert.ok(size && order);
                 assert.equal(size.nextElementSibling, order);
                 assert.deepEqual([...order.options].map(x => x.textContent),
-                    ['목록순', '역순', '제목↑', '제목↓']);
+                    ['Order↑', 'Order↓', '제목↑', '제목↓']);
                 assert.deepEqual([...order.options].map(x => x.value),
                     ['normal', 'reverse', 'title-asc', 'title-desc']);
                 assert.equal(order.value, 'normal');

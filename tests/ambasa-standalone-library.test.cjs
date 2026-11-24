@@ -96,18 +96,40 @@ function fixture({ count = 3, linked = new Set(['Memory Peter', 'Cody Core']), t
     };
 }
 
-test('keeps the saved displayIndex order instead of inventing chronological or alphabetical sorting', async () => {
+test('uses numeric Order rather than editor displayIndex without mutating the source', async () => {
     const { orderedLoreEntries, uniqueLibraryBooks, LIBRARY_BOOK_TYPES } = await production();
     const mixed = data();
-    mixed.entries[0].displayIndex = 30;
-    mixed.entries[1].displayIndex = 10;
+    mixed.entries[0].displayIndex = 10;
+    mixed.entries[1].displayIndex = 30;
     mixed.entries[2].displayIndex = 20;
+    mixed.entries[0].order = 30;
+    mixed.entries[1].order = '10';
+    mixed.entries[2].order = 20;
+    const original = JSON.stringify(mixed);
     assert.deepEqual(orderedLoreEntries(mixed).map(x => x.uid), [1, 2, 0]);
+    assert.equal(JSON.stringify(mixed), original);
     assert.deepEqual(orderedLoreEntries({ entries: { 0: { uid: 0, content: 'a' }, 1: { uid: 1, content: 'b' } } }).map(x => x.uid), [0, 1]);
     assert.equal(Object.keys(LIBRARY_BOOK_TYPES).length, 4);
     assert.deepEqual(uniqueLibraryBooks(['A', 'A', 'B'], new Set(['A'])), [
         { name: 'A', linked: true }, { name: 'B', linked: false }
     ]);
+});
+
+test('numeric Order sorts mixed, equal and invalid values consistently, including reversed display indices', async () => {
+    const { orderedLoreEntries } = await production();
+    const values = [undefined, '10', null, -2, 10, '', 0, 'bad', 2, false];
+    const mixed = { entries: Object.fromEntries(values.map((order, uid) => [
+        uid, { uid, order, displayIndex: 100 - uid, content: 'Entry ' + uid },
+    ])) };
+    const before = JSON.stringify(mixed);
+    assert.deepEqual(orderedLoreEntries(mixed).map(x => x.uid), [3, 6, 8, 1, 4, 0, 2, 5, 7, 9]);
+    assert.equal(JSON.stringify(mixed), before);
+    const memory = { entries: Object.fromEntries(Array.from({ length: 56 }, (_, i) => [
+        i, { uid: i, order: i + 1, displayIndex: i < 32 ? i + 1 : 115 - i, content: 'Memory ' + i },
+    ])) };
+    const expected = Array.from({ length: 56 }, (_, i) => i + 1);
+    assert.deepEqual(orderedLoreEntries(memory).map(x => x.order), expected);
+    assert.deepEqual(orderedLoreEntries(memory).reverse().map(x => x.order), expected.slice().reverse());
 });
 
 test('start screen shows linked lorebooks only, with explicit all-books option; no automatic loading or AI', async () => {

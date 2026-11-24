@@ -98,5 +98,5 @@ test('all three TOC headings remain visible after hiding their content, with no 
     assert.match(js, /function inlineTocHeading\(/);
     assert.doesNotMatch(js, /setInterval\(/);
     assert.equal(JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')).version,
-        '1.4.85-ambasa.73');
+        '1.4.85-ambasa.74');
 });

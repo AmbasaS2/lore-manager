@@ -46,7 +46,7 @@ async function fixture({ theme = 'ebook', kind = 'world', count = names.length,
     const stats = { loads: 0, writes: 0, orderSaves: 0, alerts: [], titleLookups: 0 };
     const entries = Object.fromEntries(Array.from({ length: count }, (_, i) => [
         i,
-        { uid: i, displayIndex: i, comment: names[i % names.length],
+        { uid: i, order: i, displayIndex: count - i, comment: names[i % names.length],
             content: 'Lore data ' + i, key: [i % 2 === 0 ? 'group-even' : 'group-odd'] },
     ]));
     const untouched = JSON.stringify(entries);
@@ -123,7 +123,7 @@ test('each of 16 readers has the four compact labels beside 5/page and preserves
                 assert.ok(sort && size);
                 assert.equal(size.nextElementSibling, sort);
                 assert.deepEqual([...sort.options].map(opt => opt.textContent),
-                    ['목록순', '역순', '제목↑', '제목↓']);
+                    ['Order↑', 'Order↓', '제목↑', '제목↓']);
                 assert.deepEqual([...sort.options].map(opt => opt.value),
                     ['normal', 'reverse', 'title-asc', 'title-desc']);
                 assert.equal(sort.value, 'normal');

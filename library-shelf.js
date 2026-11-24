@@ -19,15 +19,17 @@ const LIBRARY_TITLE_COLLATOR = new Intl.Collator('ko', { numeric: true, sensitiv
 
 export function orderedLoreEntries(book) {
     const entries = Object.values(book?.entries || {}).filter(item => item && typeof item.content === 'string');
-    // Match saved ST displayIndex (not dates, translated titles or alphabetic
-    // guesses). Equal/missing indices retain the source-file order.
-    return entries.map((entry, index) => ({ entry, index })).sort((a, b) => {
-        const left = Number(a.entry.displayIndex);
-        const right = Number(b.entry.displayIndex);
-        const leftValid = a.entry.displayIndex !== undefined && Number.isFinite(left);
-        const rightValid = b.entry.displayIndex !== undefined && Number.isFinite(right);
-        return leftValid && rightValid ? left - right || a.index - b.index : a.index - b.index;
-    }).map(item => item.entry);
+    // Reader-only numeric World Info Order. displayIndex belongs to the editor
+    // and may be unrelated to the order values or numbered memory titles.
+    // Missing/invalid orders follow numeric orders in ascending order; ties
+    // retain the source-file order. Descending is the exact reversed list.
+    return entries.map((entry, index) => {
+        const raw = entry.order;
+        const numeric = typeof raw === 'number' || (typeof raw === 'string' && raw.trim() !== '')
+            ? Number(raw) : NaN;
+        return { entry, index, order: Number.isFinite(numeric) ? numeric : Infinity };
+    }).sort((a, b) => a.order === b.order ? a.index - b.index : a.order < b.order ? -1 : 1)
+        .map(item => item.entry);
 }
 
 // User-defined book tags are metadata, never lorebook entry properties.
@@ -215,9 +217,9 @@ export function createStandaloneLibrary({
     function pageOrderPicker() {
         const select = element(doc, 'select', 'slb-library-order-select');
         select.setAttribute('aria-label', '목록 정렬 순서');
-        select.setAttribute('title', '목록 정렬 순서');
+        select.setAttribute('title', 'Order(로어북 순서값) 또는 제목 기준 정렬');
         for (const [value, label] of [
-            ['normal', '목록순'], ['reverse', '역순'],
+            ['normal', 'Order↑'], ['reverse', 'Order↓'],
             ['title-asc', '제목↑'], ['title-desc', '제목↓'],
         ]) {
             const option = element(doc, 'option', '', label);

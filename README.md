@@ -4,7 +4,7 @@ A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverh
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.73 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.74 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저--ambasas2-포크) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -89,7 +89,7 @@ Use the window header to move the library, resize it from the corner, minimize i
 <p align="center"><img src="assets/readme/mobile/lore-manager-reader-guide-mobile.webp" alt="Record reading, original and translated text, table of contents and editing controls" width="860"></p>
 
 - Select a book and entry. Switch between the original text and an available translation.
-- Browse 5, 10 or 20 entries per list page. Use the navigation buttons or click the page number to jump; sort by list order, reverse order or title.
+- Browse 5, 10 or 20 entries per list page. Use the navigation buttons or click the page number to jump; sort by numerical World Info Order ascending/descending (**Order↑ / Order↓**) or by title. This is a reading order only; it does not change the lorebook or its injection settings. Missing/non-numeric Order values follow numeric ones in ascending order; descending reverses the list.
 - Collapse the contents list in memory, encyclopedia and character reading views.
 - Open the **…** menu to edit, translate, open the corresponding entry in World Info or attach a reference image. Edit translations separately from original records.
 - Set tags and book covers to organize the library.
@@ -131,7 +131,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.73 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.74 (원작 1.4.85 기반)
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
@@ -217,7 +217,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 - 책과 항목을 선택하고 원문 또는 저장된 번역문을 읽습니다.
 - 항목 목록을 5개·10개·20개씩 보고, 페이지 번호를 눌러 원하는 페이지로 이동할 수 있습니다.
-- 목록순·역순·제목 오름차순·내림차순을 선택합니다.
+- **Order↑ / Order↓**(로어북 항목의 순서값 오름차순·내림차순), **제목↑ / 제목↓**(가나다·ABC·자연수 정렬)를 선택합니다. Order는 표시 순서(displayIndex)가 아닌 로어북의 실제 순서값 기준이며, 서재 표시만 바꾸므로 원본 및 AI 주입 설정은 변경하지 않습니다. Order가 없는 항목은 오름차순에서 뒤에 배치합니다.
 - 메모리·백과사전·인물록 열람 화면에서는 목차를 접을 수 있습니다.
 - **…** 메뉴에서 수정, 번역, 월드 인포의 해당 로어 열기, 참고 이미지 추가를 할 수 있습니다.
 - 책의 표지와 태그로 서재를 정리할 수 있습니다.
