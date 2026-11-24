@@ -76,7 +76,7 @@ test('initial 1, 2, 3 shelf rows show only row×columns on all four skins', asyn
                 assert.equal(f.q('#slb-library-shelf-rows').value, String(rows));
                 assert.deepEqual([...f.q('#slb-library-shelf-rows').options].map(x => x.textContent),
                     ['1줄 보기', '2줄 보기', '3줄 보기']);
-                assert.equal(visibleShelf(f), rows * columns(f), theme + '/' + rows);
+                assert.equal(visibleShelf(f), Math.min(f.books.length, rows * columns(f)), theme + '/' + rows);
                 assert.equal(f.stats.writes, 0);
             } finally { f.dom.window.close(); }
         }
