@@ -1938,6 +1938,10 @@ export function createStandaloneLibrary({
         for (const entry of found.slice(info.start, info.start + info.size)) {
             const item = button(doc, 'slb-library-catalog-card', '', 'entry', String(entry.uid));
             item.append(element(doc, 'strong', '', titleOf(entry)));
+            // v72 clipping cards show only a brief excerpt from the original
+            // saved WorldInfo text; never copy or rewrite lore on the client.
+            const excerpt = String(entry.content ?? '').replace(/\s+/g, ' ').trim().slice(0, 110);
+            if (excerpt) item.append(element(doc, 'span', 'slb-library-card-excerpt', excerpt));
             stack.append(item);
         }
         contents.append(stack, pageButtons('catalog-list', info.page, found.length, '카드 목록'));
@@ -2233,6 +2237,21 @@ export function createStandaloneLibrary({
         const pages = element(doc, 'div', 'slb-library-pages');
         pages.append(contentText(entry, view));
         article.append(pages);
+        // The v72 design's keyword chips reuse real ST key strings only.
+        // Bound the visible chip count/length for huge lorebooks and regex keys.
+        const keys = Array.isArray(entry.key) ? entry.key : [];
+        const visibleKeys = [...new Set(keys.filter(key => typeof key === 'string')
+            .map(key => key.trim()).filter(Boolean))].slice(0, 6);
+        if (visibleKeys.length) {
+            const chips = element(doc, 'div', 'slb-library-entry-keywords');
+            chips.setAttribute('aria-label', '이 로어의 키워드');
+            for (const key of visibleKeys) {
+                const chip = element(doc, 'span', 'slb-library-keyword-chip', key.slice(0, 32));
+                if (key.length > 32) chip.title = key;
+                chips.append(chip);
+            }
+            article.append(chips);
+        }
         if (edit && edit.uid === uid) {
             const editor = element(doc, 'section', 'slb-library-edit-panel');
             editor.append(element(doc, 'label', '', edit.kind === 'source' ? '원문 수정 · 저장 전에는 실제 로어북에 반영되지 않습니다.' : '번역 수정 · 실리태번 원문은 변경되지 않습니다.'));
