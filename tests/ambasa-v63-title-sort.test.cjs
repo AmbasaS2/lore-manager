@@ -123,7 +123,7 @@ test('each of 16 readers has the four compact labels beside 5/page and preserves
                 assert.ok(sort && size);
                 assert.equal(size.nextElementSibling, sort);
                 assert.deepEqual([...sort.options].map(opt => opt.textContent),
-                    ['목록순', '목록 역순', '제목 A–Z', '제목 Z–A']);
+                    ['목록순', '역순', '제목↑', '제목↓']);
                 assert.deepEqual([...sort.options].map(opt => opt.value),
                     ['normal', 'reverse', 'title-asc', 'title-desc']);
                 assert.equal(sort.value, 'normal');

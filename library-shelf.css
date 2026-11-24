@@ -6336,3 +6336,33 @@
     background: var(--ll-warm) !important;
     box-shadow: none !important;
 }
+
+
+/* ambasa.68 — compact sorting and collapsible encyclopedia contents.
+   Only the independent library shell changes; no SillyTavern native styles. */
+#slb-library-overlay select.slb-library-order-select {
+    box-sizing: border-box !important;
+    flex: 0 0 62px !important;
+    width: 62px !important;
+    min-width: 62px !important;
+    max-width: 62px !important;
+    padding: 2px 1px !important;
+    font-size: 10px !important;
+    text-overflow: clip;
+}
+#slb-library-overlay .slb-library-index-layout:not(.is-index-open) {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+#slb-library-overlay .slb-library-index-layout:not(.is-index-open) > #slb-library-world-contents {
+    display: none !important;
+}
+#slb-library-overlay .slb-library-index-layout:not(.is-index-open) > .slb-library-index-paper {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+}
+/* Memory and encyclopedia share one compact toggle style without changing
+   the visual appearance of other book types. */
+#slb-library-overlay .slb-library-world-toc-toggle {
+    white-space: nowrap;
+}

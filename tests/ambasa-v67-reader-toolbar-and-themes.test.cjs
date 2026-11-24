@@ -162,5 +162,5 @@ test('CSS enforces narrow single-row pager, 330px fallback and shadowless theme-
     assert.doesNotMatch(part, /font-family|MutationObserver|ResizeObserver|setInterval|setTimeout/);
     assert.doesNotMatch(js, /setInterval\(/);
     assert.match(index, /libraryTheme: 'mac'/);
-    assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.67');
+    assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.68');
 });
