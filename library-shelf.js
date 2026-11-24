@@ -1790,32 +1790,33 @@ export function createStandaloneLibrary({
         return translation?.title?.trim() || name || '항목 #' + entry.uid;
     }
     function readerBookLine() {
-        // The book name and its existing tag editor occupy a single real
-        // header in every skin. No redundant book type or decorative copy.
+        // Keep book name and tag editor in their original shared header.
+        // TOC labels and chevrons belong only inside the actual TOC pane.
         const line = element(doc, 'div', 'slb-library-reader-bookline');
         const title = element(doc, 'strong', 'slb-library-reader-book-title', currentBook);
         title.title = currentBook;
         const tags = element(doc, 'div', 'slb-library-reader-book-tags');
         line.append(title, tags);
-        const type = getType(currentBook);
-        // In the directory-only people view the list is the entire content.
-        // Show its TOC toggle only when a profile is actually being read.
-        if (type === 'memory' || type === 'world' || (type === 'people' && selectedUid !== null)) {
-            const isMemory = type === 'memory';
-            const isWorld = type === 'world';
-            const collapsed = isMemory ? memoryTocCollapsed
-                : isWorld ? worldTocCollapsed : peopleTocCollapsed;
-            const toggle = button(doc,
-                'slb-library-memory-toc-toggle' + (isMemory ? ''
-                    : isWorld ? ' slb-library-world-toc-toggle' : ' slb-library-people-toc-toggle'),
-                collapsed ? '목차 펼치기' : '목차 접기',
-                isMemory ? 'memory-toc-toggle' : isWorld ? 'world-toc-toggle' : 'people-toc-toggle');
-            toggle.setAttribute('aria-controls', isMemory ? 'slb-library-memory-toc'
-                : isWorld ? 'slb-library-world-contents' : 'slb-library-people-toc');
-            toggle.setAttribute('aria-expanded', String(!collapsed));
-            line.append(toggle);
-        }
         return line;
+    }
+    function inlineTocHeading(type, collapsed, collapsible = true) {
+        const heading = element(doc, 'div', 'slb-library-toc-heading');
+        const label = 'CONTENTS · 목차';
+        if (!collapsible) {
+            heading.append(element(doc, 'strong', 'slb-library-toc-label', label));
+            return heading;
+        }
+        const action = type + '-toc-toggle';
+        const toggle = button(doc, 'slb-library-toc-inline-button', '', action);
+        toggle.setAttribute('aria-controls', type === 'memory'
+            ? 'slb-library-memory-contents' : type === 'world'
+                ? 'slb-library-world-contents' : 'slb-library-people-contents');
+        toggle.setAttribute('aria-label', collapsed ? '목차 펼치기' : '목차 접기');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.append(element(doc, 'strong', 'slb-library-toc-label', label),
+            element(doc, 'span', 'slb-library-toc-chevron', collapsed ? '▾' : '▴'));
+        heading.append(toggle);
+        return heading;
     }
     function cleanReaderChrome() {
         const chrome = element(doc, 'div', 'slb-library-clean-chrome');
@@ -1992,9 +1993,10 @@ export function createStandaloneLibrary({
         diaryTocPage = info.page;
         const frame = element(doc, 'div', 'slb-library-paged-contents slb-library-diary-toc');
         frame.id = 'slb-library-memory-toc';
-        frame.hidden = memoryTocCollapsed;
+        frame.append(inlineTocHeading('memory', memoryTocCollapsed));
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-memory-contents';
+        contents.hidden = memoryTocCollapsed;
         const index = element(doc, 'nav', 'slb-library-index');
         index.setAttribute('aria-label', '기록 목차');
         for (const [offset, entry] of found.slice(info.start, info.start + info.size).entries()) {
@@ -2054,6 +2056,7 @@ export function createStandaloneLibrary({
         layout.classList.toggle('is-index-open', !worldTocCollapsed); // Toggle TOC without replacing the detail.
         const index = element(doc, 'nav', 'slb-library-index');
         index.id = 'slb-library-world-contents';
+        index.append(inlineTocHeading('world', worldTocCollapsed));
         index.setAttribute('aria-label', '세계관 목차');
         // Global reader search already searches titles, keys, and original content.
         // One TOC only; render five bounded entries, page via buttons (no horizontal scroll).
@@ -2096,9 +2099,10 @@ export function createStandaloneLibrary({
         // profile, instead of replacing it with a back-only detail screen.
         const directory = element(doc, 'div', 'slb-library-person-directory slb-library-paged-contents');
         directory.id = 'slb-library-people-toc';
-        directory.hidden = Boolean(selected && peopleTocCollapsed);
+        directory.append(inlineTocHeading('people', peopleTocCollapsed, Boolean(selected)));
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-people-contents';
+        contents.hidden = Boolean(selected && peopleTocCollapsed);
         const names = element(doc, 'div', 'slb-library-people-list');
         const info = pageData(found.length, peoplePage);
         const pages = info.pageCount;
@@ -2415,20 +2419,21 @@ export function createStandaloneLibrary({
             const collapsed = isMemory ? memoryTocCollapsed
                 : isWorld ? worldTocCollapsed : peopleTocCollapsed;
             if (isMemory) {
-                const toc = overlay.querySelector('#slb-library-memory-toc');
-                if (toc) toc.hidden = collapsed;
+                const contents = overlay.querySelector('#slb-library-memory-contents');
+                if (contents) contents.hidden = collapsed;
             } else if (isWorld) {
                 overlay.querySelector('.slb-library-index-layout')
                     ?.classList.toggle('is-index-open', !collapsed);
             } else {
-                // A collapsed directory does not recreate the live profile or
-                // discard its unsaved source/translation editor.
-                const toc = overlay.querySelector('#slb-library-people-toc');
-                if (toc) toc.hidden = collapsed;
+                // Only hide the directory contents, not its inline header.
+                // The actual profile/editor remains mounted without rerender.
+                const contents = overlay.querySelector('#slb-library-people-contents');
+                if (contents) contents.hidden = collapsed;
                 overlay.querySelector('.slb-library-people-detail-layout')
                     ?.classList.toggle('is-people-toc-open', !collapsed);
             }
-            target.textContent = collapsed ? '목차 펼치기' : '목차 접기';
+            target.querySelector('.slb-library-toc-chevron').textContent = collapsed ? '▾' : '▴';
+            target.setAttribute('aria-label', collapsed ? '목차 펼치기' : '목차 접기');
             target.setAttribute('aria-expanded', String(!collapsed));
         }
         else if (action === 'shelf-search-toggle') {
