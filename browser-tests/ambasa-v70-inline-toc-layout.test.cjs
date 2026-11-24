@@ -33,8 +33,11 @@ test('Chromium 4 themes x 3 modes x 3 viewports: one inline TOC toggle survives 
       window.fixture.open();
       document.querySelector('[data-action="select-book"]').click();
      },{theme,type});
-     await page.waitForSelector('.slb-library-detail',{timeout:5000});
-     if(type==='people'){await page.locator('[data-action="entry"]').first().click();await page.waitForSelector('.slb-library-people-detail-layout')}
+     if(type==='people'){
+      await page.waitForSelector('[data-action="entry"]',{timeout:5000});
+      await page.locator('[data-action="entry"]').first().click();
+      await page.waitForSelector('.slb-library-people-detail-layout',{timeout:5000});
+     } else await page.waitForSelector('.slb-library-detail',{timeout:5000});
      const outcome=await page.evaluate(({type})=>{
       const q=sel=>document.querySelector(sel);
       const root=q(type==='memory'?'#slb-library-memory-toc':type==='world'?'#slb-library-world-contents':'#slb-library-people-toc');
