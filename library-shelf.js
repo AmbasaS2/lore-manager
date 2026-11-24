@@ -112,6 +112,8 @@ export function createStandaloneLibrary({
     setTheme = async () => {},
     getWindowSize = () => null,
     setWindowSize = () => {},
+    getShelfRows = () => 3,
+    setShelfRows = async () => {},
     getListPageSize = () => 5,
     setListPageSize = async () => {},
     getListOrder = () => 'normal',
@@ -134,6 +136,7 @@ export function createStandaloneLibrary({
     let diaryTocPage = 0;
     let memoryTocCollapsed = false;
     let worldTocCollapsed = false;
+    let peopleTocCollapsed = false;
     let allBooks = false;
     let loadVersion = 0;
     let externalOpenSerial = 0;
@@ -145,7 +148,7 @@ export function createStandaloneLibrary({
     let linkedNames = null;
     let shelfTag = 'all';
     let shelfSelectedTags = new Set();
-    let shelfRows = 3;
+    let shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
     let shelfSearchOpen = false;
     let worldTocPage = 0;
     let peoplePage = 0;
@@ -692,6 +695,19 @@ export function createStandaloneLibrary({
         settingsPanel.hidden = true;
         settingsPanel.setAttribute('data-no-drag', '');
         const settingsHeading = element(doc, 'strong', 'slb-library-settings-title', '로어북 서재 설정');
+        const shelfRowsLabel = element(doc, 'label', 'slb-library-shelf-rows-setting');
+        shelfRowsLabel.htmlFor = 'slb-library-shelf-rows';
+        shelfRowsLabel.append(element(doc, 'span', '', '서가 표시 줄 수'));
+        const shelfRowsSelect = element(doc, 'select', 'slb-library-shelf-rows-select');
+        shelfRowsSelect.id = 'slb-library-shelf-rows';
+        shelfRowsSelect.setAttribute('aria-label', '서가 표시 줄 수');
+        for (const count of [1, 2, 3]) {
+            const option = element(doc, 'option', '', count + '줄 보기');
+            option.value = String(count);
+            shelfRowsSelect.append(option);
+        }
+        shelfRowsSelect.value = String([1, 2, 3].includes(Number(getShelfRows())) ? getShelfRows() : 3);
+        shelfRowsLabel.append(shelfRowsSelect);
         const linkedLabel = element(doc, 'label', 'slb-library-linked-setting');
         const linkedCheck = element(doc, 'input');
         linkedCheck.type = 'checkbox';
@@ -700,7 +716,7 @@ export function createStandaloneLibrary({
             '현재 캐릭터에 연결된 로어북만 보기'));
         const linkedHint = element(doc, 'small', 'slb-library-linked-hint',
             '연결된 로어북이 없으면 모든 책이 표시됩니다.');
-        settingsPanel.append(settingsHeading, appearance, linkedLabel, linkedHint);
+        settingsPanel.append(settingsHeading, appearance, shelfRowsLabel, linkedLabel, linkedHint);
         navigation.append(navTop, navTools);
         const body = element(doc, 'main', 'slb-library-body');
         // Keep the structural footer hook for existing layouts without
@@ -1116,6 +1132,8 @@ export function createStandaloneLibrary({
         overlay.dataset.libraryTheme = value;
         const themeSelect = overlay.querySelector('#slb-library-theme-mode');
         if (themeSelect) themeSelect.value = value;
+        const rowsSelect = overlay.querySelector('#slb-library-shelf-rows');
+        if (rowsSelect) rowsSelect.value = String([1, 2, 3].includes(Number(getShelfRows())) ? getShelfRows() : 3);
         const linkedCheck = overlay.querySelector('#slb-library-linked-only');
         if (linkedCheck) linkedCheck.checked = Boolean(getLinkedOnly());
     }
@@ -1132,7 +1150,7 @@ export function createStandaloneLibrary({
             await setTheme(value);
             // If persistence failed the callback must restore its old value.
             syncAppearanceControls();
-            if (!currentBook) { shelfRows = 3; shelfType = 'all'; bookList(); }
+            if (!currentBook) { shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3; shelfType = 'all'; bookList(); }
             else if (currentData) renderBook();
             notifyStatus('서재 테마가 저장되었습니다.', 'success');
         } catch (error) {
@@ -1211,6 +1229,30 @@ export function createStandaloneLibrary({
             }
         }
     }
+    async function updateShelfRows(nextValue) {
+        const count = Number(nextValue);
+        const picker = overlay?.querySelector('#slb-library-shelf-rows');
+        if (!isOpen() || appearanceSaving || ![1, 2, 3].includes(count)) {
+            if (picker) picker.value = String(getShelfRows());
+            return;
+        }
+        if (count === Number(getShelfRows())) return;
+        appearanceSaving = true;
+        if (picker) picker.disabled = true;
+        try {
+            await setShelfRows(count);
+            shelfRows = count;
+            if (!currentBook) bookList();
+        } catch (error) {
+            notifyStatus('서가 표시 줄 수 저장 실패: ' + (error?.message || error), 'error');
+        } finally {
+            appearanceSaving = false;
+            if (picker) {
+                picker.disabled = false;
+                picker.value = String(getShelfRows());
+            }
+        }
+    }
     async function updateLibraryLinkedOnly(enabled) {
         if (!isOpen() || appearanceSaving || coverEditor) return;
         const old = Boolean(getLinkedOnly());
@@ -1221,7 +1263,7 @@ export function createStandaloneLibrary({
         try {
             await setLinkedOnly(enabled);
             allBooks = !enabled;
-            shelfRows = 3;
+            shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
             if (!currentBook) bookList();
             notifyStatus('연결된 책 표시 설정이 저장되었습니다.', 'success');
         } catch (error) {
@@ -1668,6 +1710,7 @@ export function createStandaloneLibrary({
         tagDraft = tagInitial;
         memoryTocCollapsed = false;
         worldTocCollapsed = false;
+        peopleTocCollapsed = false;
         catalogPage = 0;
         diaryTocPage = 0;
         currentData = null;
@@ -1755,15 +1798,20 @@ export function createStandaloneLibrary({
         const tags = element(doc, 'div', 'slb-library-reader-book-tags');
         line.append(title, tags);
         const type = getType(currentBook);
-        if (type === 'memory' || type === 'world') {
+        // In the directory-only people view the list is the entire content.
+        // Show its TOC toggle only when a profile is actually being read.
+        if (type === 'memory' || type === 'world' || (type === 'people' && selectedUid !== null)) {
             const isMemory = type === 'memory';
-            const collapsed = isMemory ? memoryTocCollapsed : worldTocCollapsed;
+            const isWorld = type === 'world';
+            const collapsed = isMemory ? memoryTocCollapsed
+                : isWorld ? worldTocCollapsed : peopleTocCollapsed;
             const toggle = button(doc,
-                'slb-library-memory-toc-toggle' + (isMemory ? '' : ' slb-library-world-toc-toggle'),
+                'slb-library-memory-toc-toggle' + (isMemory ? ''
+                    : isWorld ? ' slb-library-world-toc-toggle' : ' slb-library-people-toc-toggle'),
                 collapsed ? '목차 펼치기' : '목차 접기',
-                isMemory ? 'memory-toc-toggle' : 'world-toc-toggle');
-            toggle.setAttribute('aria-controls',
-                isMemory ? 'slb-library-memory-toc' : 'slb-library-world-contents');
+                isMemory ? 'memory-toc-toggle' : isWorld ? 'world-toc-toggle' : 'people-toc-toggle');
+            toggle.setAttribute('aria-controls', isMemory ? 'slb-library-memory-toc'
+                : isWorld ? 'slb-library-world-contents' : 'slb-library-people-toc');
             toggle.setAttribute('aria-expanded', String(!collapsed));
             line.append(toggle);
         }
@@ -2044,14 +2092,11 @@ export function createStandaloneLibrary({
     }
     function renderPeople(body, found) {
         const selected = found.find(entry => String(entry.uid) === selectedUid);
-        if (selected) {
-            const detailPage = element(doc, 'div', 'slb-library-person-profile');
-            detailPage.append(button(doc, 'slb-library-person-back', '‹ 인물록', 'people-back'));
-            detailPage.append(renderDetail(selected, 'people'));
-            body.append(detailPage);
-            return;
-        }
+        // Keep the real paged directory available alongside the selected
+        // profile, instead of replacing it with a back-only detail screen.
         const directory = element(doc, 'div', 'slb-library-person-directory slb-library-paged-contents');
+        directory.id = 'slb-library-people-toc';
+        directory.hidden = Boolean(selected && peopleTocCollapsed);
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-people-contents';
         const names = element(doc, 'div', 'slb-library-people-list');
@@ -2059,7 +2104,10 @@ export function createStandaloneLibrary({
         const pages = info.pageCount;
         peoplePage = info.page;
         for (const item of found.slice(info.start, info.start + info.size)) {
-            const row = button(doc, 'slb-library-person-row', '', 'entry', String(item.uid));
+            const row = button(doc, 'slb-library-person-row' +
+                (selected && String(selected.uid) === String(item.uid) ? ' is-selected' : ''),
+                '', 'entry', String(item.uid));
+            if (selected) row.setAttribute('aria-current', String(selected.uid) === String(item.uid) ? 'true' : 'false');
             row.append(element(doc, 'span', 'slb-library-person-initial', titleOf(item).slice(0, 1) || '•'),
                 element(doc, 'strong', '', titleOf(item)),
                 element(doc, 'span', 'slb-library-person-chevron', '›'));
@@ -2081,7 +2129,15 @@ export function createStandaloneLibrary({
             pageOptions());
         contents.append(pager);
         directory.append(contents);
-        body.append(directory);
+        if (selected) {
+            const layout = element(doc, 'div', 'slb-library-people-detail-layout');
+            layout.classList.toggle('is-people-toc-open', !peopleTocCollapsed);
+            const detailPage = element(doc, 'div', 'slb-library-person-profile');
+            detailPage.append(button(doc, 'slb-library-person-back', '‹ 인물록', 'people-back'));
+            detailPage.append(renderDetail(selected, 'people'));
+            layout.append(directory, detailPage);
+            body.append(layout);
+        } else body.append(directory);
     }
     function contentText(entry, format) {
         const info = translationFor(currentBook, entry) || {};
@@ -2242,6 +2298,10 @@ export function createStandaloneLibrary({
         resetEdit();
         closeReaderTools();
         selectedUid = String(uid);
+        if (getType(currentBook) === 'people') {
+            const position = filtered().findIndex(entry => String(entry.uid) === String(uid));
+            if (position >= 0) peoplePage = Math.floor(position / libraryPageSize());
+        }
         renderBook();
         const selected = overlay?.querySelector('.slb-library-detail[data-uid="' + String(uid).replace(/[^a-zA-Z0-9_-]/g, '') + '"]');
         if (selected) selected.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
@@ -2346,19 +2406,27 @@ export function createStandaloneLibrary({
             else setMinimized(false);
         }
         else if (action === 'settings') setSettingsOpen(!settingsOpen);
-        else if (action === 'memory-toc-toggle' || action === 'world-toc-toggle') {
+        else if (['memory-toc-toggle', 'world-toc-toggle', 'people-toc-toggle'].includes(action)) {
             const isMemory = action === 'memory-toc-toggle';
+            const isWorld = action === 'world-toc-toggle';
             if (isMemory) memoryTocCollapsed = !memoryTocCollapsed;
-            else worldTocCollapsed = !worldTocCollapsed;
-            const collapsed = isMemory ? memoryTocCollapsed : worldTocCollapsed;
+            else if (isWorld) worldTocCollapsed = !worldTocCollapsed;
+            else peopleTocCollapsed = !peopleTocCollapsed;
+            const collapsed = isMemory ? memoryTocCollapsed
+                : isWorld ? worldTocCollapsed : peopleTocCollapsed;
             if (isMemory) {
                 const toc = overlay.querySelector('#slb-library-memory-toc');
                 if (toc) toc.hidden = collapsed;
-            } else {
-                // Keep the actual article/editor node alive while the
-                // reference list disappears and its width becomes available.
+            } else if (isWorld) {
                 overlay.querySelector('.slb-library-index-layout')
                     ?.classList.toggle('is-index-open', !collapsed);
+            } else {
+                // A collapsed directory does not recreate the live profile or
+                // discard its unsaved source/translation editor.
+                const toc = overlay.querySelector('#slb-library-people-toc');
+                if (toc) toc.hidden = collapsed;
+                overlay.querySelector('.slb-library-people-detail-layout')
+                    ?.classList.toggle('is-people-toc-open', !collapsed);
             }
             target.textContent = collapsed ? '목차 펼치기' : '목차 접기';
             target.setAttribute('aria-expanded', String(!collapsed));
@@ -2391,16 +2459,16 @@ export function createStandaloneLibrary({
         } else if (action === 'shelf-tag') {
             shelfTag = target.dataset.filter || 'all';
             shelfSelectedTags.clear();
-            shelfRows = 3;
+            shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
             bookList();
         } else if (action === 'shelf-tag-chip') {
             shelfSelectedTags.delete(target.dataset.tag);
             if (!shelfSelectedTags.size) shelfTag = 'all';
-            shelfRows = 3;
+            shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
             bookList();
         } else if (action === 'shelf-type') {
             shelfType = target.dataset.filter || 'all';
-            shelfRows = 3;
+            shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
             bookList();
         } else if (action === 'shelf-more') {
             shelfRows += 2;
@@ -2511,9 +2579,13 @@ export function createStandaloneLibrary({
                 if (shelfSelectedTags.has(tag)) shelfSelectedTags.delete(tag);
                 else shelfSelectedTags.add(tag);
                 shelfTag = shelfSelectedTags.size ? 'tags' : 'all';
-                shelfRows = 3;
+                shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
                 bookList();
             }
+            return;
+        }
+        if (event.target?.id === 'slb-library-shelf-rows') {
+            void updateShelfRows(event.target.value);
             return;
         }
         if (event.target?.id === 'slb-library-linked-only') {
@@ -2566,7 +2638,7 @@ export function createStandaloneLibrary({
     function onInput(event) {
         if (event.target?.id === 'slb-library-shelf-search') {
             shelfQuery = event.target.value;
-            shelfRows = 3;
+            shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
             bookList({ restoreSearchFocus: true });
             return;
         }
@@ -2677,7 +2749,7 @@ export function createStandaloneLibrary({
         allBooks = !Boolean(getLinkedOnly());
         shelfTag = 'all';
         shelfSelectedTags.clear();
-        shelfRows = 3;
+        shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
         shelfType = 'all';
         shelfQuery = '';
         shelfSearchOpen = false;
