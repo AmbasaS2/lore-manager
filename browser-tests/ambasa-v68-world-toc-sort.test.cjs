@@ -22,7 +22,7 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                     await page.evaluate(async({theme})=>{
                         window.fixture?.close();
                         const entries=Object.fromEntries(Array.from({length:25},(_,i)=>[i,{
-                            uid:i,displayIndex:i,comment:'Entry '+i,
+                            uid:i,order:i,displayIndex:24-i,comment:'Entry '+i,
                             content:'Content '+i,key:['tag'],
                         }]));
                         window.fixture=window.createStandaloneLibrary({
@@ -53,6 +53,8 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                         // Sort lives inside the TOC: measure while it is visible,
                         // BEFORE collapsing the TOC intentionally hides it.
                         const sortWidth=sort.getBoundingClientRect().width;
+                        const firstUid=q('.slb-library-index-item').dataset.uid;
+                        const labels=[...sort.options].map(opt=>opt.textContent);
                         const sortVisible=getComputedStyle(sort).display!=='none';
                         const expanded=paper.getBoundingClientRect().width;
                         toggle.click();
@@ -61,7 +63,7 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                             hidden:getComputedStyle(toc.querySelector('.slb-library-index-item')).display==='none' && getComputedStyle(toc.querySelector('.slb-library-toc-heading')).display!=='none',
                             sameArticle:q('.slb-library-detail-world')===article,
                             fullPaper:paper.getBoundingClientRect().width>=expanded-1,
-                            sortWidth, sortVisible,
+                            sortWidth, sortVisible, firstUid, labels,
                             expanded,
                             collapsed:paper.getBoundingClientRect().width,
                         };
@@ -69,6 +71,8 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                     const msg=theme+' width '+width+' '+JSON.stringify(result);
                     assert.ok(result.classClosed&&result.hidden&&result.sameArticle&&result.fullPaper,msg);
                     assert.ok(result.sortWidth>=61&&result.sortWidth<=63&&result.sortVisible,msg);
+                    assert.equal(result.firstUid,'0',msg);
+                    assert.deepEqual(result.labels,['Order↑','Order↓','제목↑','제목↓'],msg);
                     checked++;
                 }
             }finally{await page.close()}

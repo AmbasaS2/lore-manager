@@ -15,7 +15,7 @@ async function fixture({theme='mac',type='world',n=38}={}){
   const win=dom.window;win.confirm=()=>true;
   const saved={type};let loads=0,writes=0;
   const entries=Object.fromEntries(Array.from({length:n},(_,i)=>[i,{
-    uid:i,displayIndex:i,comment:'Title '+i,content:'Original '+i,key:['topic'],
+    uid:i,order:i,displayIndex:n-i,comment:'Title '+i,content:'Original '+i,key:['topic'],
   }]));
   const snapshot=JSON.stringify(entries);
   const lib=createStandaloneLibrary({
@@ -98,7 +98,7 @@ test('sort controls keep all 4 values, use short readable labels, and CSS is 62p
     const selector=f.q('.slb-library-order-select');
     assert.ok(selector);
     assert.deepEqual([...selector.options].map(x=>x.value),['normal','reverse','title-asc','title-desc']);
-    assert.deepEqual([...selector.options].map(x=>x.textContent),['목록순','역순','제목↑','제목↓']);
+    assert.deepEqual([...selector.options].map(x=>x.textContent),['Order↑','Order↓','제목↑','제목↓']);
     assert.equal(f.stats().writes,0);
   }finally{f.dom.window.close()}
   const last=css.slice(css.lastIndexOf('/* ambasa.68'));
@@ -107,5 +107,5 @@ test('sort controls keep all 4 values, use short readable labels, and CSS is 62p
   assert.match(last,/> #slb-library-world-contents\s*\{[^}]*display: none !important;/s);
   assert.doesNotMatch(last,/MutationObserver|ResizeObserver|setInterval|setTimeout|font-family/);
   assert.doesNotMatch(js,/setInterval\(/);
-  assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.73');
+  assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.74');
 });
