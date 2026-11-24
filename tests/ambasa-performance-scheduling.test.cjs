@@ -122,12 +122,33 @@ test('content edits update the live source immediately but coalesce total redraw
     assert.equal(state.entryTokenTimers.size,1,'only latest async token count remains scheduled');
 });
 
-test('fallback interval is bounded and hidden editor never triggers a forced scan',()=>{
+test('fallback interval only runs while the integrated editor is open',()=>{
     assert.match(source,/const LIVE_SYNC_FALLBACK_INTERVAL_MS = 4000;/);
     const init=source.slice(source.indexOf('function init()'),source.indexOf('jQuery(() => {'));
-    assert.match(init,/document\.visibilityState === 'hidden' \|\| !isWorldInfoDrawerOpen\(\)/);
-    assert.match(init,/setInterval\(\(\) => \{[\s\S]*\}, LIVE_SYNC_FALLBACK_INTERVAL_MS\)/);
-    assert.doesNotMatch(init,/setInterval\(\(\) => \{[\s\S]*\}, 1000\)/);
+    let drawerOpen = false;
+    let checks = 0;
+    let active = null;
+    const context = {
+        document: { visibilityState: 'visible' },
+        state: { liveSyncTimer: null },
+        isNativeLorebookMode: () => false,
+        isWorldInfoDrawerOpen: () => drawerOpen,
+        clearInterval: () => { active = null; },
+        setInterval: (fn, ms) => { assert.equal(ms, 4000); active = fn; return 1; },
+        enforceActivationOverviewIntegrity: () => { checks++; },
+        syncLiveEditorTokens: () => {},
+        LIVE_SYNC_FALLBACK_INTERVAL_MS: 4000,
+    };
+    vm.runInNewContext(production('syncLiveEditorTimer')+'\nglobalThis.sync=syncLiveEditorTimer',context);
+    context.sync();
+    assert.equal(active, null);
+    drawerOpen = true;
+    context.sync();
+    active();
+    assert.equal(checks, 1);
+    drawerOpen = false;
+    context.sync();
+    assert.equal(active, null);
     assert.match(init,/if \(width === state\.responsiveViewportWidth && narrow === state\.responsiveBreakpoint\) return;/);
     assert.match(init,/scheduleResponsiveEntryLayouts\(true\)/);
 });

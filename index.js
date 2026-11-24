@@ -8255,6 +8255,18 @@ function isWorldInfoDrawerOpen() {
         && !worldInfo.classList.contains('closedDrawer');
 }
 
+function syncLiveEditorTimer() {
+    if (isNativeLorebookMode() || document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen()) {
+        clearInterval(state.liveSyncTimer);
+        state.liveSyncTimer = null;
+        return;
+    }
+    state.liveSyncTimer ??= setInterval(() => {
+        enforceActivationOverviewIntegrity();
+        syncLiveEditorTokens();
+    }, LIVE_SYNC_FALLBACK_INTERVAL_MS);
+}
+
 function hasCompleteVisibleEntryHeaders() {
     const entries = renderedEntries();
     return entries.length > 0 && entries.every(isEntryHeaderReadyForReveal);
@@ -9113,6 +9125,13 @@ function bindEvents() {
         ['world_popup_new', 'click'],
     ]) document.getElementById(id)?.addEventListener(type, releaseNativePageCache, true);
     const worldInfoDrawerToggle = document.querySelector('#WI-SP-button > .drawer-toggle');
+    const worldInfoDrawer = document.getElementById('WorldInfo');
+    if (worldInfoDrawer) {
+        const observer = new MutationObserver(syncLiveEditorTimer);
+        observer.observe(worldInfoDrawer, { attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
+    }
+    document.addEventListener('visibilitychange', syncLiveEditorTimer);
+    window.addEventListener('slb-manager-mode-change', syncLiveEditorTimer);
     window.addEventListener('pointerdown', primeFoldyFolderDeleteDrawerGuard, true);
     window.addEventListener('touchstart', primeFoldyFolderDeleteDrawerGuard, { capture: true, passive: true });
     window.addEventListener('mousedown', primeFoldyFolderDeleteDrawerGuard, true);
@@ -9838,14 +9857,7 @@ function init() {
     // 꾸민다. 항목이 아직 없다면 이후 DOM observer가 동일 경로를 실행한다.
     enhanceAll();
     if (!isNativeLorebookMode()) scheduleInitialTokenSummary();
-    state.liveSyncTimer = setInterval(() => {
-        // Native change, drawer, and tab events handle interactive changes
-        // immediately. This is only a last-resort repair for extensions that
-        // mutate values without an event, not the primary UI rendering loop.
-        if (isNativeLorebookMode() || document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen()) return;
-        enforceActivationOverviewIntegrity();
-        syncLiveEditorTokens();
-    }, LIVE_SYNC_FALLBACK_INTERVAL_MS);
+    syncLiveEditorTimer();
     console.info(`[로어북 매니저] v${VERSION} initialized`);
 }
 
