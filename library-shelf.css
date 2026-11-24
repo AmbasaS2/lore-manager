@@ -6726,7 +6726,7 @@
 #slb-library-overlay .slb-library-reader-mac[data-book-type="world"] .slb-library-detail-head h3 {
     padding-bottom: 7px;
     border-bottom: 1px solid #e4e8ee;
-    font-family: Georgia, 'Apple SD Gothic Neo', serif;
+    
     font-weight: 600;
 }
 /* Contacts: name directory on the left/above and a calm profile card. */
@@ -6938,7 +6938,7 @@
     box-shadow: none !important;
 }
 #slb-library-overlay .slb-library-reader-ebook :is(.slb-library-detail-head h3,.slb-library-diary-heading h3) {
-    font-family: Georgia, 'Apple SD Gothic Neo', serif;
+    
     font-weight: 600;
 }
 #slb-library-overlay .slb-library-reader-ebook .slb-library-keyword-chip {
@@ -7013,7 +7013,7 @@
 }
 #slb-library-overlay .slb-library-reader-ebook[data-book-type="people"] .slb-library-avatar {
     float: left;
-    font-family: Georgia, serif;
+    
     font-size: 1.4em;
     color: #636b65;
     background: #e9ece6;
