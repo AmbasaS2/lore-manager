@@ -133,6 +133,7 @@ export function createStandaloneLibrary({
     let catalogPage = 0;
     let diaryTocPage = 0;
     let memoryTocCollapsed = false;
+    let worldTocCollapsed = false;
     let allBooks = false;
     let loadVersion = 0;
     let externalOpenSerial = 0;
@@ -213,8 +214,8 @@ export function createStandaloneLibrary({
         select.setAttribute('aria-label', '목록 정렬 순서');
         select.setAttribute('title', '목록 정렬 순서');
         for (const [value, label] of [
-            ['normal', '목록순'], ['reverse', '목록 역순'],
-            ['title-asc', '제목 A–Z'], ['title-desc', '제목 Z–A'],
+            ['normal', '목록순'], ['reverse', '역순'],
+            ['title-asc', '제목↑'], ['title-desc', '제목↓'],
         ]) {
             const option = element(doc, 'option', '', label);
             option.value = value;
@@ -1666,6 +1667,7 @@ export function createStandaloneLibrary({
         tagInitial = bookTags(book).join(', ');
         tagDraft = tagInitial;
         memoryTocCollapsed = false;
+        worldTocCollapsed = false;
         catalogPage = 0;
         diaryTocPage = 0;
         currentData = null;
@@ -1752,11 +1754,17 @@ export function createStandaloneLibrary({
         title.title = currentBook;
         const tags = element(doc, 'div', 'slb-library-reader-book-tags');
         line.append(title, tags);
-        if (getType(currentBook) === 'memory') {
-            const toggle = button(doc, 'slb-library-memory-toc-toggle',
-                memoryTocCollapsed ? '목차 펼치기' : '목차 접기', 'memory-toc-toggle');
-            toggle.setAttribute('aria-controls', 'slb-library-memory-toc');
-            toggle.setAttribute('aria-expanded', String(!memoryTocCollapsed));
+        const type = getType(currentBook);
+        if (type === 'memory' || type === 'world') {
+            const isMemory = type === 'memory';
+            const collapsed = isMemory ? memoryTocCollapsed : worldTocCollapsed;
+            const toggle = button(doc,
+                'slb-library-memory-toc-toggle' + (isMemory ? '' : ' slb-library-world-toc-toggle'),
+                collapsed ? '목차 펼치기' : '목차 접기',
+                isMemory ? 'memory-toc-toggle' : 'world-toc-toggle');
+            toggle.setAttribute('aria-controls',
+                isMemory ? 'slb-library-memory-toc' : 'slb-library-world-contents');
+            toggle.setAttribute('aria-expanded', String(!collapsed));
             line.append(toggle);
         }
         return line;
@@ -1995,7 +2003,7 @@ export function createStandaloneLibrary({
         const chosen = found.find(item => String(item.uid) === selectedUid) || found[0];
         if (!selectedUid) selectedUid = String(chosen.uid);
         const layout = element(doc, 'div', 'slb-library-index-layout');
-        layout.classList.add('is-index-open'); // Contents always visible; no extra toggle bar.
+        layout.classList.toggle('is-index-open', !worldTocCollapsed); // Toggle TOC without replacing the detail.
         const index = element(doc, 'nav', 'slb-library-index');
         index.id = 'slb-library-world-contents';
         index.setAttribute('aria-label', '세계관 목차');
@@ -2338,12 +2346,22 @@ export function createStandaloneLibrary({
             else setMinimized(false);
         }
         else if (action === 'settings') setSettingsOpen(!settingsOpen);
-        else if (action === 'memory-toc-toggle') {
-            memoryTocCollapsed = !memoryTocCollapsed;
-            const toc = overlay.querySelector('#slb-library-memory-toc');
-            if (toc) toc.hidden = memoryTocCollapsed;
-            target.textContent = memoryTocCollapsed ? '목차 펼치기' : '목차 접기';
-            target.setAttribute('aria-expanded', String(!memoryTocCollapsed));
+        else if (action === 'memory-toc-toggle' || action === 'world-toc-toggle') {
+            const isMemory = action === 'memory-toc-toggle';
+            if (isMemory) memoryTocCollapsed = !memoryTocCollapsed;
+            else worldTocCollapsed = !worldTocCollapsed;
+            const collapsed = isMemory ? memoryTocCollapsed : worldTocCollapsed;
+            if (isMemory) {
+                const toc = overlay.querySelector('#slb-library-memory-toc');
+                if (toc) toc.hidden = collapsed;
+            } else {
+                // Keep the actual article/editor node alive while the
+                // reference list disappears and its width becomes available.
+                overlay.querySelector('.slb-library-index-layout')
+                    ?.classList.toggle('is-index-open', !collapsed);
+            }
+            target.textContent = collapsed ? '목차 펼치기' : '목차 접기';
+            target.setAttribute('aria-expanded', String(!collapsed));
         }
         else if (action === 'shelf-search-toggle') {
             shelfSearchOpen = !shelfSearchOpen;
