@@ -58,7 +58,7 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                         toggle.click();
                         return {
                             classClosed:!layout.classList.contains('is-index-open'),
-                            hidden:getComputedStyle(toc).display==='none',
+                            hidden:getComputedStyle(toc.querySelector('.slb-library-index-item')).display==='none' && getComputedStyle(toc.querySelector('.slb-library-toc-heading')).display!=='none',
                             sameArticle:q('.slb-library-detail-world')===article,
                             fullPaper:paper.getBoundingClientRect().width>=expanded-1,
                             sortWidth, sortVisible,
