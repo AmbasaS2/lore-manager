@@ -53,7 +53,7 @@ test('the minimize button is between Settings and X, with a hidden book-icon lau
     const f = await fixture();
     try {
         const actions = f.all('.slb-library-header-actions > button').map(el => el.dataset.action);
-        assert.deepEqual(actions, ['settings', 'minimize', 'close']);
+        assert.deepEqual(actions, ['minimize', 'settings', 'close']);
         const minimize = f.q('[data-action="minimize"]');
         const restore = f.q('[data-action="restore"]');
         assert.ok(minimize.querySelector('.fa-minus'));

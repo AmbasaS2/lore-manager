@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.66';
+const VERSION = '1.4.85-ambasa.67';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -123,7 +123,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryBookTags: {},
     libraryEntryImages: {},
     libraryBookCovers: {},
-    libraryTheme: 'antique',
+    libraryTheme: 'mac',
     libraryCleanVariant: 'mac',
     libraryLinkedOnly: true,
     libraryListPageSize: 5,
@@ -9574,7 +9574,7 @@ function initStandaloneLibrary() {
             }
         },
         getTheme: () => ['antique', 'mac', 'blackberry', 'ebook'].includes(getSettings().libraryTheme)
-            ? getSettings().libraryTheme : 'antique',
+            ? getSettings().libraryTheme : 'mac',
         setTheme: async theme => {
             if (!['antique', 'mac', 'blackberry', 'ebook'].includes(theme)) return;
             const settings = getSettings(), previous = settings.libraryTheme;

@@ -8,10 +8,10 @@ export const LIBRARY_BOOK_TYPES = Object.freeze({
     people: '인물록',
 });
 const LIBRARY_THEME_LABELS = Object.freeze({
-    antique: '클래식 아카이브',
     mac: '맥북',
     blackberry: '블랙베리',
     ebook: 'E북 서재',
+    antique: '클래식 아카이브',
 });
 const LIBRARY_TYPE_MARKS = Object.freeze({ general: 'F', memory: 'J', world: 'W', people: 'A–Z' });
 // Korean 가나다 order, Latin alphabetical order, natural numeric sorting.
@@ -132,6 +132,7 @@ export function createStandaloneLibrary({
     let query = '';
     let catalogPage = 0;
     let diaryTocPage = 0;
+    let memoryTocCollapsed = false;
     let allBooks = false;
     let loadVersion = 0;
     let externalOpenSerial = 0;
@@ -200,7 +201,7 @@ export function createStandaloneLibrary({
         select.setAttribute('aria-label', '한 페이지에 표시할 항목 수');
         select.setAttribute('title', '한 페이지에 표시할 항목 수');
         for (const size of [5, 10, 20]) {
-            const option = element(doc, 'option', '', size + ' / page');
+            const option = element(doc, 'option', '', size + '개');
             option.value = String(size);
             select.append(option);
         }
@@ -346,7 +347,7 @@ export function createStandaloneLibrary({
     function libraryTheme() {
         const value = getTheme();
         return value === 'clean' ? 'ebook'
-            : Object.hasOwn(LIBRARY_THEME_LABELS, value) ? value : 'antique';
+            : Object.hasOwn(LIBRARY_THEME_LABELS, value) ? value : 'mac';
     }
     function notifyStatus(message, type = 'info') {
         // No unsolicited saved/loading banners or success toasts. Only
@@ -640,7 +641,7 @@ export function createStandaloneLibrary({
         const closeButton = button(doc, 'slb-library-close', '', 'close');
         closeButton.append(faIcon(doc, 'xmark'));
         closeButton.setAttribute('aria-label', '서재 닫기');
-        headerActions.append(settingsButton, minimizeButton, closeButton);
+        headerActions.append(minimizeButton, settingsButton, closeButton);
         top.append(heading, headerActions);
         const navigation = element(doc, 'div', 'slb-library-navigation');
         const navTop = element(doc, 'div', 'slb-library-nav-top');
@@ -657,7 +658,9 @@ export function createStandaloneLibrary({
             option.value = value;
             select.append(option);
         }
-        filters.append(typeLabel, select);
+        const typeArrows = faIcon(doc, 'sort');
+        typeArrows.classList.add('slb-library-type-arrows');
+        filters.append(typeLabel, select, typeArrows);
         const search = element(doc, 'input', '');
         search.id = 'slb-library-search';
         search.type = 'search';
@@ -686,6 +689,7 @@ export function createStandaloneLibrary({
         const settingsPanel = element(doc, 'aside', 'slb-library-settings-panel');
         settingsPanel.id = 'slb-library-settings-panel';
         settingsPanel.hidden = true;
+        settingsPanel.setAttribute('data-no-drag', '');
         const settingsHeading = element(doc, 'strong', 'slb-library-settings-title', '로어북 서재 설정');
         const linkedLabel = element(doc, 'label', 'slb-library-linked-setting');
         const linkedCheck = element(doc, 'input');
@@ -715,7 +719,10 @@ export function createStandaloneLibrary({
         resizeGrip.append(gripSvg);
         resizeGrip.setAttribute('aria-label', '창 크기 조절');
         resizeGrip.setAttribute('title', '모서리를 끌어 창 크기 조절');
-        shell.append(top, settingsPanel, navigation, body, footer, resizeGrip);
+        // Anchor settings to the title bar so it overlays the navigation
+        // instead of being painted underneath the book controls.
+        top.append(settingsPanel);
+        shell.append(top, navigation, body, footer, resizeGrip);
         const minimizedLauncher = button(doc, 'slb-library-minimized-launcher', '', 'restore');
         minimizedLauncher.append(faIcon(doc, 'book-open'));
         minimizedLauncher.setAttribute('aria-label', '서재 다시 열기');
@@ -1658,6 +1665,7 @@ export function createStandaloneLibrary({
         tagPanelExpanded = false;
         tagInitial = bookTags(book).join(', ');
         tagDraft = tagInitial;
+        memoryTocCollapsed = false;
         catalogPage = 0;
         diaryTocPage = 0;
         currentData = null;
@@ -1744,6 +1752,13 @@ export function createStandaloneLibrary({
         title.title = currentBook;
         const tags = element(doc, 'div', 'slb-library-reader-book-tags');
         line.append(title, tags);
+        if (getType(currentBook) === 'memory') {
+            const toggle = button(doc, 'slb-library-memory-toc-toggle',
+                memoryTocCollapsed ? '목차 펼치기' : '목차 접기', 'memory-toc-toggle');
+            toggle.setAttribute('aria-controls', 'slb-library-memory-toc');
+            toggle.setAttribute('aria-expanded', String(!memoryTocCollapsed));
+            line.append(toggle);
+        }
         return line;
     }
     function cleanReaderChrome() {
@@ -1920,6 +1935,8 @@ export function createStandaloneLibrary({
         const info = pageData(found.length, diaryTocPage);
         diaryTocPage = info.page;
         const frame = element(doc, 'div', 'slb-library-paged-contents slb-library-diary-toc');
+        frame.id = 'slb-library-memory-toc';
+        frame.hidden = memoryTocCollapsed;
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-memory-contents';
         const index = element(doc, 'nav', 'slb-library-index');
@@ -2321,6 +2338,13 @@ export function createStandaloneLibrary({
             else setMinimized(false);
         }
         else if (action === 'settings') setSettingsOpen(!settingsOpen);
+        else if (action === 'memory-toc-toggle') {
+            memoryTocCollapsed = !memoryTocCollapsed;
+            const toc = overlay.querySelector('#slb-library-memory-toc');
+            if (toc) toc.hidden = memoryTocCollapsed;
+            target.textContent = memoryTocCollapsed ? '목차 펼치기' : '목차 접기';
+            target.setAttribute('aria-expanded', String(!memoryTocCollapsed));
+        }
         else if (action === 'shelf-search-toggle') {
             shelfSearchOpen = !shelfSearchOpen;
             const bar = overlay.querySelector('.slb-library-shelf-toolbar');

@@ -66,7 +66,7 @@ test('the settings dropdown exposes exactly four independent themes and no extra
  try{
   const sel=f.q('#slb-library-theme-mode');
   assert.deepEqual([...sel.options].map(o=>[o.value,o.textContent]),[
-   ['antique','클래식 아카이브'],['mac','맥북'],['blackberry','블랙베리'],['ebook','E북 서재']
+   ['mac','맥북'],['blackberry','블랙베리'],['ebook','E북 서재'],['antique','클래식 아카이브']
   ]);
   assert.equal(f.q('#slb-library-clean-variant'),null);
   assert.equal(f.q('.slb-library-variant-wrap'),null);

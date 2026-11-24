@@ -122,7 +122,7 @@ test('center resize and gear are actual separate controls; no redundant header/f
     const f=await fixture();
     try{
         const toolbar=f.q('.slb-library-header-actions');
-        assert.deepEqual([...toolbar.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['settings','minimize','close']);
+        assert.deepEqual([...toolbar.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['minimize','settings','close']);
         assert.equal(f.q('.slb-library-heading small'),null);
         assert.ok(f.q('.slb-library-settings-button .fa-solid.fa-gear'),'Font Awesome solid gear icon');
         assert.ok(f.q('.slb-library-minimize-button .fa-solid.fa-minus'),'Font Awesome minimize icon');

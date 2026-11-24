@@ -78,7 +78,7 @@ test('page size 5/10/20 is shared across four themes, shown on TOC pager rather 
             const select = f.q('.slb-library-world-pages .slb-library-page-size-select');
             assert.ok(select);
             assert.deepEqual([...select.options].map(option => option.value), ['5', '10', '20']);
-            assert.deepEqual([...select.options].map(option => option.textContent), ['5 / page', '10 / page', '20 / page']);
+            assert.deepEqual([...select.options].map(option => option.textContent), ['5개', '10개', '20개']);
             assert.equal(select.value, '5');
         } finally { f.dom.window.close(); }
     }
