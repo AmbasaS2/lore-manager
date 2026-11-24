@@ -16,7 +16,8 @@ The original extension provides the foundation for lorebook editing, translation
 - An independent lore library for browsing and reading existing SillyTavern lorebooks.
 - Four reading formats and four visual themes, with per-book categories, tags, covers and reference images.
 - AI connection-profile or Google translation, including multi-book batch translation.
-- Separate per-book translation files and bounded reuse of recently visited native editor pages.
+- Translation records stored separately from `settings.json`, in per-lorebook JSON files on the server.
+- Bounded reuse of recently visited native editor pages.
 
 ## Installation
 
@@ -89,7 +90,8 @@ Use **로어북 일괄 번역** to select one or more books, translate missing e
 ## 6. Storage, backup and performance
 
 - Original lorebooks remain in SillyTavern. Library categories, tags and image associations are display metadata.
-- The fork stores translation records in per-book server-side JSON files, rather than accumulating all translation text in the extension settings. Existing translation settings are migrated with validation and an archive.
+- **Separate translation storage:** translation text and per-entry language settings have been moved out of `settings.json` into per-lorebook JSON files in SillyTavern's server-side user file storage (`/user/files/`). Only preferences and storage references remain in the extension settings. This avoids repeatedly serializing the entire translation collection whenever settings are saved. Existing records are archived and verified before migration.
+- Translation storage location: `<SillyTavern data root>/<user handle>/user/files/` (normally `data/default-user/user/files/`). Book files are named `lore-manager-translation-<book-slug>-<hash>.json`; the index is `lore-manager-translation-index-v1.json`. Legacy settings archives and recovery files, when present, are also saved in this location. Back up these files along with your settings and original lorebooks when moving servers.
 - Browser-local backups are separate from server translation storage. Automatic backups are optional (off by default); up to 20 backups are retained across books. Import, export and manual backups are available.
 - The original lorebook export tools support downloading selected or all original JSON files as a ZIP. This is not the same as exporting translation backups.
 - The fork reuses eligible recently visited native pages (up to two) and avoids some repeated layout and translation lookup work. The independent library loads a selected book on demand and displays paginated lists.
@@ -122,7 +124,8 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 - 기존 로어북을 별도의 창에서 읽는 독립 서재
 - 로어북별 네 가지 보기 방식, 네 가지 테마, 태그와 표지·참고 이미지
 - AI 연결 프로필 또는 구글 번역, 여러 로어북 일괄 번역
-- 로어북별 번역 파일 저장과 최근 방문 페이지 재사용
+- 번역 저장소를 `settings.json`에서 분리하여 서버에 로어북별 JSON 파일로 저장
+- 최근 방문 페이지 재사용
 
 ## 설치
 
@@ -199,10 +202,20 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 | 구분 | 저장 및 관리 |
 |---|---|
 | 원본 로어북 | 기존 SillyTavern 로어북 |
-| 번역 기록 | 서버의 로어북별 JSON 파일, 기존 기록은 검증 및 보관 후 이전 |
+| 번역 기록 | `settings.json`이 아닌 서버 사용자 파일 저장소(`/user/files/`)의 로어북별 JSON 파일, 기존 기록은 검증 및 보관 후 이전 |
 | 서재 표시 정보 | 확장의 설정, 태그·분류·이미지 연결 정보 |
 | 로어북 백업 | 현재 브라우저에 저장, 전체 로어북 합계 최근 20개 |
 | 로어북 원본 내보내기 | 선택한 책 또는 전체 원본 JSON의 ZIP |
+
+**번역 저장소 변경:** 기존에는 번역 기록이 실리태번의 `settings.json` 확장 설정에 함께 저장됐지만, 이 포크에서는 번역문과 항목별 번역 언어 정보를 별도 파일로 분리했습니다. 설정을 저장할 때마다 쌓여 있는 모든 번역 기록을 다시 저장하는 부담을 줄이기 위한 변경입니다. 기존 번역은 별도 보관본을 만들고 새 파일의 내용을 검증한 후 이전합니다.
+
+실제 저장 위치는 서버의 `<실리태번 데이터 경로>/<사용자 계정>/user/files/`입니다. 일반적인 기본 계정은 `data/default-user/user/files/`이며, 브라우저에서 접근하는 경로는 `/user/files/`입니다.
+
+- 로어북별 번역: `lore-manager-translation-<책 이름 기반 식별자>-<해시>.json`
+- 번역 색인: `lore-manager-translation-index-v1.json`
+- 이전 시 생성된 기존 설정 보관본과 복구 파일도 같은 위치에 저장됩니다(해당 파일이 있는 경우).
+
+서버를 옮길 때는 `settings.json`과 원본 로어북뿐 아니라 이 위치의 `lore-manager-*.json` 번역 관련 파일도 함께 백업해 주세요.
 
 자동 백업은 기본적으로 꺼져 있습니다. 필요할 때 활성화하거나 수동 백업을 사용하세요. 브라우저 백업과 서버 번역 기록, 원본 ZIP은 서로 다른 데이터입니다. 데이터 초기화 전 반드시 필요한 기록을 별도로 백업하세요.
 
@@ -211,7 +224,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 | 영역 | 원작을 기반으로 이 포크에서 조정한 부분 |
 |---|---|
 | 화면 | 기존 통합 편집기 외에 기본 화면·독립 서재를 선택하여 사용 |
-| 번역 저장 | 번역 기록을 로어북별 서버 JSON으로 분리 |
+| 번역 저장 | `settings.json`에 함께 저장하던 번역 기록을 서버의 별도 사용자 파일 저장소에 로어북별 JSON으로 분리 |
 | 번역 작업 | 여러 책을 선택하는 일괄 번역, 조건에 맞는 AI 항목 묶음 처리 |
 | 페이지·렌더링 | 최근 방문 페이지 최대 2개 재사용 및 반복 레이아웃·조회 작업 일부 감소 |
 | 읽기 | 네 가지 보기 방식, 네 가지 테마, 목차·검색·태그·표지·참고 이미지 |
