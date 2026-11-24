@@ -6190,3 +6190,149 @@
         justify-content: center;
     }
 }
+
+
+/* ambasa.67 — shared compact chrome and anchored settings across all skins.
+   Never affect SillyTavern's native WorldInfo controls. */
+#slb-library-overlay .slb-library-top {
+    position: relative !important;
+    z-index: 40 !important;
+    overflow: visible !important;
+}
+#slb-library-overlay .slb-library-top > .slb-library-settings-panel {
+    position: absolute !important;
+    top: calc(100% + 4px) !important;
+    right: 10px !important;
+    bottom: auto !important;
+    left: auto !important;
+    z-index: 60 !important;
+    width: min(280px, calc(100% - 20px)) !important;
+    max-width: calc(100% - 20px) !important;
+    max-height: min(270px, calc(100dvh - 82px));
+}
+/* The book-type switch uses only the space needed for its four short values.
+   Font Awesome's existing two-way sort icon replaces the invisible native
+   dropdown arrow; it does not intercept mouse or touch events. */
+#slb-library-overlay .slb-library-navigation.slb-library-has-book .slb-library-filters {
+    position: relative;
+    flex: 0 0 82px !important;
+    width: 82px !important;
+    min-width: 82px !important;
+    max-width: 82px !important;
+}
+#slb-library-overlay .slb-library-navigation.slb-library-has-book #slb-library-book-type {
+    box-sizing: border-box !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    flex: 0 0 82px !important;
+    width: 82px !important;
+    min-width: 82px !important;
+    max-width: 82px !important;
+    padding: 3px 20px 3px 7px !important;
+}
+#slb-library-overlay .slb-library-navigation.slb-library-has-book .slb-library-type-arrows {
+    position: absolute;
+    display: block;
+    right: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px !important;
+    line-height: 1;
+    color: var(--ll-muted);
+    pointer-events: none;
+}
+#slb-library-overlay .slb-library-memory-toc-toggle {
+    flex: 0 0 auto;
+    margin: 0 0 0 auto !important;
+    padding: 3px 7px !important;
+    min-height: 24px !important;
+    height: 24px !important;
+    border: 1px solid var(--ll-line) !important;
+    border-radius: 5px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    color: var(--ll-ink) !important;
+    background: var(--ll-paper-light) !important;
+    box-shadow: none !important;
+}
+#slb-library-overlay .slb-library-memory-toc-toggle:hover {
+    background: var(--ll-warm) !important;
+}
+#slb-library-overlay .slb-library-diary-toc[hidden] {
+    display: none !important;
+}
+/* One row: arrows on the left, the small page-size and order fields to
+   their right. On extremely narrow cards only, allow a clean two-row wrap. */
+#slb-library-overlay .slb-library-list-pages,
+#slb-library-overlay .slb-library-world-pages,
+#slb-library-overlay .slb-library-people-pages {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: space-between !important;
+    gap: 4px !important;
+}
+#slb-library-overlay .slb-library-page-navigation {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    gap: 3px !important;
+    justify-content: flex-start !important;
+}
+#slb-library-overlay .slb-library-page-options {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 0 0 auto !important;
+    gap: 4px !important;
+    justify-content: flex-end !important;
+}
+#slb-library-overlay select.slb-library-page-size-select {
+    flex: 0 0 50px !important;
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    padding: 3px 2px !important;
+    font-size: 10px !important;
+}
+#slb-library-overlay select.slb-library-order-select {
+    flex: 0 0 81px !important;
+    width: 81px !important;
+    min-width: 81px !important;
+    max-width: 81px !important;
+    padding: 3px 2px !important;
+    font-size: 10px !important;
+}
+@container (max-width: 330px) {
+    #slb-library-overlay .slb-library-list-pages,
+    #slb-library-overlay .slb-library-world-pages,
+    #slb-library-overlay .slb-library-people-pages {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        row-gap: 4px;
+    }
+    #slb-library-overlay .slb-library-page-navigation {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    #slb-library-overlay .slb-library-page-options {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        margin: 0 auto !important;
+        justify-content: center !important;
+    }
+}
+/* A minimized launcher is a real theme control, not a shadowed badge. */
+#slb-library-overlay button.slb-library-minimized-launcher {
+    background: var(--ll-paper-light) !important;
+    border: 1px solid var(--ll-line) !important;
+    color: var(--ll-ink) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+#slb-library-overlay button.slb-library-minimized-launcher:hover {
+    background: var(--ll-warm) !important;
+    box-shadow: none !important;
+}
