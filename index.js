@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.72';
+const VERSION = '1.4.85-ambasa.73';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -4814,9 +4814,23 @@ function bindWorkspaceEntries(entries) {
     ].join(',');
     state.observer = new MutationObserver(mutations => {
         const linkedMode = isFoldyLinkedMode();
-        // 기존 모드는 최상위 네이티브 행과 그 내부 변경만 받는다. Foldy가
-        // 만든 폴더나 그 내부의 mutation은 이 지점에서 완전히 폐기한다.
-        const relevantMutations = linkedMode ? mutations : mutations.filter(mutation => {
+        // Foldy owns its folder chrome. Ignore count text, menus, styles and
+        // other folder-only mutations; retain real row/root/folder changes and
+        // native row internals (including late actions from other extensions).
+        const relevantMutations = linkedMode ? mutations.filter(mutation => {
+            const target = mutation.target;
+            if (!(target instanceof Element)) return false;
+            if (target === entries || target.matches('.foldy-lore-items, .foldy-folder-items')) {
+                return [...mutation.addedNodes, ...mutation.removedNodes].some(node => (
+                    node instanceof Element && (
+                        node.matches('.world_entry, #WIEntryHeaderTitlesPC, .foldy-folder, .foldy-lore-folder')
+                        || node.querySelector('.world_entry, #WIEntryHeaderTitlesPC, .foldy-folder, .foldy-lore-folder')
+                    )
+                ));
+            }
+            const row = target.closest('.world_entry');
+            return Boolean(row && entries.contains(row));
+        }) : mutations.filter(mutation => {
             if (!(mutation.target instanceof Element)) return false;
             if (mutation.target === entries) {
                 return [...mutation.addedNodes, ...mutation.removedNodes].some(node => (
@@ -4857,10 +4871,19 @@ function bindWorkspaceEntries(entries) {
             ))
         ));
         if (foldyStructureChanged) {
-            // Foldy 원본이 목록을 비우고 폴더/행을 다시 붙이는 동안 제목 옆
-            // 주입 방식만 먼저 비치지 않도록, 완성된 매니저 헤더까지 가린다.
-            markFoldyLinkedPreparing();
-            bindFoldyFolderDeleteDrawerGuards(entries);
+            // A same-book folder/page change must not collapse the entire
+            // list to the 64px preparing placeholder. Existing row-level
+            // visibility rules withhold only unprepared rows. True book/mode
+            // switches still own their existing preparing state.
+            for (const mutation of relevantMutations) {
+                if (mutation.target !== entries && !mutation.target.matches?.('.foldy-lore-items, .foldy-folder-items')) continue;
+                for (const node of mutation.addedNodes) {
+                    if (!(node instanceof Element) || !node.isConnected) continue;
+                    if (node.matches('.foldy-folder, .foldy-lore-folder') || node.querySelector('.foldy-folder, .foldy-lore-folder')) {
+                        bindFoldyFolderDeleteDrawerGuards(node);
+                    }
+                }
+            }
             state.navigatorDirty = true;
         }
         const bookSwitchChildMutation = Boolean(
@@ -4885,7 +4908,7 @@ function bindWorkspaceEntries(entries) {
         // 정렬이 끊기므로 전부 무시하고, 드래그가 끝난 뒤 한 번에 갱신한다.
         if (state.sorting) return;
         if (state.enhancing) {
-            const nativeRenderArrived = relevantMutations.some(mutation => (
+            const nativeRenderArrived = foldyStructureChanged || relevantMutations.some(mutation => (
                 [...mutation.addedNodes].some(node => (
                     node instanceof Element
                     && (node.matches('.world_entry, .world_entry_edit, .world-entry-edit')
@@ -4895,7 +4918,7 @@ function bindWorkspaceEntries(entries) {
             if (nativeRenderArrived) state.enhancePending = true;
             return;
         }
-        let listChanged = false;
+        let listChanged = foldyStructureChanged;
         let entryChanged = false;
         for (const mutation of relevantMutations) {
             if (mutation.target === entries) listChanged = true;
@@ -4911,6 +4934,21 @@ function bindWorkspaceEntries(entries) {
             // 노드는 후보에서 빼서 observer 자기증폭은 만들지 않는다.
             for (const node of mutation.addedNodes) {
                 if (!(node instanceof Element)) continue;
+                // Foldy may reparent an intact row or insert a whole folder.
+                // Neither operation is a native header replacement. Fresh
+                // rows are already covered by their own missing ready marker.
+                if (linkedMode && node.matches('.world_entry, .foldy-folder, .foldy-lore-folder')) {
+                    entryChanged = true;
+                    continue;
+                }
+                // Foldy or another extension can attach a new action after a
+                // row is ready. Move just those real buttons, not every row.
+                if (linkedMode && node.isConnected && node.matches('.foldy-lore-entry-actions, .foldy-move-to-folder')) {
+                    const owner = node.closest('.world_entry');
+                    if (owner?.dataset.slbDisplayReady === 'true') {
+                        syncEntryHeaderActions(owner);
+                    }
+                }
                 if (
                     node.matches(nativeHeaderAdditions)
                     || node.querySelector(nativeHeaderAdditions)
@@ -5045,7 +5083,8 @@ function createWorkspace() {
     const toolbar = workspace?.toolbar;
     const token = workspace?.tokenSection;
     const filter = workspace?.filterSection;
-    if (!isFoldyLinkedMode()
+    const linkedMode = isFoldyLinkedMode();
+    if (workspace?.foldyLinked === linkedMode
         && workspace?.entries === entries
         && state.observer
         && state.workspaceObserver
@@ -5093,7 +5132,7 @@ function createWorkspace() {
     if (state.workspace?.entries === entries) {
         Object.assign(state.workspace, {
             popup, book: currentBookName(), toolbar: selectionToolbar,
-            tokenSection, filterSection,
+            tokenSection, filterSection, foldyLinked: linkedMode,
         });
     }
     syncFilterButtons();
@@ -5209,9 +5248,13 @@ function syncEntryHeaderActions(entry) {
         child !== actions
         && child.classList?.contains('menu_button')
     ));
+    if (!foldyActions.length && !orphanActions.length && !foldyWrappers.length) return;
     actions.append(...foldyActions, ...orphanActions);
     foldyWrappers.forEach(wrapper => wrapper.remove());
-    if (foldyActions.length || orphanActions.length) scheduleResponsiveEntryLayouts();
+    // In Foldy mode the row already uses the compact title-only header.
+    // A moved folder action does not change the layout of unrelated rows.
+    // Real viewport/list width changes retain their shared resize path.
+    if (!isFoldyLinkedMode() && (foldyActions.length || orphanActions.length)) scheduleResponsiveEntryLayouts();
 }
 
 function observeResponsiveHeader(entry) {
@@ -8594,9 +8637,12 @@ function revealCompletedEntryList(book, entries, headersVerified = false) {
 function enhanceAll() {
     if (state.managerMode === 'native' || state.sorting || state.enhancing) return;
     const liveEntryList = document.getElementById('world_popup_entries_list');
-    bindFoldyFolderDeleteDrawerGuards(liveEntryList || document);
+    if (isFoldyLinkedMode() && (state.workspace?.entries !== liveEntryList || !state.workspace?.foldyLinked)) {
+        bindFoldyFolderDeleteDrawerGuards(liveEntryList || document);
+    }
     if (isFoldyLinkedMode() && liveEntryList?.classList.contains('foldy-lore-pending')) {
-        markFoldyLinkedPreparing();
+        // Foldy is preparing its own replacement fragment. Do not introduce
+        // another whole-list hide on a same-book update.
         return;
     }
     ensureCriticalLayoutStyles();

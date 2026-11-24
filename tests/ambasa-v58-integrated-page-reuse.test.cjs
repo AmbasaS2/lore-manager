@@ -163,14 +163,26 @@ test('missing observer bindings force repair instead of skipping workspace setup
     } finally { f.dom.window.close(); }
 });
 
-test('Foldy linked mode retains its original full workspace setup', () => {
+test('Foldy mode transition initializes once; 100 same-book folder/page changes reuse the workspace', () => {
     const f = fixture();
     try {
         f.build();
         f.setFoldy(true);
         f.build();
-        assert.equal(f.counts.section, 4, 'do not short-circuit Folder/Foldy layout');
+        assert.equal(f.counts.section, 4, 'mode transition retains full guard/setup');
         assert.equal(f.counts.bindEntries, 2);
+        for (let i = 0; i < 100; i++) f.build();
+        assert.equal(f.counts.section, 4);
+        assert.equal(f.counts.toolbar, 2);
+        assert.equal(f.counts.bindEntries, 2);
+        assert.equal(f.counts.popupObserver, 2);
+        assert.equal(f.counts.mobile, 2);
+        f.setBook('Next Book');
+        f.build();
+        assert.equal(f.counts.section, 6, 'book change repairs/rebinds');
+        f.setFoldy(false);
+        f.build();
+        assert.equal(f.counts.section, 8, 'leaving Foldy reinitializes mode');
     } finally { f.dom.window.close(); }
 });
 
@@ -179,7 +191,7 @@ test('paging optimization does not replace ST pagination, save, translation, or 
     assert.match(part, /enableNativeEntryDrag\(/);
     assert.match(part, /workspace\?\.entries === entries/);
     assert.match(part, /workspace\?\.book === currentBookName\(\)/);
-    assert.match(part, /!isFoldyLinkedMode\(\)/);
+    assert.match(part, /workspace\?\.foldyLinked === linkedMode/);
     assert.doesNotMatch(part, /cloneNode\(|replaceChildren\(/);
     assert.doesNotMatch(part, /setInterval\(|setTimeout\(|new MutationObserver\(/);
     assert.match(source, /function bindEntryDrawerLifecycle\(/);

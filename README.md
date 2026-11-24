@@ -4,7 +4,7 @@ A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverh
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.72 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.73 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저--ambasas2-포크) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -112,7 +112,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.72 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.73 (원작 1.4.85 기반)
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
