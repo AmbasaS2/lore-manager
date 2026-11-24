@@ -66,7 +66,7 @@ test('Chromium 4 themes x 3 viewports x 3 shelf row settings retain layout and l
                             const shell = document.querySelector('.slb-library-shell');
                             button.click();
                             const after = detail.getBoundingClientRect();
-                            const hidden = getComputedStyle(toc).display === 'none';
+                            const hidden = getComputedStyle(document.querySelector('#slb-library-people-contents')).display === 'none' && getComputedStyle(toc.querySelector('.slb-library-toc-heading')).display !== 'none';
                             const layoutRect = layout.getBoundingClientRect();
                             const shellRect = shell.getBoundingClientRect();
                             return {

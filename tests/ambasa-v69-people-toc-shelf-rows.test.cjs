@@ -135,7 +135,7 @@ test('in all 4 skins, selecting an individual reveals an actual directory TOC + 
                 'do not hide the only directory while no profile is selected');
             f.click('[data-action="entry"]');
             const toggle = f.q('[data-action="people-toc-toggle"]');
-            const toc = f.q('#slb-library-people-toc');
+            const toc = f.q('#slb-library-people-contents');
             const detail = f.q('.slb-library-person-profile .slb-library-detail-people');
             assert.ok(toggle && toc && detail, theme);
             assert.equal(toggle.getAttribute('aria-controls'), toc.id);
@@ -144,13 +144,13 @@ test('in all 4 skins, selecting an individual reveals an actual directory TOC + 
             const initialReads = f.stats.reads;
             toggle.click();
             assert.equal(toc.hidden, true);
-            assert.equal(toggle.textContent, '목차 펼치기');
+            assert.equal(toggle.querySelector('.slb-library-toc-chevron').textContent, '▾');
             assert.equal(toggle.getAttribute('aria-expanded'), 'false');
             assert.equal(f.q('.slb-library-person-profile .slb-library-detail-people'), detail,
                 'profile and open editors must survive TOC collapse');
             toggle.click();
             assert.equal(toc.hidden, false);
-            assert.equal(toggle.textContent, '목차 접기');
+            assert.equal(toggle.querySelector('.slb-library-toc-chevron').textContent, '▴');
             assert.equal(f.q('.slb-library-person-profile .slb-library-detail-people'), detail);
             assert.equal(f.stats.reads, initialReads);
             assert.equal(f.stats.writes, 0);
@@ -166,10 +166,10 @@ test('profile table of contents remains collapsed across paging, but is visible 
         f.click('[data-action="entry"]');
         f.click('[data-action="people-toc-toggle"]');
         f.click('[data-action="people-next"]');
-        assert.equal(f.q('#slb-library-people-toc').hidden, true);
+        assert.equal(f.q('#slb-library-people-contents').hidden, true);
         assert.ok(f.q('.slb-library-detail-people'));
         f.click('[data-action="people-back"]');
-        assert.equal(f.q('#slb-library-people-toc').hidden, false,
+        assert.equal(f.q('#slb-library-people-contents').hidden, false,
             'directory-only view must never disappear');
         f.click('[data-action="books"]');
         f.click('[data-action="select-book"]');
@@ -187,7 +187,7 @@ test('deep link selects matching UID with its TOC page, even among 240 names', a
         assert.equal(opened, true);
         const profile = f.q('.slb-library-detail-people');
         assert.ok(profile && profile.dataset.uid === '119');
-        const toc = f.q('#slb-library-people-toc');
+        const toc = f.q('#slb-library-people-contents');
         assert.ok(toc.querySelector('.slb-library-person-row[data-uid="119"]'));
         assert.equal(f.q('.slb-library-people-pages [data-action="page-jump"]').dataset.page, '24');
         assert.equal(f.stats.writes, 0);
@@ -207,5 +207,5 @@ test('CSS layout stays narrow-friendly, all TOC controls use same real data and 
     assert.match(index, /libraryShelfRows: 3/);
     assert.match(index, /getShelfRows: \(\) => getSettings\(\)\.libraryShelfRows/);
     assert.equal(JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')).version,
-        '1.4.85-ambasa.69');
+        '1.4.85-ambasa.70');
 });
