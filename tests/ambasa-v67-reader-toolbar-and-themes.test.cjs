@@ -50,7 +50,7 @@ test('memory has an accessible single-row TOC toggle in all four themes',async()
         try{
             await f.openBook();
             const toggle=f.q('[data-action="memory-toc-toggle"]');
-            const toc=f.q('#slb-library-memory-toc');
+            const toc=f.q('#slb-library-memory-contents');
             assert.ok(toggle && toc,theme);
             assert.equal(toggle.getAttribute('aria-expanded'),'true');
             assert.equal(toggle.getAttribute('aria-controls'),toc.id);
@@ -58,15 +58,15 @@ test('memory has an accessible single-row TOC toggle in all four themes',async()
             assert.ok(firstDetail,'memory content visible');
             toggle.click();
             assert.equal(toc.hidden,true);
-            assert.equal(toggle.textContent,'목차 펼치기');
+            assert.equal(toggle.querySelector('.slb-library-toc-chevron').textContent,'▾');
             assert.equal(toggle.getAttribute('aria-expanded'),'false');
             assert.equal(f.q('.slb-library-detail-memory'),firstDetail,'toggle must not rerender the actual diary or lose unsaved text');
             assert.equal(f.stats.reads,1);
             toggle.click();
             assert.equal(toc.hidden,false);
-            assert.equal(toggle.textContent,'목차 접기');
+            assert.equal(toggle.querySelector('.slb-library-toc-chevron').textContent,'▴');
             f.click('[data-action="memory-list-next"]');
-            assert.equal(f.q('#slb-library-memory-toc').hidden,false,'TOC stays expanded through pagination');
+            assert.equal(f.q('#slb-library-memory-contents').hidden,false,'TOC stays expanded through pagination');
             assert.equal(f.stats.writes,0);
             assert.equal(JSON.stringify(f.entries),f.initial);
         }finally{f.dom.window.close()}
@@ -82,10 +82,10 @@ test('a collapsed memory TOC stays collapsed while selecting a different page, b
         assert.equal(f.q('#slb-library-memory-toc').hidden,true);
         assert.equal(f.q('[data-action="memory-toc-toggle"]').getAttribute('aria-expanded'),'false');
         f.click('[data-action="memory-toc-toggle"]');
-        assert.equal(f.q('#slb-library-memory-toc').hidden,false);
+        assert.equal(f.q('#slb-library-memory-contents').hidden,false);
         f.click('[data-action="books"]');
         f.click('[data-action="select-book"]');await tick();
-        assert.equal(f.q('#slb-library-memory-toc').hidden,false);
+        assert.equal(f.q('#slb-library-memory-contents').hidden,false);
     }finally{f.dom.window.close()}
 });
 
@@ -162,5 +162,5 @@ test('CSS enforces narrow single-row pager, 330px fallback and shadowless theme-
     assert.doesNotMatch(part, /font-family|MutationObserver|ResizeObserver|setInterval|setTimeout/);
     assert.doesNotMatch(js, /setInterval\(/);
     assert.match(index, /libraryTheme: 'mac'/);
-    assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.69');
+    assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.70');
 });
