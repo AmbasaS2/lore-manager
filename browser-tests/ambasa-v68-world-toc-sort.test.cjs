@@ -50,6 +50,10 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                         const paper=q('.slb-library-index-paper');
                         const toggle=q('[data-action="world-toc-toggle"]');
                         const sort=q('.slb-library-order-select');
+                        // Sort lives inside the TOC: measure while it is visible,
+                        // BEFORE collapsing the TOC intentionally hides it.
+                        const sortWidth=sort.getBoundingClientRect().width;
+                        const sortVisible=getComputedStyle(sort).display!=='none';
                         const expanded=paper.getBoundingClientRect().width;
                         toggle.click();
                         return {
@@ -57,8 +61,7 @@ test('Chromium: all 4 world themes keep the article and use 62px sort in narrow/
                             hidden:getComputedStyle(toc).display==='none',
                             sameArticle:q('.slb-library-detail-world')===article,
                             fullPaper:paper.getBoundingClientRect().width>=expanded-1,
-                            sortWidth:sort.getBoundingClientRect().width,
-                            sortVisible:getComputedStyle(sort).display!=='none',
+                            sortWidth, sortVisible,
                             expanded,
                             collapsed:paper.getBoundingClientRect().width,
                         };
