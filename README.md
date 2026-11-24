@@ -10,14 +10,15 @@ The original extension provides the foundation for lorebook editing, translation
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="Independent lore library and memory reader; example lorebooks" width="860"></p>
 
-## Features
+## Who is this for?
 
-- The original integrated World Info editor: original/translated content, entry settings, keyword tools, token information and backups.
-- An independent lore library for browsing and reading existing SillyTavern lorebooks.
-- Four reading formats and four visual themes, with per-book categories, tags, covers and reference images.
-- AI connection-profile or Google translation, including multi-book batch translation.
-- Translation records stored separately from `settings.json`, in per-lorebook JSON files on the server.
-- Bounded reuse of recently visited native editor pages.
+- Players who want to read lorebook content without the native World Info editor's many setting fields.
+- Players with many character, memory and worldbuilding books who want to find the right book quickly.
+- Players who read or edit translations independently from original lore.
+- Users who find the integrated editor demanding on their device or server and prefer an independent reader.
+- Players who want multi-book translation, bulk entry editing, or a library styled as diaries, encyclopedias and character directories.
+
+The original editing, translation, token and backup tools are still available. If upstream works well for you, you do not have to switch.
 
 ## Installation
 
@@ -27,6 +28,22 @@ The original extension provides the foundation for lorebook editing, translation
 3. Reload SillyTavern. Open **Extensions → 로어북 매니저** to configure the extension or use the **로어북 매니저** item in the extension menu to open the library.
 
 Do not run the original and this fork together. When replacing an existing installation, preserve your data and replace only the extension code; do not use data reset or uninstall as a migration method. Based on SillyTavern 1.18; other versions and combinations of third-party extensions may behave differently. The interface currently uses Korean labels.
+
+## First setup: Extension settings
+
+Open **Extensions → 로어북 매니저**. Start by choosing how you want to open and read lorebooks; translation and backup are optional.
+
+| Settings section (current Korean UI) | What to configure |
+|---|---|
+| 번역 설정 (Translation) | AI connection profile or Google translation, AI output tokens, connection test, body/title/keyword translation, translation-first display, optional AI instructions, automatic translation and automatic application to the original. |
+| 화면 · 고급 설정 (Display / advanced) | Native editor, integrated editor or optional Foldy mode; open the independent library and filter books by the selected character. |
+| 통합 화면 표시 옵션 (Integrated editor display) | Show activation icons, token statistics, entry filters and bulk-edit toolbar. |
+| 로어북 백업 (Backup) | Automatic/manual browser backups, import/export backups, selected/all original JSONs as ZIP. |
+| 데이터 관리 (Data management) | Reset translations, backups or extension data. Do not use reset to migrate from upstream. Back up first. |
+
+**Just want to read your books?** Choose the native World Info screen and open the library from the extension menu. If you read translated lore, choose your translation provider and body translation; leave automatic reflection of edited translations into original text off unless you actually want that change.
+
+During RP, open the library → select a book and entry → read the original or translation → edit only if needed. In the library's own settings, choose the theme, shelf rows and linked-character filter; set each book's reading format inside that book.
 
 ## 1. Choose a display mode
 
@@ -118,14 +135,16 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
-## 주요 기능
+## 이런 분들께 추천합니다!
 
-- 기존 로어북 매니저의 통합 편집기, 원문·번역 관리, 호출 조건, 키워드 추천, 토큰 통계, 백업
-- 기존 로어북을 별도의 창에서 읽는 독립 서재
-- 로어북별 네 가지 보기 방식, 네 가지 테마, 태그와 표지·참고 이미지
-- AI 연결 프로필 또는 구글 번역, 여러 로어북 일괄 번역
-- 번역 저장소를 `settings.json`에서 분리하여 서버에 로어북별 JSON 파일로 저장
-- 최근 방문 페이지 재사용
+- 기본 월드 인포의 각종 설정 칸 없이 로어북 본문만 책처럼 읽고 싶은 분
+- 메모리북과 세계관 로어북이 많이 쌓여 원하는 책을 찾기 힘든 분
+- 영어 로어를 번역해서 읽거나 원문과 번역문을 따로 수정하고 싶은 분
+- 저사양 서버·기기에서 기존 로어북 매니저 통합 화면이 버거웠던 분
+- 여러 로어북을 한꺼번에 번역하거나 여러 항목의 발동 조건을 함께 수정하고 싶은 분
+- 일기장·인물록·백과사전 등 로어북 성격에 맞는 화면을 쓰고 싶은 분
+
+원작의 통합 편집, 번역, 토큰 계산, 백업 기능은 유지합니다. 원작을 잘 사용하고 있다면 꼭 포크로 바꿀 필요는 없습니다.
 
 ## 설치
 
@@ -134,6 +153,26 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 3. 새로고침한 뒤 확장 탭의 **로어북 매니저**에서 설정하거나, 확장 메뉴에서 **로어북 매니저**를 눌러 독립 서재를 엽니다.
 
 원작과 이 포크를 동시에 실행하지 마세요. 기존 설치에서 전환할 때는 데이터를 유지하고 확장 코드만 교체하세요. 삭제·전체 초기화를 전환 방법으로 사용하지 마세요. SillyTavern 1.18 기반이며 다른 버전 및 확장 조합에서는 동작이 다를 수 있습니다.
+
+## 처음 한 번: 확장 관리에서 설정하기
+
+확장 관리 → **로어북 매니저**를 펼쳐 주세요.
+
+| 설정 영역 | 설정할 수 있는 것 / 추천 사용법 |
+|---|---|
+| 번역 설정 | AI 전용 연결 프로필 또는 구글 번역(무료), AI 출력 토큰, 연결 테스트, 번역 대상(본문·제목·호출 키워드), 번역본 우선 표시, AI 번역 추가 지시, 자동 번역과 원문 자동 반영을 정합니다. |
+| 화면 · 고급 설정 | 기본 화면 / 통합 화면 / Foldy 연동 중 선택, 독립 서재 열기, 선택 캐릭터의 로어북만 표시 설정. |
+| 통합 화면 표시 옵션 | 제목 옆 발동 방식 아이콘, 토큰 통계, 항목 필터, 일괄 편집 버튼 표시. |
+| 로어북 백업 | 자동·수동 백업, 가져오기, 전체 백업 내보내기, 선택·전체 원본 JSON ZIP 내보내기. |
+| 데이터 관리 | 번역본·백업·확장 데이터 초기화. 기존 설치에서 전환할 때 사용하지 마세요. 초기화 전에 백업하세요. |
+
+**서재에서 읽기만 할 분**이라면 실리태번 기본 화면을 선택하고, 영어 로어를 번역할 분이라면 번역 방식과 본문 번역부터 설정하세요. 번역 수정 시 원문 자동 반영은 실제 로어를 함께 바꾸려는 경우에만 켜세요.
+
+### 평소 사용 방법
+
+RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원문 또는 번역 읽기 → 필요할 때 수정.
+
+서재 톱니바퀴에서 테마·표시 줄 수·캐릭터 연결 필터를 정하고, 책 안에서 메모리·인물록·백과사전·카드파일 중 보기 방식을 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
 
 ## 1. 화면 표시 방식
 
