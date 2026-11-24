@@ -179,7 +179,7 @@ test('three title-bar buttons share one final border, size, opacity and icon rul
     const f=await fixture();
     try{
         const actions=f.all('.slb-library-header-actions > button');
-        assert.deepEqual(actions.map(x=>x.dataset.action),['settings','minimize','close']);
+        assert.deepEqual(actions.map(x=>x.dataset.action),['minimize','settings','close']);
         const final=css.slice(css.lastIndexOf('/* ambasa.61:'));
         assert.match(final,/\.slb-library-settings-button,[\s\S]*\.slb-library-minimize-button,[\s\S]*\.slb-library-close\s*\{/);
         for(const re of [
