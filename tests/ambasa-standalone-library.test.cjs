@@ -132,7 +132,7 @@ test('start screen shows linked lorebooks only, with explicit all-books option; 
     } finally { f.dom.window.close(); }
 });
 
-test('catalog shows title-only overlapping stack OR one detail, with back/next/previous', async () => {
+test('catalog shows real title plus bounded source excerpt OR one detail with navigation', async () => {
     const f = fixture();
     try {
         const lib = await f.build();
@@ -141,9 +141,11 @@ test('catalog shows title-only overlapping stack OR one detail, with back/next/p
         assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 3);
         assert.equal(f.w.document.querySelectorAll('.slb-library-detail').length, 0);
         assert.match(f.w.document.querySelector('.slb-library-list-pages').getAttribute('aria-label'),/3개 항목/);
-        assert.equal(f.w.document.querySelector('.slb-library-catalog-card p'), null, 'cards contain only title');
-        const firstTitle=f.w.document.querySelector('.slb-library-catalog-card').textContent;
-        assert.equal(firstTitle, '번역 제목 0');
+        assert.equal(f.w.document.querySelector('.slb-library-catalog-card p'), null, 'excerpt does not add arbitrary prose markup');
+        assert.ok(f.w.document.querySelector('.slb-library-card-excerpt'), 'v72 real source excerpt appears on catalog card');
+        const firstCard=f.w.document.querySelector('.slb-library-catalog-card');
+        assert.equal(firstCard.querySelector('strong').textContent, '번역 제목 0');
+        assert.match(firstCard.querySelector('.slb-library-card-excerpt').textContent, /Original line 0/);
         f.click('[data-action="entry"][data-uid="0"]');
         assert.equal(f.w.document.querySelectorAll('.slb-library-catalog-card').length, 0,
             'list disappears while selected record is open');
