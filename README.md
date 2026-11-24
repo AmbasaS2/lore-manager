@@ -1,8 +1,8 @@
 # 📚 Lorebook Manager — AmbasaS2 fork
 
-A personal adaptation of **[Lorebook Manager (로어북 매니저) by 담은 / foreverharibo-boop](https://github.com/foreverharibo-boop/lore-manager)** for SillyTavern.
+A personal adaptation of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverharibo-boop/lore-manager)** for SillyTavern, made with the original author's permission.
 
-The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup. It is not an official update or a replacement recommendation for the original project.
+The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup. It is maintained separately to suit my own setup, rather than intended to replace the original project.
 
 **Current version:** 1.4.85-ambasa.72 · Based on upstream 1.4.85
 
@@ -99,10 +99,10 @@ These choices address my own usage pattern; they do not guarantee better perform
 ## Credits and license
 
 Original project: **로어북 매니저 / Lorebook Manager**  
-Original author and copyright: **© 2026 담은 (foreverharibo-boop)**  
-Original source: https://github.com/foreverharibo-boop/lore-manager
+Original author and copyright: see the preserved [NOTICE](NOTICE).  
+Original source: [Lorebook Manager](https://github.com/foreverharibo-boop/lore-manager)
 
-This is an unofficial adaptation maintained by AmbasaS2. Thank you to the original author for sharing the extension and making this work possible.
+This fork is maintained by AmbasaS2 with the original author's permission. Thank you to the original author for sharing the extension and allowing me to adapt it.
 
 Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). The original README is preserved in [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md), and changes to this fork are recorded in [AMBASA_FORK_NOTES.md](AMBASA_FORK_NOTES.md). The original author's request to keep public forks accessible is a voluntary request; applicable AGPL obligations remain unchanged.
 
@@ -110,7 +110,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 # 📚 로어북 매니저 — AmbasaS2 포크
 
-담은(foreverharibo-boop)님의 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 개인 사용 환경에 맞춰 수정한 비공식 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
+원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
 **현재 버전:** 1.4.85-ambasa.72 (원작 1.4.85 기반)
 
@@ -221,12 +221,12 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 ## 원작자 및 라이선스
 
 - 원작: **로어북 매니저**
-- 원작자: **담은 (foreverharibo-boop), © 2026**
-- 원작 저장소: https://github.com/foreverharibo-boop/lore-manager
+- 원작자 및 저작권: 원작자님 ([NOTICE](NOTICE)의 기존 저작권 고지 참조)
+- 원작 저장소: [로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)
 - 포크 관리: AmbasaS2
 
-이 확장의 기반을 만들어 공개해 주신 담은님께 감사드립니다. 원작과 별개의 개인 환경 맞춤 포크이며 공식 후속 버전이 아닙니다.
+이 확장의 기반을 만들어 공개해 주시고 수정과 공개를 허락해 주신 원작자님께 감사드립니다. 원작과 별도로 관리하는 개인 환경 맞춤 포크입니다.
 
 **AGPL-3.0-only** 라이선스를 따릅니다. [LICENSE](LICENSE)와 [NOTICE](NOTICE)를 확인해 주세요. [원작 README](docs/UPSTREAM_README.md)는 원문 그대로 보존했으며, 포크의 수정 이력은 [AMBASA_FORK_NOTES.md](AMBASA_FORK_NOTES.md)에 기록되어 있습니다. 공개 포크 유지에 관한 원작자의 요청은 자발적인 요청이며 AGPL의 의무는 그대로 적용됩니다.
 
-*안내 이미지는 실제 확장 화면을 예시 로어북 데이터로 렌더링한 것입니다.*
+*안내 이미지는 실제 한국어 확장 화면을 예시 로어북 데이터로 렌더링한 것이며, 설명 및 주요 UI 용어는 한영 병기로 표기합니다.*
