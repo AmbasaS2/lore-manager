@@ -79,7 +79,7 @@ test('a collapsed memory TOC stays collapsed while selecting a different page, b
         await f.openBook();
         f.click('[data-action="memory-toc-toggle"]');
         f.click('[data-action="diary-next"]');
-        assert.equal(f.q('#slb-library-memory-toc').hidden,true);
+        assert.equal(f.q('#slb-library-memory-contents').hidden,true);
         assert.equal(f.q('[data-action="memory-toc-toggle"]').getAttribute('aria-expanded'),'false');
         f.click('[data-action="memory-toc-toggle"]');
         assert.equal(f.q('#slb-library-memory-contents').hidden,false);
