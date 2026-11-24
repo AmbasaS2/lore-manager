@@ -105,7 +105,7 @@ test('normal/reverse and page-size selectors sit together on each of 16 theme/ty
                 assert.ok(size && order);
                 assert.equal(size.nextElementSibling, order);
                 assert.deepEqual([...order.options].map(x => x.textContent),
-                    ['목록순', '목록 역순', '제목 A–Z', '제목 Z–A']);
+                    ['목록순', '역순', '제목↑', '제목↓']);
                 assert.deepEqual([...order.options].map(x => x.value),
                     ['normal', 'reverse', 'title-asc', 'title-desc']);
                 assert.equal(order.value, 'normal');
