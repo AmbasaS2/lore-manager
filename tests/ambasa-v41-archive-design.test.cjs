@@ -34,12 +34,13 @@ async function fixture({n=4,translations={0:'번역본 0'}}={}){
  const click=s=>{const el=win.document.querySelector(s);assert.ok(el,'missing '+s);el.click()};
  return {library,dom,win,actions,click,translations};
 }
-test('new catalog shows title-only stacked records without a redundant type heading or duplicated detail',async()=>{
+test('new archive catalog shows title and bounded real excerpt without redundant heading or detail',async()=>{
  const f=await fixture({n:240});
  try{
    const d=f.win.document;
    assert.equal(d.querySelectorAll('.slb-library-catalog-card').length,5);
-   assert.equal(d.querySelector('.slb-library-catalog-card').childElementCount,1);
+   assert.equal(d.querySelector('.slb-library-catalog-card').childElementCount,2);
+   assert.ok(d.querySelector('.slb-library-catalog-card .slb-library-card-excerpt'));
    assert.equal(d.querySelector('.slb-library-catalog-card p'),null);
    assert.match(d.querySelector('.slb-library-list-pages').getAttribute('aria-label'),/240개 항목/);
    assert.equal(d.querySelectorAll('.slb-library-detail').length,0);

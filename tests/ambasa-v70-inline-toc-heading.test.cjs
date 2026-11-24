@@ -89,7 +89,7 @@ test('person directory-only mode retains its one CONTENTS title without a hide b
     } finally { f.dom.window.close(); }
 });
 test('all three TOC headings remain visible after hiding their content, with no watchers or book-data changes', () => {
-    const final = css.slice(css.lastIndexOf('/* ambasa.70'));
+    const final = css.slice(css.lastIndexOf('/* ambasa.70'), css.indexOf('/* ambasa.71'));
     assert.match(final, /slb-library-toc-heading/);
     assert.match(final, /#slb-library-memory-contents\[hidden\]/);
     assert.match(final, /#slb-library-people-contents\[hidden\]/);
@@ -98,5 +98,5 @@ test('all three TOC headings remain visible after hiding their content, with no 
     assert.match(js, /function inlineTocHeading\(/);
     assert.doesNotMatch(js, /setInterval\(/);
     assert.equal(JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')).version,
-        '1.4.85-ambasa.70');
+        '1.4.85-ambasa.71');
 });
