@@ -99,7 +99,7 @@ test('each type in each theme has one small 5 / page dropdown beside its content
                 assert.equal(select.value, '5');
                 assert.equal(select.getAttribute('aria-label'), '한 페이지에 표시할 항목 수');
                 assert.deepEqual([...select.options].map(option => option.textContent),
-                    ['5 / page', '10 / page', '20 / page']);
+                    ['5개', '10개', '20개']);
                 assert.ok(f.q(pager + ' .slb-library-page-navigation'));
                 assert.ok(f.q(pager + ' .slb-library-page-navigation > .slb-library-page-jump > small'));
                 assert.equal(f.all('.slb-library-page-size-select').length, 1);
