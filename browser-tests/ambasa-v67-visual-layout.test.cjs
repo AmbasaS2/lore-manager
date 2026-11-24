@@ -59,6 +59,9 @@ test('Chromium 4 themes x 4 readers x 3 widths: pager, settings layer and mini l
                             const options = pager?.querySelector('.slb-library-page-options');
                             const typeSelect = q('#slb-library-book-type');
                             const icons = q('.slb-library-type-arrows');
+                            // Capture geometry BEFORE minimizing hides the shell.
+                            const typeWidth = typeSelect?.getBoundingClientRect().width;
+                            const arrowsVisible = Boolean(icons && getComputedStyle(icons).display !== 'none');
                             const p1 = nav?.getBoundingClientRect(), p2 = options?.getBoundingClientRect();
                             const safePager = Boolean(pager && nav && options &&
                                 (p1.right <= p2.left + 1 || p2.top >= p1.bottom - 1) &&
@@ -76,8 +79,7 @@ test('Chromium 4 themes x 4 readers x 3 widths: pager, settings layer and mini l
                             const mini = q('.slb-library-minimized-launcher');
                             const miniStyle = getComputedStyle(mini);
                             return {
-                                safePager, typeWidth: typeSelect?.getBoundingClientRect().width,
-                                arrowsVisible: Boolean(icons && getComputedStyle(icons).display !== 'none'),
+                                safePager, typeWidth, arrowsVisible,
                                 settingsFront,
                                 minNoShadow: miniStyle.boxShadow === 'none' && miniStyle.filter === 'none',
                                 memoryToc: kind !== 'memory' || Boolean(q('[data-action="memory-toc-toggle"]')),
