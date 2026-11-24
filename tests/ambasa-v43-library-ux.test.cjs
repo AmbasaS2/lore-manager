@@ -54,7 +54,7 @@ test('settings gear sits before close button and panels stay closed until explic
  const f=await setup();
  try{
    const header=f.q('.slb-library-header-actions');
-   assert.deepEqual([...header.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['settings','minimize','close']);
+   assert.deepEqual([...header.querySelectorAll('[data-action]')].map(x=>x.dataset.action),['minimize','settings','close']);
    assert.equal(f.q('.slb-library-settings-panel').hidden,true);
    assert.equal(f.q('.slb-library-appearance').closest('.slb-library-navigation'),null);
    f.click('[data-action="settings"]');
