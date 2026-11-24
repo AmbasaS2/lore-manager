@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.68';
+const VERSION = '1.4.85-ambasa.69';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -127,6 +127,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryCleanVariant: 'mac',
     libraryLinkedOnly: true,
     libraryListPageSize: 5,
+    libraryShelfRows: 3,
     libraryListOrder: 'normal',
     libraryWindowSizes: {},
     autoBackupEnabled: false,
@@ -374,6 +375,8 @@ function getSettings() {
         settings.libraryTheme = 'antique';
     if (!['mac', 'blackberry'].includes(settings.libraryCleanVariant)) settings.libraryCleanVariant = 'mac';
     settings.libraryLinkedOnly = settings.libraryLinkedOnly !== false;
+    settings.libraryShelfRows = [1, 2, 3].includes(Number(settings.libraryShelfRows))
+        ? Number(settings.libraryShelfRows) : 3;
     settings.libraryListPageSize = [5, 10, 20].includes(Number(settings.libraryListPageSize))
         ? Number(settings.libraryListPageSize) : 5;
     if (!['normal', 'reverse', 'title-asc', 'title-desc'].includes(settings.libraryListOrder))
@@ -9597,6 +9600,16 @@ function initStandaloneLibrary() {
                 width: Math.round(size.width), height: Math.round(size.height),
             };
             saveSettingsDebounced();
+        },
+        getShelfRows: () => getSettings().libraryShelfRows,
+        setShelfRows: async value => {
+            if (![1, 2, 3].includes(value)) return;
+            const settings = getSettings(), previous = settings.libraryShelfRows;
+            settings.libraryShelfRows = value;
+            try { await saveSettings(); } catch (error) {
+                settings.libraryShelfRows = previous;
+                throw error;
+            }
         },
         getListPageSize: () => getSettings().libraryListPageSize,
         setListPageSize: async value => {

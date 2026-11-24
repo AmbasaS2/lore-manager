@@ -6366,3 +6366,81 @@
 #slb-library-overlay .slb-library-world-toc-toggle {
     white-space: nowrap;
 }
+
+
+/* ambasa.69 — user-configurable visible shelf rows (1/2/3) and an
+   optional people directory alongside a live profile, all in the existing
+   library scope. No native ST styles, fixed viewport assumptions or observers. */
+#slb-library-overlay .slb-library-settings-panel .slb-library-shelf-rows-setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    margin: 0 0 9px;
+    padding: 0 0 9px;
+    border-bottom: 1px solid var(--ll-line);
+    font-size: 11px !important;
+    color: var(--ll-ink);
+    line-height: 1.3;
+    white-space: nowrap;
+}
+#slb-library-overlay .slb-library-settings-panel .slb-library-shelf-rows-setting > span {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-settings-panel select.slb-library-shelf-rows-select {
+    display: block !important;
+    box-sizing: border-box !important;
+    flex: 0 0 103px !important;
+    width: 103px !important;
+    min-width: 103px !important;
+    max-width: 103px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    margin: 0 !important;
+    padding: 3px 5px !important;
+    border: 1px solid var(--ll-line) !important;
+    border-radius: 6px !important;
+    background: var(--ll-paper-light) !important;
+    color: var(--ll-ink) !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    appearance: auto !important;
+}
+/* A profile keeps its paged directory, just as a world article keeps its TOC.
+   On narrow floating windows stack the directory above the profile to avoid
+   squeezing either editor; on genuinely wide readers split into two columns. */
+#slb-library-overlay .slb-library-people-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+}
+#slb-library-overlay .slb-library-people-detail-layout > * {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+}
+#slb-library-overlay .slb-library-people-detail-layout .slb-library-person-directory[hidden] {
+    display: none !important;
+}
+#slb-library-overlay .slb-library-people-detail-layout:not(.is-people-toc-open) {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+#slb-library-overlay .slb-library-people-detail-layout .slb-library-person-row.is-selected {
+    background: var(--ll-warm);
+    color: var(--ll-ink);
+}
+#slb-library-overlay .slb-library-people-toc-toggle {
+    white-space: nowrap;
+}
+@container (min-width: 760px) {
+    #slb-library-overlay .slb-library-people-detail-layout.is-people-toc-open {
+        grid-template-columns: minmax(180px, 32%) minmax(0, 1fr);
+        align-items: start;
+    }
+}

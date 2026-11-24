@@ -124,7 +124,8 @@ test('all four people readers show five names then paginated arrows, preserving 
    assert.equal(f.q('.slb-library-people-pages small').textContent,'2 / 4');
    assert.deepEqual(f.qa('.slb-library-person-row').map(x=>x.dataset.uid),['5','6','7','8','9']);
    f.click('[data-action="entry"][data-uid="7"]');
-   assert.equal(f.qa('.slb-library-person-row').length,0);
+   assert.deepEqual(f.qa('.slb-library-person-row').map(x=>x.dataset.uid),['5','6','7','8','9']);
+   assert.ok(f.q('[data-action="people-toc-toggle"]'));
    assert.equal(f.q('.slb-library-detail-people').dataset.uid,'7');
    f.click('[data-action="people-back"]');
    assert.deepEqual(f.qa('.slb-library-person-row').map(x=>x.dataset.uid),['5','6','7','8','9']);

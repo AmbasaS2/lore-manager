@@ -152,7 +152,8 @@ test('people search uses concise names and opens one profile',async()=>{
   assert.equal(f.q('.slb-library-people-search'),null,'search is unified at the top');
   assert.equal(f.qa('.slb-library-person-row').length,5);
   f.click('[data-action="entry"][data-uid="1"]');
-  assert.equal(f.qa('.slb-library-person-row').length,0);
+  assert.equal(f.qa('.slb-library-person-row').length,5);
+  assert.ok(f.q('[data-action="people-toc-toggle"]'));
   assert.equal(f.q('.slb-library-detail-people').dataset.uid,'1');
  }finally{f.dom.window.close()}
 });
