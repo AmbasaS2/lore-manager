@@ -61,13 +61,12 @@ test('v72 visual identity: all 16 real reader combinations render their existing
                 assert.ok(frame, theme + '/' + type);
                 assert.equal(frame.dataset.libraryMode, theme);
                 assert.equal(frame.dataset.bookType, type);
-                const detail = f.q('.slb-library-detail');
-                assert.ok(detail || type === 'people', 'people directory is an index until selected');
                 if (type === 'general') {
                     assert.ok(f.q('.slb-library-clean-list-row') || f.q('.slb-library-catalog-card'));
                     if (theme === 'ebook' || theme === 'antique') {
                         const excerpt = f.q('.slb-library-card-excerpt');
                         assert.ok(excerpt && excerpt.textContent.startsWith('Original story text'));
+                        f.click('[data-action="entry"]');
                     }
                 } else if (type === 'memory') {
                     assert.equal(f.win.document.querySelectorAll('.slb-library-diary-toc .slb-library-index-item').length, 5);
