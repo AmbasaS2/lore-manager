@@ -157,7 +157,7 @@ test('world reference keeps the vertical searchable index visible beside its det
  }finally{f.dom.window.close()}
 });
 
-test('contacts show full-width searchable names then replace list with one profile and back',async()=>{
+test('contacts keep their searchable TOC beside a selected profile and retain back navigation',async()=>{
  const f=await setup({type:'people'});
  try{
    await f.load();
@@ -166,7 +166,8 @@ test('contacts show full-width searchable names then replace list with one profi
    f.input('#slb-library-search','Entry 18');
    assert.equal(f.all('.slb-library-person-row').length,1);
    f.click('[data-action="entry"][data-uid="18"]');
-   assert.equal(f.all('.slb-library-person-row').length,0);
+   assert.equal(f.all('.slb-library-person-row').length,1);
+   assert.ok(f.q('[data-action="people-toc-toggle"]'));
    assert.equal(f.q('.slb-library-detail-people').dataset.uid,'18');
    f.click('[data-action="people-back"]');
    assert.equal(f.all('.slb-library-person-row').length,1);
