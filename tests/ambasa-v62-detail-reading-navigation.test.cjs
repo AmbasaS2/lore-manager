@@ -158,6 +158,6 @@ test('detail pager CSS only changes reader controls; shared .61 title-bar border
     assert.match(segment, /width: 26px !important;/);
     assert.match(segment, /font-size: 11px !important;/);
     assert.doesNotMatch(segment, /#WorldInfo|\.world_entry\s*\{/);
-    assert.match(css, /\.slb-library-header-actions > button\.slb-library-close \{[\s\S]*border: 1px solid currentColor !important;/);
+    assert.match(css, /\.slb-library-header-actions > button\.slb-library-close \{[\s\S]*border-color: color-mix\(in srgb, currentColor 24%, transparent\) !important;/);
     assert.doesNotMatch(source, /setInterval\(/);
 });

@@ -50,6 +50,24 @@ test('real Chromium: v72 design renders all 16 themes/modes at 360/460/820px wit
                         document.querySelector('[data-action="select-book"]').click();
                     },{theme,type});
                     await page.waitForSelector('.slb-library-reader-frame',{timeout:5000});
+                    const headerButtons = await page.locator('.slb-library-top .slb-library-header-actions > button').evaluateAll(buttons => buttons.map(button => {
+                        const style = getComputedStyle(button);
+                        const color = document.createElement('canvas').getContext('2d');
+                        color.fillStyle = style.borderTopColor;
+                        color.fillRect(0,0,1,1);
+                        const alpha = color.getImageData(0,0,1,1).data[3];
+                        return { action: button.dataset.action, alpha, color: style.color, opacity: style.opacity,
+                            width: style.width, height: style.height, border: style.borderTopWidth };
+                    }));
+                    assert.deepEqual(headerButtons.map(button => button.action), ['minimize','settings','close']);
+                    for (const button of headerButtons) {
+                        assert.ok(Math.abs(button.alpha - 61) <= 1, JSON.stringify(button));
+                        assert.equal(button.opacity, '1');
+                        assert.equal(button.width, '27px');
+                        assert.equal(button.height, '27px');
+                        assert.equal(button.border, '1px');
+                        assert.equal(button.color, headerButtons[0].color);
+                    }
                     if (type==='people' || (type==='general' && ['ebook','antique'].includes(theme))) {
                         await page.locator('[data-action="entry"]').first().click();
                     }

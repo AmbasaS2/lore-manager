@@ -186,7 +186,8 @@ test('three title-bar buttons share one final border, size, opacity and icon rul
             /box-sizing:\s*border-box !important;/,
             /width:\s*27px !important;/,/min-width:\s*27px !important;/,
             /height:\s*27px !important;/,/min-height:\s*27px !important;/,
-            /border:\s*1px solid currentColor !important;/,
+            /border:\s*1px solid rgba\(128, 128, 128, \.24\) !important;/,
+            /border-color:\s*color-mix\(in srgb, currentColor 24%, transparent\) !important;/,
             /border-radius:\s*6px !important;/,/opacity:\s*1 !important;/,
         ])assert.match(final,re);
         assert.equal(actions.every(x=>x.querySelector('.fa-solid')),true);

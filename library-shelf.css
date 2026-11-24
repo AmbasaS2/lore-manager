@@ -5944,7 +5944,8 @@
     max-height: 27px !important;
     margin: 0 !important;
     padding: 0 !important;
-    border: 1px solid currentColor !important;
+    border: 1px solid rgba(128, 128, 128, .24) !important;
+    border-color: color-mix(in srgb, currentColor 24%, transparent) !important;
     border-radius: 6px !important;
     background: transparent;
     color: inherit !important;
