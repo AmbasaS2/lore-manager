@@ -6,7 +6,7 @@
 - **4테마×4보기:** 맥북 Finder/Notes/Dictionary/Contacts, 블랙베리 dark Hub/dark MemoPad/reference/address book, E북 전자잉크 발췌 카드/기록장/사전/인물 부록, 클래식 회청/가죽 사건 파일/제본 일지/탐험 지도책/인물 기록철. 독립 서재 frame의 실제 data-book-type에 CSS를 한정.
 - **메모리 수백 개:** 기존 수직 목차와 5/10/20개 페이지 옵션, 수백 개 로어 검색/정렬, 원문·번역 토글을 유지. 페이지 밖 수백 건은 렌더하지 않고, 가로 챕터 탭으로 변경하지 않음. v70 CONTENTS 목차 제목 옆 접기 화살표도 유지.
 - **실제 데이터:** 카드파일의 excerpt는 source 본문 110자 이내, 상세의 작은 키워드 칩은 실제 ST entry.key를 최대 6개 출력(표시 길이 최대 32자). 모두 textContent로 처리하고 데이터·UID/번역/이미지/설정/원문 저장/API 호출은 변경하지 않음.
-- **검증/범위:** library-shelf.css 범위 스킨 CSS와 library-shelf.js 시각 보조 렌더 두 곳만 국소 수정. index/manifest 버전·테스트 수정. 새 observer, polling, 타이머, 자동 AI 호출 없음. Node/JSDOM 16 조합과 240개 메모리, Chromium 48개 실제 조합 및 창폭 360/460/820px 검증 후 상태 갱신. 원본 native/Foldy 스타일/코드는 수정하지 않음.
+- **검증/범위:** library-shelf.css 범위 스킨 CSS와 library-shelf.js 시각 보조 렌더 두 곳만 국소 수정. index/manifest 버전·테스트 수정. 새 observer, polling, 타이머, 자동 AI 호출 없음. GitHub Actions Node22/JSDOM **전체 477/477 PASS**(신규 16조합·메모리 240개 페이징 포함), Chromium **5/5 suites PASS**(신규 4테마×4보기×360/460/820px=48 화면 반응형 + 기존 화면 회귀). 사용자가 지정한 글꼴을 강제로 덮어쓰는 v72 스타일 규칙 3개는 검사에서 발견해 제거했고, 과거 제목 전용 카드 테스트는 실사용 원문 발췌 표시/클릭 보존까지 검사하도록 변경. 원본 native/Foldy 스타일/코드는 수정하지 않음.
 - **롤백:** 코드 문제가 생기면 이전 .70 (9b93a4f7) 코드만 복원. 사용자 세계관 원본·번역 JSON·이미지·서가 크기/줄 수/테마 설정은 절대 삭제하지 않음. 누누 Windows ST/iOS Safari 활성 확장 조합 실환경 검증 별도.
 
 ## v1.4.85-ambasa.70 · 2026-11-24 · 목차 제목/접기 버튼 중복 제거
