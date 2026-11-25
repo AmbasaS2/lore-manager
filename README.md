@@ -36,11 +36,13 @@ The detailed sections below explain optional settings. Compatibility is version-
 
 ## Who is this for?
 
-- Players who want to read lorebook content without the native World Info editor's many setting fields.
-- Players with many character, memory and worldbuilding books who want to find the right book quickly.
-- Players who read or edit translations independently from original lore.
-- Users who find the integrated editor demanding on their device or server and prefer an independent reader.
-- Players who want multi-book translation, bulk entry editing, or a library styled as diaries, encyclopedias and character directories.
+- Read existing lorebooks in an independent library without the native editor's many settings, or keep the integrated/Foldy editing view.
+- Find books and entries by character, tags, favorites, original or saved translated title, keyword and body text; use covers, reference images and Resume Reading.
+- Choose four reading formats and four library themes independently, and move, resize or minimize the library.
+- Translate body, title and trigger keywords, edit original and translation separately, and translate multiple books or bulk-edit selected activation fields.
+- Inspect total, constant, selective and vectorized token statistics and filter entries by activation type in the integrated editor.
+- Create manual or automatic backups, restore into an existing or new lorebook, and export selected or all original books as ZIP.
+- Prefer an independent reader on a constrained device or server, without promising a universal speed improvement.
 
 The original editing, translation, token and backup tools are still available. If upstream works well for you, you do not have to switch.
 
@@ -130,6 +132,14 @@ Select body, title or keyword translation, and choose whether to display transla
 
 Use **로어북 일괄 번역** to select one or more books, translate missing entries or retranslate all selected entries. The running job can be canceled. Eligible short entries can be grouped for AI translation; request counts, time and cost depend on the provider and content.
 
+### Integrated editing: statistics and filters
+
+Open Extensions → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션. These controls apply on desktop and mobile: activation-type icons; total, constant, selective and vectorized token statistics plus entry count; all/constant/keyword/vector filters; and the bulk-edit toolbar for selected entries. These are book/editor statistics, not the actual injection total of the latest reply.
+
+### Backup and restore controls
+
+Open 로어북 백업 in extension settings. Use manual backup or optional automatic backups on open/edit. Import/export browser backup JSON, restore a selected backup into the current book (with a pre-restore safety backup), restore into a new book, export an individual snapshot, or delete a stored backup. Export selected/all original books as ZIP separately. Data reset can remove saved translations, local backups or all extension settings/cache without deleting original lorebooks; do not reset to migrate.
+
 ## 6. Storage, backup and performance
 
 - Original lorebooks remain in SillyTavern. Library categories, tags and image associations are display metadata.
@@ -189,12 +199,13 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ## 이런 분들께 추천합니다!
 
-- 기본 월드 인포의 각종 설정 칸 없이 로어북 본문만 책처럼 읽고 싶은 분
-- 메모리북과 세계관 로어북이 많이 쌓여 원하는 책을 찾기 힘든 분
-- 영어 로어를 번역해서 읽거나 원문과 번역문을 따로 수정하고 싶은 분
-- 저사양 서버·기기에서 기존 로어북 매니저 통합 화면이 버거웠던 분
-- 여러 로어북을 한꺼번에 번역하거나 여러 항목의 발동 조건을 함께 수정하고 싶은 분
-- 일기장·인물록·백과사전 등 로어북 성격에 맞는 화면을 쓰고 싶은 분
+- 복잡한 월드 인포 편집기 대신 독립 서재에서 로어를 읽거나 기존 통합 화면·Foldy를 함께 쓰고 싶은 분
+- 캐릭터·태그·즐겨찾기·표지·참고 이미지·이어 읽기로 방대한 로어를 정리하고, 원문과 저장 번역의 제목·키워드·본문을 검색하고 싶은 분
+- 카드파일·메모리·백과사전·인물록과 네 가지 서재 테마를 독립적으로 조합하고 창의 크기·위치를 조절하고 싶은 분
+- 본문·제목·호출 키워드를 번역하거나 원문과 번역을 따로 수정하고 여러 책을 일괄 번역·편집하고 싶은 분
+- 전체·상시 주입·선택 주입·벡터화 토큰과 항목 수를 확인하고 발동 방식에 따라 필터링하고 싶은 분
+- 자동·수동 백업, 현재 책 또는 새 책으로 복원, 원본 ZIP 내보내기를 사용하고 싶은 분
+- 저사양 서버·기기에서 통합 편집 화면 대신 기본 화면과 독립 서재를 사용하고 싶은 분
 
 원작의 통합 편집, 번역, 토큰 계산, 백업 기능은 유지합니다. 원작을 잘 사용하고 있다면 꼭 포크로 바꿀 필요는 없습니다.
 
@@ -289,6 +300,14 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 자동 번역과 원문 자동 반영은 각각 별도로 설정합니다. **항목 열 때 자동 번역**, **원문 변경 시 재번역**, **번역 수정 시 원문 자동 반영**의 상태를 확인한 후 사용하세요.
 
 **로어북 일괄 번역**에서는 여러 책을 선택해 미번역 항목만 번역하거나 전체를 재번역할 수 있습니다. 진행 중에는 취소할 수 있으며, AI 번역에서는 조건에 맞는 짧은 항목을 묶어 처리합니다. 번역 시간과 API 사용량은 모델·본문 길이 등에 따라 달라집니다.
+
+### 통합 화면의 토큰 통계·필터
+
+확장 관리 → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션에서 제목 옆 발동 방식 아이콘, 전체·상시 주입·선택 주입·벡터화 토큰 및 항목 수, 전체/상시/키워드/벡터 항목 필터, 일괄 편집 버튼을 켤 수 있습니다. PC·모바일 공통이며 이번 답변의 실제 주입 토큰과는 다른 통계입니다.
+
+### 백업과 복원 사용법
+
+로어북 백업 메뉴에서 수동 또는 선택적 자동 백업, JSON 가져오기·내보내기, 개별 백업의 현재 책 복원 또는 새 책 복원, 개별 내보내기와 삭제를 사용합니다. 현재 책 복원 직전에 안전 백업을 만들며 원본 JSON ZIP 내보내기는 별개입니다. 데이터 초기화는 원본 로어북을 지우지 않지만 저장한 번역·브라우저 백업·확장 설정과 캐시 등을 삭제할 수 있으므로 버전 교체에는 사용하지 마세요.
 
 ## 6. 저장과 백업
 
