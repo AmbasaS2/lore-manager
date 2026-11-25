@@ -1,4 +1,4 @@
-# 📚 Lorebook Manager — AmbasaS2 fork
+# 📚 Lorebook Manager
 
 A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverharibo-boop/lore-manager)** for SillyTavern, made with the original author's permission.
 
@@ -6,7 +6,7 @@ The original extension provides the foundation for lorebook editing, translation
 
 **Current version:** 1.4.85-ambasa.77 · Based on upstream 1.4.85
 
-[한국어 안내 ↓](#-로어북-매니저--ambasas2-포크) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
+[한국어 안내 ↓](#-로어북-매니저) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="Independent lore library and memory reader; example lorebooks" width="860"></p>
 
@@ -27,7 +27,8 @@ The original extension provides the foundation for lorebook editing, translation
 
 ### Works alone, better together
 
-The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
+> [!TIP]
+> The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
 
 [STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo) · [Four-extension workflow guide (Korean, bilingual diagrams)](https://app.notion.com/p/423a96b06fd48147be13ec0929ee088d)
 
@@ -156,7 +157,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ---
 
-# 📚 로어북 매니저 — AmbasaS2 포크
+# 📚 로어북 매니저
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
@@ -179,7 +180,8 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ### 단독으로도 충분하고, 함께 쓰면 더 편리합니다
 
-AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
+> [!TIP]
+> AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
 
 [STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo) · [4개 확장 연동 사용설명서](https://app.notion.com/p/423a96b06fd48147be13ec0929ee088d)
 
