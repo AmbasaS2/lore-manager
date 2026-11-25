@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.77';
+const VERSION = '1.4.85-ambasa.78';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -129,6 +129,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryListPageSize: 5,
     libraryShelfRows: 3,
     libraryListOrder: 'normal',
+    libraryMemoryView: 'timeline',
     libraryWindowSizes: {},
     libraryFavorites: [],
     libraryRecent: null,
@@ -384,6 +385,8 @@ function getSettings() {
         ? Number(settings.libraryListPageSize) : 5;
     if (!['normal', 'reverse', 'title-asc', 'title-desc'].includes(settings.libraryListOrder))
         settings.libraryListOrder = 'normal';
+    if (!['continuous', 'timeline', 'page'].includes(settings.libraryMemoryView))
+        settings.libraryMemoryView = 'timeline';
     if (!settings.libraryWindowSizes || typeof settings.libraryWindowSizes !== 'object'
         || Array.isArray(settings.libraryWindowSizes)) settings.libraryWindowSizes = {};
     if (!Array.isArray(settings.libraryFavorites)) settings.libraryFavorites = [];
@@ -9769,6 +9772,16 @@ function initStandaloneLibrary() {
             settings.libraryListPageSize = value;
             try { await saveSettings(); } catch (error) {
                 settings.libraryListPageSize = previous;
+                throw error;
+            }
+        },
+        getMemoryView: () => getSettings().libraryMemoryView,
+        setMemoryView: async value => {
+            if (!['continuous', 'timeline', 'page'].includes(value)) return;
+            const settings = getSettings(), previous = settings.libraryMemoryView;
+            settings.libraryMemoryView = value;
+            try { await saveSettings(); } catch (error) {
+                settings.libraryMemoryView = previous;
                 throw error;
             }
         },

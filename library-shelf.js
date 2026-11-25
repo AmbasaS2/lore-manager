@@ -85,6 +85,27 @@ function dateLabel(title) {
     return found ? found[0].replace(/[./]/g, '-') : '';
 }
 
+// A timeline is a view of stored data, never a new AI-generated summary.
+export function memoryTimelinePreview(content, title = '') {
+    const text = String(content || '').trim();
+    const lines = text.split(/\r?\n/u);
+    const heading = line => line.trim().replace(/^#{1,6}\s+/u, '').replace(/\*\*|__/gu, '').trim();
+    const dateLine = lines.map(heading).find(line => /^(?:Timeline|타임라인|시간선|시간대|일시|날짜)\s*[:：]/iu.test(line));
+    const marker = dateLine?.replace(/^[^:：]+[:：]\s*/u, '').trim() || '';
+    const date = marker && !/^(?:unknown|not established|미상|알 수 없음|불명|미확인)[.!]?$/iu.test(marker)
+        ? marker : dateLabel(title);
+    const resultIndex = lines.findIndex(line => /^(?:Result|결과|결말)\s*(?:[:：].*)?$/iu.test(heading(line)));
+    if (resultIndex >= 0) {
+        const sameLine = heading(lines[resultIndex]).replace(/^(?:Result|결과|결말)\s*[:：]?\s*/iu, '');
+        const result = sameLine || lines.slice(resultIndex + 1).find(line => line.trim())?.trim() || '';
+        if (result) return { date, text: result, isResult: true };
+    }
+    const plain = lines.filter(line => !/^(?:Timeline|타임라인|시간선|시간대|일시|날짜)\s*[:：]/iu.test(heading(line))
+        && !/^(?:Scene|장면|씬)\s*[:：]?$/iu.test(heading(line))).join(' ').replace(/\s+/gu, ' ').trim();
+    const prefix = Array.from(plain.slice(0, 400));
+    return { date, text: prefix.length > 200 ? prefix.slice(0, 200).join('') + '…' : plain, isResult: false };
+}
+
 export function createStandaloneLibrary({
     document: doc,
     listBooks,
@@ -120,6 +141,8 @@ export function createStandaloneLibrary({
     getListPageSize = () => 5,
     setListPageSize = async () => {},
     getListOrder = () => 'normal',
+    getMemoryView = () => 'page',
+    setMemoryView = async () => {},
     setListOrder = async () => {},
     getCleanVariant = () => 'mac',
     setCleanVariant = async () => {},
@@ -173,6 +196,18 @@ export function createStandaloneLibrary({
     let shelfType = 'all';
     let shelfQuery = '';
     let diaryIndex = 0;
+    const memoryViews = ['continuous', 'timeline', 'page'];
+    const preferredMemoryView = () => {
+        const value = getMemoryView();
+        return memoryViews.includes(value) ? value : 'page';
+    };
+    let memoryView = preferredMemoryView();
+    let memoryStreamStart = 0;
+    let memoryStreamEnd = 0;
+    function resetMemoryStream() {
+        memoryStreamStart = Math.floor(diaryIndex / libraryPageSize()) * libraryPageSize();
+        memoryStreamEnd = memoryStreamStart + libraryPageSize();
+    }
     let worldQuery = '';
     let peopleQuery = '';
     let settingsOpen = false;
@@ -351,7 +386,7 @@ export function createStandaloneLibrary({
         renderBook();
         overlay?.querySelector('[data-action="page-jump"][data-prefix="' + prefix + '"]')?.focus?.();
     }
-    function pageButtons(actionPrefix, page, total, label) {
+    function pageButtons(actionPrefix, page, total, label, includeOptions = true) {
         const info = pageData(total, page);
         const pager = element(doc, 'nav', 'slb-library-list-pages');
         pager.setAttribute('aria-label', label + ' 페이지 · ' + total + '개 항목');
@@ -361,8 +396,8 @@ export function createStandaloneLibrary({
         const next = button(doc, '', '›', actionPrefix + '-next');
         next.disabled = info.page >= info.pageCount - 1;
         next.setAttribute('aria-label', '다음 ' + label);
-        pager.append(pageNavigation(previous, (info.page + 1) + ' / ' + info.pageCount, next),
-            pageOptions());
+        pager.append(pageNavigation(previous, (info.page + 1) + ' / ' + info.pageCount, next));
+        if (includeOptions) pager.append(pageOptions());
         return pager;
     }
     function libraryTheme() {
@@ -832,7 +867,7 @@ export function createStandaloneLibrary({
         // Only the journal depends on the reader's actual width for its
         // record count. Reuse the loaded entries, never reload or auto-save.
         // Do not replace an editor/unfinished upload in progress.
-        if (currentData && getType(currentBook) === 'memory'
+        if (currentData && getType(currentBook) === 'memory' && memoryView === 'page'
             && !edit && !tagSaving && !saving && !pendingImages.size
             && diaryStep() !== diaryPageCount) {
             const body = overlay.querySelector('.slb-library-body');
@@ -1234,6 +1269,7 @@ export function createStandaloneLibrary({
             worldTocPage = 0;
             diaryTocPage = 0;
             peoplePage = 0;
+            resetMemoryStream();
             if (currentData) renderBook();
         } catch (error) {
             notifyStatus('목록 표시 개수 저장 실패: ' + (error?.message || error), 'error');
@@ -1267,6 +1303,7 @@ export function createStandaloneLibrary({
             catalogPage = 0;
             diaryTocPage = 0;
             diaryIndex = 0;
+            resetMemoryStream();
             worldTocPage = 0;
             peoplePage = 0;
             selectedUid = null;
@@ -1802,6 +1839,9 @@ export function createStandaloneLibrary({
         entries = [];
         selectedUid = null;
         diaryIndex = 0;
+        memoryView = preferredMemoryView();
+        memoryTocCollapsed = memoryView !== 'page';
+        resetMemoryStream();
         worldQuery = '';
         peopleQuery = '';
         worldTocPage = 0;
@@ -2024,13 +2064,16 @@ export function createStandaloneLibrary({
             inner.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
             return;
         }
-        if (type === 'memory') renderDiary(inner, found);
+        if (type === 'memory') {
+            renderMemoryViewControls(inner);
+            renderDiary(inner, found);
+        }
         else if (type === 'world') renderIndex(inner, found, 'world');
         else if (type === 'people') renderPeople(inner, found);
         else if (['mac', 'blackberry'].includes(libraryTheme())) renderCleanCatalog(inner, found);
         else renderCatalog(inner, found);
         const firstDetail = body.querySelector('.slb-library-detail');
-        const uid = firstDetail?.dataset.uid;
+        const uid = type === 'memory' ? found[diaryIndex]?.uid?.toString() : firstDetail?.dataset.uid;
         if (uid != null && !suppressRecent && (recent?.book !== currentBook || recent.uid !== uid)) {
             recent = { book: currentBook, uid };
             setRecent(recent);
@@ -2122,6 +2165,131 @@ export function createStandaloneLibrary({
             || doc.defaultView.innerWidth || 1024;
         return getTheme() === 'antique' && readerWidth > 710 ? 2 : 1;
     }
+    function renderMemoryViewControls(body) {
+        const bar = element(doc, 'div', 'slb-library-memory-views');
+        bar.setAttribute('role', 'group');
+        bar.setAttribute('aria-label', '메모리 열람 방식');
+        for (const [mode, label] of [['continuous', '연속 기록장'], ['timeline', '타임라인'], ['page', '페이지 넘김']]) {
+            const control = button(doc, '', label, 'memory-view');
+            control.dataset.mode = mode;
+            control.setAttribute('aria-pressed', String(memoryView === mode));
+            bar.append(control);
+        }
+        if (memoryView !== 'page') bar.append(pageOptions());
+        body.append(bar);
+    }
+    function memoryRecord(entry, index) {
+        const uid = String(entry.uid);
+        const record = element(doc, 'section', 'slb-library-memory-record');
+        record.dataset.uid = uid;
+        const translated = translationFor(currentBook, entry) || {};
+        const view = entryReadViews.get(uid) || (translated.text ? 'translated' : 'source');
+        const preview = memoryTimelinePreview(view === 'translated' && translated.text ? translated.text : entry.content, entry.comment);
+        const head = element(doc, 'header', 'slb-library-memory-record-heading');
+        head.append(element(doc, 'small', 'slb-library-memory-date',
+            '기록 ' + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '')));
+        head.append(element(doc, 'h3', '', titleOf(entry)));
+        record.append(head);
+        if (memoryView === 'continuous') {
+            record.append(renderDetail(entry, 'memory'));
+        } else {
+            const text = element(doc, 'p', 'slb-library-memory-preview', preview.text || '본문이 비어 있습니다.');
+            if (!preview.isResult) record.append(element(doc, 'small', 'slb-library-memory-excerpt-label', '본문 미리보기'));
+            record.append(text);
+            const open = button(doc, 'slb-library-memory-open', '전문 읽기 ›', 'memory-open-page', uid);
+            open.dataset.index = String(index);
+            record.append(open);
+        }
+        return record;
+    }
+    function renderMemoryStream(body, found) {
+        const size = libraryPageSize();
+        if (memoryStreamEnd <= memoryStreamStart || diaryIndex < memoryStreamStart || diaryIndex >= memoryStreamEnd) resetMemoryStream();
+        memoryStreamStart = Math.max(0, Math.min(memoryStreamStart, Math.floor((found.length - 1) / size) * size));
+        memoryStreamEnd = Math.min(found.length, Math.max(memoryStreamStart + size, memoryStreamEnd));
+        const previous = button(doc, 'slb-library-memory-more', '이전 기록 더 보기', 'memory-more-prev');
+        previous.hidden = memoryStreamStart === 0;
+        const list = element(doc, 'div', 'slb-library-memory-stream slb-library-memory-' + memoryView);
+        for (let i = memoryStreamStart; i < memoryStreamEnd; i++) list.append(memoryRecord(found[i], i));
+        const more = button(doc, 'slb-library-memory-more', '더 보기', 'memory-more');
+        more.hidden = memoryStreamEnd >= found.length;
+        const count = element(doc, 'small', 'slb-library-memory-count',
+            (memoryStreamStart + 1) + '–' + memoryStreamEnd + ' / ' + found.length);
+        body.append(previous, list, count, more);
+    }
+    function extendMemoryStream(previous) {
+        const found = filtered();
+        const list = overlay?.querySelector('.slb-library-memory-stream');
+        if (!list || memoryView === 'page') return;
+        const oldStart = memoryStreamStart, oldEnd = memoryStreamEnd;
+        const nextStart = previous ? Math.max(0, oldStart - libraryPageSize()) : oldStart;
+        const nextEnd = previous ? oldEnd : Math.min(found.length, oldEnd + libraryPageSize());
+        if (nextStart === oldStart && nextEnd === oldEnd) return;
+        const fragment = doc.createDocumentFragment();
+        const start = previous ? nextStart : oldEnd;
+        const end = previous ? oldStart : nextEnd;
+        for (let i = start; i < end; i++) fragment.append(memoryRecord(found[i], i));
+        const scroller = overlay.querySelector('.slb-library-body');
+        const priorHeight = previous ? scroller.scrollHeight : 0;
+        const priorTop = previous ? scroller.scrollTop : 0;
+        if (previous) list.prepend(fragment); else list.append(fragment);
+        memoryStreamStart = nextStart;
+        memoryStreamEnd = nextEnd;
+        overlay.querySelector('[data-action="memory-more-prev"]').hidden = nextStart === 0;
+        overlay.querySelector('[data-action="memory-more"]').hidden = nextEnd >= found.length;
+        overlay.querySelector('.slb-library-memory-count').textContent = (nextStart + 1) + '–' + nextEnd + ' / ' + found.length;
+        if (previous) scroller.scrollTop = priorTop + scroller.scrollHeight - priorHeight;
+    }
+    function memoryAnchorIndex() {
+        if (memoryView === 'page') return diaryIndex;
+        const scroller = overlay?.querySelector('.slb-library-body');
+        if (!scroller) return diaryIndex;
+        const top = Math.max(scroller.getBoundingClientRect().top,
+            scroller.querySelector('.slb-library-memory-views')?.getBoundingClientRect().bottom || 0);
+        // Measure only on an explicit view switch, not on scrolling or chat events.
+        const records = [...scroller.querySelectorAll('.slb-library-memory-record')];
+        const visible = records.find(record => record.getBoundingClientRect().bottom > top);
+        return visible ? memoryStreamStart + records.indexOf(visible) : diaryIndex;
+    }
+    function scrollMemoryAnchor() {
+        if (diaryIndex === 0) {
+            overlay.querySelector('.slb-library-body').scrollTop = 0;
+            return;
+        }
+        const uid = String(filtered()[diaryIndex]?.uid ?? '');
+        if (!uid) return;
+        const record = [...overlay.querySelectorAll('.slb-library-memory-record, .slb-library-diary-page')]
+            .find(node => node.dataset.uid === uid);
+        record?.scrollIntoView?.({ block: 'start', behavior: 'auto' });
+    }
+    async function changeMemoryView(mode, index = null, persist = true) {
+        if (!memoryViews.includes(mode) || (memoryView === mode && index === null)
+            || !discardOrStay({ allowTags: true })) return;
+        const found = filtered();
+        if (!found.length) return;
+        const targetIndex = index ?? memoryAnchorIndex();
+        if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= found.length) return;
+        const previous = memoryView;
+        const book = currentBook;
+        if (persist) {
+            appearanceSaving = true;
+            try { await setMemoryView(mode); }
+            catch (error) {
+                notifyStatus('메모리 보기 저장 실패: ' + (error?.message || error), 'error');
+                return;
+            } finally { appearanceSaving = false; }
+            if (!isOpen() || currentBook !== book || memoryView !== previous) return;
+        }
+        closeReaderTools();
+        resetEdit();
+        memoryView = mode;
+        if (mode !== 'page' && previous === 'page') memoryTocCollapsed = true;
+        diaryIndex = targetIndex;
+        diaryTocPage = Math.floor(diaryIndex / libraryPageSize());
+        resetMemoryStream();
+        renderBook();
+        scrollMemoryAnchor();
+    }
     function renderDiary(body, found) {
         diaryIndex = Math.min(Math.max(0, diaryIndex), found.length - 1);
         const info = pageData(found.length, diaryTocPage);
@@ -2144,9 +2312,13 @@ export function createStandaloneLibrary({
                 element(doc, 'span', '', titleOf(entry)));
             index.append(item);
         }
-        contents.append(index, pageButtons('memory-list', info.page, found.length, '기록 목차'));
+        contents.append(index, pageButtons('memory-list', info.page, found.length, '기록 목차', memoryView === 'page'));
         frame.append(contents);
         body.append(frame);
+        if (memoryView !== 'page') {
+            renderMemoryStream(body, found);
+            return;
+        }
         const journal = element(doc, 'div', 'slb-library-journal');
         const numberOfPages = diaryPageCount = diaryStep();
         for (const [offset, entry] of found.slice(diaryIndex, diaryIndex + numberOfPages).entries()) {
@@ -2780,14 +2952,22 @@ export function createStandaloneLibrary({
                 diaryTocPage = Math.max(0, Math.min(jumpTo(diaryTocPage), lastPage));
             }
             renderBook();
+        } else if (action === 'memory-view') {
+            void changeMemoryView(target.dataset.mode);
+        } else if (action === 'memory-open-page') {
+            void changeMemoryView('page', Number(target.dataset.index), false);
+        } else if (action === 'memory-more' || action === 'memory-more-prev') {
+            extendMemoryStream(action === 'memory-more-prev');
         } else if (action === 'diary-entry') {
             if (!discardOrStay({ allowTags: true })) return;
             const nextIndex = Number(target.dataset.index);
             if (!Number.isInteger(nextIndex) || nextIndex < 0 || nextIndex >= filtered().length) return;
             diaryIndex = nextIndex;
+            if (nextIndex < memoryStreamStart || nextIndex >= memoryStreamEnd) resetMemoryStream();
             diaryTocPage = Math.floor(nextIndex / libraryPageSize());
             resetEdit();
             renderBook();
+            if (memoryView !== 'page') scrollMemoryAnchor();
         } else if (action === 'catalog-prev') shiftCatalog(-1);
         else if (action === 'catalog-next') shiftCatalog(1);
         else if (action === 'catalog-first' || action === 'catalog-last') {
@@ -2937,6 +3117,7 @@ export function createStandaloneLibrary({
         selectedUid = null;
         catalogPage = 0;
         diaryIndex = 0;
+        resetMemoryStream();
         diaryTocPage = 0;
         worldTocPage = 0;
         peoplePage = 0;
@@ -2995,6 +3176,8 @@ export function createStandaloneLibrary({
         selectedUid = entryUid;
         catalogPage = diaryTocPage = worldTocPage = peoplePage = page;
         diaryIndex = index;
+        resetMemoryStream();
+        if (getType(currentBook) === 'memory' && memoryView === 'timeline') memoryView = 'page';
         renderBook();
         overlay.querySelector('.slb-library-detail[data-uid="' + entryUid + '"]')
             ?.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
@@ -3030,6 +3213,9 @@ export function createStandaloneLibrary({
         diaryTocPage = 0;
         movedByUser = false;
         diaryIndex = 0;
+        memoryView = preferredMemoryView();
+        memoryTocCollapsed = memoryView !== 'page';
+        resetMemoryStream();
         worldQuery = '';
         peopleQuery = '';
         settingsOpen = false;
