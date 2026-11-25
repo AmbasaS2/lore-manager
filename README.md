@@ -10,6 +10,10 @@ The original extension provides the foundation for lorebook editing, translation
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="Independent lore library and memory reader; example lorebooks" width="860"></p>
 
+**One extension, two ways to use it.** Keep SillyTavern's native editor if you only want the independent library. Use the integrated editor if you also want the original batch-editing and translation tools.
+
+[한국어 Notion 사용 설명서](https://app.notion.com/p/422a96b06fd48160a2a6f0a9bbffb073)
+
 ## Who is this for?
 
 - Players who want to read lorebook content without the native World Info editor's many setting fields.
@@ -61,7 +65,7 @@ The independent library is separate from these choices.
 
 Open the library from the extension menu or the settings panel. Search and filter books by tags or show books linked to the current character. If no linked books are found, the linked-only view falls back to all books.
 
-Use the book tag panel to mark favorites; favorited books appear first in the shelf. Open the shelf magnifier to reveal a field on its left, enter a term, then press the same magnifier or Enter. Click outside the search controls to dismiss the field. Shelf search includes book names and original/saved translated titles, keywords and content (up to 100 entry results, no AI calls). The same submit-only search inside a book searches that book. Resume Reading is available in the shelf settings menu. Native-editor entry jumps respect the current search/filter and sort; clear filters if the entry is hidden. Foldy retains its own page navigation.
+Use the book tag panel to mark favorites; favorited books appear first in the shelf. Open the shelf magnifier to reveal a field on its left, enter a term, then press the same magnifier or Enter. Click outside the search controls or press Escape to dismiss the field. Typing alone does not search; submit with Enter or the same magnifier. Shelf search includes book names and original/saved translated titles, keywords and content (up to 100 entry results, no AI calls). The same submit-only search inside a book searches that book. Resume Reading is available in the shelf settings menu. Native-editor entry jumps respect the current search/filter and sort; clear filters if the entry is hidden. Foldy retains its own page navigation.
 
 Choose a reading format for each book:
 
@@ -137,6 +141,10 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
+**서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
+
+[한국어 Notion 사용 설명서](https://app.notion.com/p/422a96b06fd48160a2a6f0a9bbffb073)
+
 ## 이런 분들께 추천합니다!
 
 - 기본 월드 인포의 각종 설정 칸 없이 로어북 본문만 책처럼 읽고 싶은 분
@@ -192,7 +200,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 확장 메뉴 또는 설정의 **독립 서재 열기**에서 실행합니다. 책을 검색하거나 태그로 필터링할 수 있습니다. 현재 캐릭터에 연결된 로어북만 볼 수도 있으며 연결된 책이 없다면 전체 목록을 표시합니다.
 
-책 태그 패널에서 즐겨찾기를 설정하면 서재 상단에 우선 표시됩니다. 서가 돋보기를 누르면 왼쪽에 같은 줄로 입력창이 나타납니다. 검색어를 입력한 뒤 같은 돋보기 또는 엔터로 검색하며, 바깥을 누르면 입력창이 닫힙니다. 서가는 책 이름과 전체 책의 원문·저장된 번역 제목·키워드·본문을 검색하고(항목 결과 최대 100개, AI 호출 없음), 책 내부에서는 같은 방식으로 해당 책만 검색합니다. 이어 읽기는 서가 설정 메뉴에서 사용할 수 있습니다. 원본 편집기 이동은 현재 정렬과 검색·필터를 따르며, 항목이 숨겨져 있다면 필터를 해제해야 합니다. Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
+책 태그 패널에서 즐겨찾기를 설정하면 서재 상단에 우선 표시됩니다. 서가 돋보기를 누르면 왼쪽에 같은 줄로 입력창이 나타납니다. 검색어를 입력한 뒤 같은 돋보기 또는 엔터로 검색하며, 바깥을 누르거나 Esc를 누르면 입력창이 닫힙니다. 입력하는 동안 검색하지 않고 엔터 또는 같은 돋보기로 제출할 때만 검색합니다. 서가는 책 이름과 전체 책의 원문·저장된 번역 제목·키워드·본문을 검색하고(항목 결과 최대 100개, AI 호출 없음), 책 내부에서는 같은 방식으로 해당 책만 검색합니다. 이어 읽기는 서가 설정 메뉴에서 사용할 수 있습니다. 원본 편집기 이동은 현재 정렬과 검색·필터를 따르며, 항목이 숨겨져 있다면 필터를 해제해야 합니다. Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="카드파일·메모리·백과사전·인물록 · 예시 데이터" width="860"></p>
 
