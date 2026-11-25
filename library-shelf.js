@@ -576,7 +576,7 @@ export function createStandaloneLibrary({
         if (!isOpen() || coverEditor) return;
         const target = event.target;
         if (shelfSearchOpen && !target.closest?.('.slb-library-books-head')) closeShelfSearch();
-        if (readerSearchOpen && !target.closest?.('.slb-library-reader-search-toggle, .slb-library-reader-search-panel')) closeReaderSearch();
+        if (readerSearchOpen && !target.closest?.('.slb-library-reader-search-anchor')) closeReaderSearch();
     }
     function cancelCoverLongPress() {
         if (coverLongPressTimer !== null) doc.defaultView.clearTimeout(coverLongPressTimer);
@@ -706,8 +706,6 @@ export function createStandaloneLibrary({
         search.placeholder = '검색';
         search.setAttribute('aria-label', '로어북 내 검색');
         search.setAttribute('enterkeyhint', 'search');
-        const readerSearchPanel = element(doc, 'div', 'slb-library-search-panel slb-library-reader-search-panel');
-        readerSearchPanel.append(searchField(search, 'submit-reader-search', '현재 로어북 검색 실행'));
         const navTools = element(doc, 'div', 'slb-library-nav-tools');
         const searchToggle = button(doc, 'slb-library-reader-search-toggle', '', 'reader-search-toggle');
         searchToggle.append(faIcon(doc, 'magnifying-glass'));
@@ -715,7 +713,9 @@ export function createStandaloneLibrary({
         searchToggle.setAttribute('title', '검색');
         searchToggle.setAttribute('aria-controls', 'slb-library-search');
         searchToggle.setAttribute('aria-expanded', 'false');
-        navTools.append(filters, searchToggle, readerSearchPanel);
+        const readerSearchAnchor = element(doc, 'div', 'slb-library-reader-search-anchor');
+        readerSearchAnchor.append(search, searchToggle);
+        navTools.append(filters, readerSearchAnchor);
         const appearance = element(doc, 'div', 'slb-library-appearance');
         const appearanceLabel = element(doc, 'label', '', '테마');
         appearanceLabel.htmlFor = 'slb-library-theme-mode';
@@ -753,7 +753,9 @@ export function createStandaloneLibrary({
             '현재 캐릭터에 연결된 로어북만 보기'));
         const linkedHint = element(doc, 'small', 'slb-library-linked-hint',
             '연결된 로어북이 없으면 모든 책이 표시됩니다.');
-        settingsPanel.append(settingsHeading, appearance, shelfRowsLabel, linkedLabel, linkedHint);
+        const resume = button(doc, 'slb-library-resume-search-action', '이어 읽기', 'resume-reading');
+        resume.hidden = true;
+        settingsPanel.append(settingsHeading, appearance, shelfRowsLabel, linkedLabel, linkedHint, resume);
         navigation.append(navTop, navTools);
         const body = element(doc, 'main', 'slb-library-body');
         // Keep the structural footer hook for existing layouts without
@@ -808,7 +810,14 @@ export function createStandaloneLibrary({
         if (!overlay) return;
         settingsOpen = Boolean(value);
         const panel = overlay.querySelector('#slb-library-settings-panel');
-        if (panel) panel.hidden = !settingsOpen;
+        if (panel) {
+            panel.hidden = !settingsOpen;
+            const resume = panel.querySelector('[data-action="resume-reading"]');
+            if (resume) {
+                resume.hidden = Boolean(currentBook || !recent || !bookNames.includes(recent.book));
+                resume.title = resume.hidden ? '' : recent.book;
+            }
+        }
         const opener = overlay.querySelector('[data-action="settings"]');
         if (opener) opener.setAttribute('aria-expanded', String(settingsOpen));
     }
@@ -1339,15 +1348,6 @@ export function createStandaloneLibrary({
         if (mode === 'blackberry') return Math.max(3, Math.min(5, Math.floor((shellWidth - 16) / 98)));
         return Math.max(3, Math.min(14, Math.floor((width - 28 + 4) / 47)));
     }
-    function searchField(input, action, label) {
-        const field = element(doc, 'div', 'slb-library-search-field');
-        const submit = button(doc, 'slb-library-search-submit', '', action);
-        submit.setAttribute('aria-label', label);
-        submit.title = label;
-        submit.append(faIcon(doc, 'magnifying-glass'));
-        field.append(input, submit);
-        return field;
-    }
     function clearGlobalSearch() {
         ++globalSearchSerial;
         globalSearchOpen = false;
@@ -1411,7 +1411,6 @@ export function createStandaloneLibrary({
         shelfSearchToggle.prepend(faIcon(doc, 'magnifying-glass'));
         shelfSearchToggle.setAttribute('aria-controls', 'slb-library-shelf-search');
         shelfSearchToggle.setAttribute('aria-expanded', String(shelfSearchOpen));
-        head.append(shelfSearchToggle);
         const titleSearch = element(doc, 'input', 'slb-library-shelf-search');
         titleSearch.id = 'slb-library-shelf-search';
         titleSearch.type = 'search';
@@ -1420,14 +1419,7 @@ export function createStandaloneLibrary({
         titleSearch.setAttribute('aria-label', '전체 로어북 검색');
         titleSearch.setAttribute('enterkeyhint', 'search');
         titleSearch.value = shelfQuery;
-        const searchPanel = element(doc, 'div', 'slb-library-search-panel slb-library-shelf-search-panel');
-        searchPanel.append(searchField(titleSearch, 'submit-shelf-search', '전체 로어북 검색 실행'));
-        if (recent && bookNames.includes(recent.book)) {
-            const resume = button(doc, 'slb-library-resume-search-action', '이어 읽기', 'resume-reading');
-            resume.title = recent.book;
-            searchPanel.append(resume);
-        }
-        head.append(searchPanel);
+        head.append(titleSearch, shelfSearchToggle);
 
         tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
@@ -2580,7 +2572,6 @@ export function createStandaloneLibrary({
         if (!input) return;
         shelfQuery = input.value;
         ++externalOpenSerial;
-        closeShelfSearch();
         if (!needle) { returnToShelf(); return; }
         clearGlobalSearch();
         const serial = globalSearchSerial;
@@ -2655,8 +2646,6 @@ export function createStandaloneLibrary({
             else setMinimized(false);
         }
         else if (action === 'settings') setSettingsOpen(!settingsOpen);
-        else if (action === 'submit-shelf-search') void runGlobalSearch();
-        else if (action === 'submit-reader-search') submitReaderSearch();
         else if (action === 'return-to-shelf') returnToShelf();
         else if (action === 'global-result') {
             ++globalSearchSerial;
@@ -2664,6 +2653,7 @@ export function createStandaloneLibrary({
                 if (!opened && globalSearchOpen) notifyStatus('검색 결과의 로어를 열지 못했습니다.', 'warning');
             });
         } else if (action === 'resume-reading') {
+            setSettingsOpen(false);
             if (recent) void openEntry(recent.book, recent.uid).then(opened => {
                 if (!opened && isOpen()) notifyStatus('마지막으로 읽은 항목을 찾지 못했습니다.', 'warning');
             });
@@ -2712,18 +2702,20 @@ export function createStandaloneLibrary({
             target.setAttribute('aria-expanded', String(!collapsed));
         }
         else if (action === 'shelf-search-toggle') {
-            shelfSearchOpen = !shelfSearchOpen;
+            if (shelfSearchOpen) { void runGlobalSearch(); return; }
+            shelfSearchOpen = true;
             const bar = overlay.querySelector('.slb-library-shelf-toolbar');
-            bar?.classList.toggle('is-search-open', shelfSearchOpen);
-            target.setAttribute('aria-expanded', String(shelfSearchOpen));
-            if (shelfSearchOpen) bar?.querySelector('#slb-library-shelf-search')?.focus();
+            bar?.classList.add('is-search-open');
+            target.setAttribute('aria-expanded', 'true');
+            bar?.querySelector('#slb-library-shelf-search')?.focus();
         }
         else if (action === 'reader-search-toggle') {
-            readerSearchOpen = !readerSearchOpen;
+            if (readerSearchOpen) { submitReaderSearch(); return; }
+            readerSearchOpen = true;
             const nav = overlay.querySelector('.slb-library-navigation');
-            nav.classList.toggle('is-search-open', readerSearchOpen);
-            target.setAttribute('aria-expanded', String(readerSearchOpen));
-            if (readerSearchOpen) nav.querySelector('#slb-library-search')?.focus();
+            nav.classList.add('is-search-open');
+            target.setAttribute('aria-expanded', 'true');
+            nav.querySelector('#slb-library-search')?.focus();
         }
         else if (action === 'more-tools') toggleReaderTools(uid);
         else if (action === 'book-tag-suggest') toggleBookTagSuggestion(target.dataset.tag);
@@ -2939,7 +2931,7 @@ export function createStandaloneLibrary({
         const input = overlay?.querySelector('#slb-library-search');
         if (!input || !currentData || !currentBook || !discardOrStay({ allowTags: true })) return;
         const next = input.value;
-        if (next === query && (!next.trim() || !searchIndexDirty)) { closeReaderSearch(); return; }
+        if (next === query && (!next.trim() || !searchIndexDirty)) return;
         resetEdit();
         query = next;
         selectedUid = null;
@@ -2948,7 +2940,6 @@ export function createStandaloneLibrary({
         diaryTocPage = 0;
         worldTocPage = 0;
         peoplePage = 0;
-        closeReaderSearch();
         renderBook();
     }
     // Stable, opt-in entry opener for other extensions. Uses the saved WorldInfo

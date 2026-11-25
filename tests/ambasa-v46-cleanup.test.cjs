@@ -136,7 +136,7 @@ test('world search displays readable stable index numbers when filtered',async()
   const search=f.q('#slb-library-search');
   search.value='Entry 9';
   search.dispatchEvent(new f.w.Event('input',{bubbles:true}));
-  f.click('[data-action="submit-reader-search"]');
+  f.q('#slb-library-search').dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
   assert.deepEqual(f.qa('.slb-library-index-initial').map(e=>e.textContent),['10']);
   assert.equal(f.q('[data-action="world-menu"]'),null,'no redundant folding row');
   assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'),/1개 항목/);

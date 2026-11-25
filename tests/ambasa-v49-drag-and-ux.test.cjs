@@ -159,7 +159,7 @@ test('reader has exactly one shared search; encyclopedia and people no longer du
    assert.equal(f.q('.slb-library-people-search'),null);
    const input=f.q('#slb-library-search');
    input.value='Article 19';input.dispatchEvent(new f.w.Event('input',{bubbles:true}));
-   f.click('[data-action="submit-reader-search"]');
+   f.q('#slb-library-search').dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
    if(kind==='people'){
     assert.equal(f.qa('.slb-library-person-row').length,1);
     assert.equal(f.q('.slb-library-person-row strong').textContent,'Article 19');

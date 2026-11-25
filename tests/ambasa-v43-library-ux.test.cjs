@@ -95,7 +95,7 @@ test('shelf typing preserves input and book cards; explicit search includes book
    assert.equal(f.q('#slb-library-shelf-search').value,'Book 34');
    assert.equal(f.w.document.activeElement.id,'slb-library-shelf-search');
    assert.deepEqual([f.stats.bookReads,f.stats.translations,f.stats.ai],[0,0,0]);
-   f.click('[data-action="submit-shelf-search"]');
+   f.q('#slb-library-shelf-search').dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
    await tick();
    assert.equal(f.q('.slb-library-global-result[data-action="select-book"]').dataset.book,'Book 34');
    assert.deepEqual([f.stats.bookReads,f.stats.translations,f.stats.ai],[35,35,0]);
@@ -154,7 +154,7 @@ test('world reference keeps the vertical searchable index visible beside its det
    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
    assert.equal(f.q('.slb-library-detail-world').dataset.uid,'0');
    f.input('#slb-library-search','Entry 17');
-   f.click('[data-action="submit-reader-search"]');
+   f.q('#slb-library-search').dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
    assert.equal(f.all('.slb-library-index-item').length,1);
    f.click('[data-action="entry"][data-uid="17"]');
    assert.equal(f.q('.slb-library-detail-world').dataset.uid,'17');
@@ -171,7 +171,7 @@ test('contacts keep their searchable TOC beside a selected profile and retain ba
    assert.equal(f.all('.slb-library-person-row').length,5);
    assert.equal(f.q('.slb-library-detail-people'),null);
    f.input('#slb-library-search','Entry 18');
-   f.click('[data-action="submit-reader-search"]');
+   f.q('#slb-library-search').dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
    assert.equal(f.all('.slb-library-person-row').length,1);
    f.click('[data-action="entry"][data-uid="18"]');
    assert.equal(f.all('.slb-library-person-row').length,1);

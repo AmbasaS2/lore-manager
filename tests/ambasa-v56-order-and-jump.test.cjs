@@ -244,7 +244,7 @@ test('reverse order search filters first, then reverses matching results without
         const search = f.q('#slb-library-search');
         search.value = 'Record 2';
         search.dispatchEvent(new f.win.Event('input', { bubbles: true }));
-        f.click('[data-action="submit-reader-search"]');
+        f.q('#slb-library-search').dispatchEvent(new f.win.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
         const titles = f.all('.slb-library-index-item').map(x => x.textContent);
         assert.equal(titles.length, 5);
         assert.match(titles[0], /Record 29/);

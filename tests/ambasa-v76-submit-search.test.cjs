@@ -43,7 +43,8 @@ test('shelf waits for submit, searches both languages and all six metadata/conte
         const shelf=f.q('.slb-library-bookshelf');
         f.click('[data-action="shelf-search-toggle"]');
         const field=f.q('#slb-library-shelf-search');
-        assert.equal(field.parentElement.querySelector('button').dataset.action,'submit-shelf-search');
+        assert.equal(field.parentElement.querySelectorAll('button').length,1);
+        assert.equal(field.nextElementSibling.dataset.action,'shelf-search-toggle');
         for(const word of ['원','원문','번역본문']) f.input('#slb-library-shelf-search',word);
         f.enter(field,true);
         assert.equal(f.q('.slb-library-bookshelf'),shelf);
@@ -53,13 +54,14 @@ test('shelf waits for submit, searches both languages and all six metadata/conte
         for(const [i,term] of terms.entries()){
             if(f.q('[data-action="shelf-search-toggle"]').getAttribute('aria-expanded')!=='true') f.click('[data-action="shelf-search-toggle"]');
             f.input('#slb-library-shelf-search',term);
-            if(i%2) f.enter(field); else f.click('[data-action="submit-shelf-search"]');
+            if(i%2) f.enter(field); else f.click('[data-action="shelf-search-toggle"]');
             await tick();await tick();
             const hits=f.all('[data-action="global-result"]');
             assert.equal(hits.length,1,term);
             assert.equal(hits[0].dataset.book,i<8?'Origin':'Second',term);
             assert.equal(hits[0].dataset.uid,'0',term);
             assert.equal(f.q('#slb-library-shelf-search'),field);
+            assert.equal(f.q('[data-action="shelf-search-toggle"]').getAttribute('aria-expanded'),'true');
         }
         f.click('[data-action="return-to-shelf"]');
         assert.equal(f.q('.slb-library-bookshelf'),shelf);
@@ -83,14 +85,13 @@ for(const type of ['general','memory','world','people']) test(type+' reader uses
         f.enter(field,true);
         assert.equal(f.q('.slb-library-reader-frame'),frame);
         assert.deepEqual(f.stats(),initial);
-        f.click('[data-action="submit-reader-search"]');
+        f.click('[data-action="reader-search-toggle"]');
         assert.notEqual(f.q('.slb-library-reader-frame'),frame);
         const selectors={general:'.slb-library-clean-list-row',memory:'.slb-library-diary-page',world:'.slb-library-index-item',people:'.slb-library-person-row'};
         assert.equal(f.all(selectors[type]).length,1);
         assert.equal(f.q(selectors[type]).dataset.uid,'0');
         const lookups=f.stats().lookups;
         for(const term of ['번역본문','번역제목','번역보조키','original-secondary-0']){
-            f.click('[data-action="reader-search-toggle"]');
             f.input('#slb-library-search',term);f.enter(field);
             assert.equal(f.all(selectors[type]).length,1,term);
             assert.equal(f.q(selectors[type]).dataset.uid,'0',term);
@@ -98,10 +99,12 @@ for(const type of ['general','memory','world','people']) test(type+' reader uses
         assert.equal(f.stats().lookups,lookups,'reuse one book search index');
         f.records.Origin[0].fields.key.text='새 번역 호출어';
         f.lib.invalidateTranslationSearch('Origin');
-        f.click('[data-action="reader-search-toggle"]');
         f.input('#slb-library-search','새 번역 호출어');f.enter(field);
         assert.equal(f.all(selectors[type]).length,1);
         assert.equal(f.q(selectors[type]).dataset.uid,'0');
+        assert.equal(f.q('[data-action="reader-search-toggle"]').getAttribute('aria-expanded'),'true');
+        f.q('.slb-library-reader-frame').click();
+        assert.equal(f.q('[data-action="reader-search-toggle"]').getAttribute('aria-expanded'),'false');
         assert.equal(f.stats().reads,1);
         assert.equal(f.stats().translationReads,1);
         assert.equal(f.stats().ai,0);

@@ -67,7 +67,7 @@ for (const count of [25,240]) test('shelf '+count+' entries: stable input/IME, n
         assert.equal(f.q('#slb-library-memory-toc'),toc);
         assert.notEqual(f.q('.slb-library-detail'),detail);
         f.input('#slb-library-search','source B 1');
-        f.click('[data-action="submit-reader-search"]');
+        f.q('#slb-library-search').dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
         assert.match(f.q('.slb-library-diary-page-number').textContent,new RegExp(' / '+String(count).padStart(2,'0')+'$'));
     }finally{f.close();}
 });
@@ -84,6 +84,7 @@ test('favorites survive close, recent resumes exact UID, global search is explic
         assert.equal(f.stats().recent.uid,'4');
         f.lib.close();f.lib.open();
         assert.equal(f.q('[data-action="select-book"]').dataset.book,'C');
+        f.click('[data-action="settings"]');
         f.click('[data-action="resume-reading"]');await tick();await tick();
         assert.equal(f.q('.slb-library-detail').dataset.uid,'4');
         f.click('[data-action="books"]');
@@ -91,7 +92,7 @@ test('favorites survive close, recent resumes exact UID, global search is explic
         f.click('[data-action="shelf-search-toggle"]');
         f.input('#slb-library-shelf-search','source B 7');
         assert.equal(f.reads.length,before);
-        f.click('[data-action="submit-shelf-search"]');await tick();await tick();
+        f.click('[data-action="shelf-search-toggle"]');await tick();await tick();
         const result=f.q('[data-action="global-result"]');
         assert.equal(result.dataset.book,'B');assert.equal(result.dataset.uid,'7');
         result.click();await tick();await tick();
