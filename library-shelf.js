@@ -123,6 +123,10 @@ export function createStandaloneLibrary({
     getCleanVariant = () => 'mac',
     setCleanVariant = async () => {},
     getLinkedOnly = () => true,
+    getFavorites = () => [],
+    setFavorites = async () => {},
+    getRecent = () => null,
+    setRecent = () => {},
     setLinkedOnly = async () => {},
     notify,
 }) {
@@ -145,6 +149,15 @@ export function createStandaloneLibrary({
     let edit = null;
     let saving = false;
     let searchIndex = new Map();
+    let entryNumbers = new Map();
+    let filteredCache = null;
+    let shelfColumnCount = 0;
+    let diaryPageCount = 0;
+    let favorites = new Set();
+    let recent = null;
+    let suppressRecent = false;
+    let globalSearchSerial = 0;
+    let globalSearchOpen = false;
     let bookNames = [];
     let bookToneByName = new Map();
     let linkedNames = null;
@@ -488,6 +501,9 @@ export function createStandaloneLibrary({
         ignoreMinimizedClick = false;
         savedScrollPositions = [];
         loadVersion += 1;
+        ++externalOpenSerial;
+        ++globalSearchSerial;
+        globalSearchOpen = false;
         resizeCleanup?.();
         resizeCleanup = null;
         dragCleanup?.();
@@ -765,6 +781,7 @@ export function createStandaloneLibrary({
         overlay.addEventListener('click', onClick);
         overlay.addEventListener('change', onChange);
         overlay.addEventListener('input', onInput);
+        overlay.addEventListener('compositionend', onInput);
         return shell;
     }
 
@@ -777,13 +794,19 @@ export function createStandaloneLibrary({
         if (opener) opener.setAttribute('aria-expanded', String(settingsOpen));
     }
     function refreshAfterResize() {
-        if (!isOpen()) return;
-        if (!currentBook) { bookList(); return; }
+        if (!isOpen() || minimized || globalSearchOpen) return;
+        if (!currentBook) {
+            const body = overlay.querySelector('.slb-library-body');
+            if (body?.dataset.type === 'books' && shelfColumns(body, libraryTheme()) !== shelfColumnCount)
+                bookList({ resultsOnly: true });
+            return;
+        }
         // Only the journal depends on the reader's actual width for its
         // record count. Reuse the loaded entries, never reload or auto-save.
         // Do not replace an editor/unfinished upload in progress.
         if (currentData && getType(currentBook) === 'memory'
-            && !edit && !tagSaving && !saving && !pendingImages.size) {
+            && !edit && !tagSaving && !saving && !pendingImages.size
+            && diaryStep() !== diaryPageCount) {
             const body = overlay.querySelector('.slb-library-body');
             const previousScroll = body?.scrollTop || 0;
             renderBook();
@@ -1297,12 +1320,17 @@ export function createStandaloneLibrary({
         if (mode === 'blackberry') return Math.max(3, Math.min(5, Math.floor((shellWidth - 16) / 98)));
         return Math.max(3, Math.min(14, Math.floor((width - 28 + 4) / 47)));
     }
-    function bookList({ restoreSearchFocus = false } = {}) {
+    function bookList({ resultsOnly = false } = {}) {
         if (!isOpen()) return;
         const body = overlay.querySelector('.slb-library-body');
         const oldScroll = body.dataset.type === 'books' ? body.scrollTop : 0;
-        const searchSelection = restoreSearchFocus
-            ? overlay.querySelector('#slb-library-shelf-search')?.selectionStart : null;
+        const oldShelf = body.querySelector('.slb-library-bookshelf');
+        const oldSummary = body.querySelector('.slb-library-shelf-summary');
+        const oldShelfScroll = oldShelf?.querySelector('.slb-library-books-scroll')?.scrollTop || 0;
+        const partial = resultsOnly && body.dataset.type === 'books' && oldShelf && oldSummary;
+        if (!partial) {
+        ++globalSearchSerial;
+        globalSearchOpen = false;
         resetEdit();
         closeReaderTools();
         cancelCoverLongPress();
@@ -1317,6 +1345,7 @@ export function createStandaloneLibrary({
         nav.querySelector('.slb-library-nav-tags')?.replaceChildren();
         body.replaceChildren();
         body.dataset.type = 'books';
+        }
 
         const hasLinks = linkedNames instanceof Set && linkedNames.size > 0;
         const linked = uniqueLibraryBooks(bookNames, linkedNames).filter(book =>
@@ -1324,6 +1353,8 @@ export function createStandaloneLibrary({
         const tagMap = typeof getTagMap === 'function' ? getTagMap() : null;
         const tagsFor = book => tagMap && typeof tagMap === 'object'
             ? normalizeLibraryTags(Object.hasOwn(tagMap, book) ? tagMap[book] : []) : bookTags(book);
+        let head, tagbar;
+        if (!partial) {
         const knownTags = [];
         const seenTags = new Set();
         for (const item of linked) {
@@ -1331,7 +1362,7 @@ export function createStandaloneLibrary({
                 if (!seenTags.has(tag)) { seenTags.add(tag); knownTags.push(tag); }
             }
         }
-        const head = element(doc, 'div', 'slb-library-books-head');
+        head = element(doc, 'div', 'slb-library-books-head');
         const shelfSearchToggle = button(doc, 'slb-library-shelf-search-toggle', '', 'shelf-search-toggle');
         shelfSearchToggle.setAttribute('aria-label', '검색');
         shelfSearchToggle.setAttribute('title', '검색');
@@ -1348,7 +1379,7 @@ export function createStandaloneLibrary({
         titleSearch.value = shelfQuery;
         head.append(titleSearch);
 
-        const tagbar = element(doc, 'nav', 'slb-library-tagbar');
+        tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
         for (const [key, name] of [['all', '전체'], ['untagged', '미분류']]) {
             const choice = button(doc, 'slb-library-tag-tab' +
@@ -1371,6 +1402,7 @@ export function createStandaloneLibrary({
         // selection toggles one persistent chip; multiple tags match ANY (OR).
         tagSelect.value = '';
         tagbar.append(tagSelect);
+        }
         const needle = shelfQuery.toLocaleLowerCase().trim();
         const typeMap = typeof getTypeMap === 'function' ? getTypeMap() : null;
         const mode = libraryTheme();
@@ -1380,7 +1412,7 @@ export function createStandaloneLibrary({
                 : getType(book);
             return Object.hasOwn(LIBRARY_BOOK_TYPES, value) ? value : 'general';
         };
-        const candidates = linked.filter(book => {
+        let candidates = linked.filter(book => {
             const tags = tagsFor(book.name);
             if (needle && !book.name.toLocaleLowerCase().includes(needle)) return false;
             if (shelfTag === 'untagged' && tags.length) return false;
@@ -1388,6 +1420,10 @@ export function createStandaloneLibrary({
             if (mode === 'mac' && shelfType !== 'all' && savedTypeOf(book.name) !== shelfType) return false;
             return true;
         });
+        if (favorites.size) candidates = [
+            ...candidates.filter(book => favorites.has(book.name)),
+            ...candidates.filter(book => !favorites.has(book.name)),
+        ];
         const ebook = mode === 'ebook';
         const classic = mode === 'antique';
         const shelf = element(doc, 'div', 'slb-library-bookshelf' +
@@ -1401,6 +1437,7 @@ export function createStandaloneLibrary({
             : ebook ? 'slb-library-cover-grid' : mode === 'mac' ? 'slb-library-folder-grid' : 'slb-library-app-grid');
         const coverMap = ebook && typeof getBookCoverMap === 'function' ? getBookCoverMap() : null;
         const rowWidth = shelfColumns(body, mode);
+        shelfColumnCount = rowWidth;
         spines.style.setProperty('--slb-shelf-columns', String(rowWidth));
         const maxVisible = shelfRows * rowWidth;
         const shown = candidates.slice(0, maxVisible);
@@ -1536,6 +1573,15 @@ export function createStandaloneLibrary({
             shelf.append(device);
         } else if (ebook) shelf.append(scroll);
         else shelf.append(scroll, element(doc, 'div', 'slb-library-wood-plank'));
+        if (!partial) {
+        const shortcuts = element(doc, 'div', 'slb-library-shelf-shortcuts');
+        if (recent && bookNames.includes(recent.book)) {
+            const resume = button(doc, '', '이어 읽기', 'resume-reading');
+            resume.title = recent.book;
+            shortcuts.append(resume);
+        }
+        shortcuts.append(button(doc, '', '전체 본문 검색', 'global-search'));
+        body.append(shortcuts);
         const toolbar = element(doc, 'div', 'slb-library-shelf-toolbar');
         toolbar.classList.toggle('is-search-open', shelfSearchOpen);
         toolbar.append(tagbar, head);
@@ -1551,7 +1597,7 @@ export function createStandaloneLibrary({
             }
             body.append(active);
         }
-        body.append(shelf);
+        }
         const summary = element(doc, 'div', 'slb-library-shelf-summary');
         summary.append(element(doc, 'span', '', candidates.length + '권 중 ' + shown.length + '권 표시'));
         if (candidates.length > shown.length) {
@@ -1560,13 +1606,12 @@ export function createStandaloneLibrary({
                 '더 보기 (' + (candidates.length - shown.length) + ')'));
             summary.append(more);
         }
-        body.append(summary);
+        if (partial) {
+            oldShelf.replaceWith(shelf);
+            oldSummary.replaceWith(summary);
+            scroll.scrollTop = oldShelfScroll;
+        } else body.append(shelf, summary);
         body.scrollTop = oldScroll;
-        if (restoreSearchFocus) {
-            const replacement = overlay.querySelector('#slb-library-shelf-search');
-            replacement?.focus?.();
-            if (searchSelection !== null) replacement?.setSelectionRange?.(searchSelection, searchSelection);
-        }
         notifyStatus(candidates.length + '권');
     }
     function renderBookTagPanel() {
@@ -1584,9 +1629,13 @@ export function createStandaloneLibrary({
         if (!existing.length) chips.append(element(doc, 'span', 'slb-library-no-tags', '미분류'));
         else for (const tag of existing) chips.append(element(doc, 'span', 'slb-library-tag-chip', tag));
         summary.append(chips);
+        if (favorites.has(currentBook)) summary.append(element(doc, 'span', 'slb-library-favorite-mark', '★'));
         // Metadata-only suggestions: no lorebook file reads, writes, or content
         // scans. The popover is absolutely positioned, so TOC controls do not shift.
         const picker = element(doc, 'div', 'slb-library-book-tag-picker');
+        const favorite = button(doc, 'slb-library-book-favorite', favorites.has(currentBook) ? '★ 즐겨찾기 해제' : '☆ 즐겨찾기 추가', 'favorite-book');
+        favorite.setAttribute('aria-pressed', String(favorites.has(currentBook)));
+        picker.append(favorite);
         const allTags = new Set();
         const tagMap = typeof getTagMap === 'function' ? getTagMap() : null;
         if (tagMap && typeof tagMap === 'object') {
@@ -1701,6 +1750,8 @@ export function createStandaloneLibrary({
     }
     async function selectBook(book, preloadedData = null) {
         if (!bookNames.includes(book) || !discardOrStay()) return;
+        ++globalSearchSerial;
+        globalSearchOpen = false;
         resetEdit();
         closeReaderTools();
         const version = ++loadVersion;
@@ -1749,42 +1800,61 @@ export function createStandaloneLibrary({
             renderBook();
             notifyStatus(entries.length + '개 항목');
         } catch (error) {
-            if (!isOpen() || version !== loadVersion) return;
+            if (!isOpen() || version !== loadVersion || currentBook !== book) return;
             body.replaceChildren(element(doc, 'p', 'slb-library-empty', '로어북 불러오기 실패: ' + (error.message || error)));
             notifyStatus('로어북 불러오기 실패 · 원본은 변경되지 않았습니다.', 'error');
         }
     }
+    let readerSnapshot = new Map();
+    let readerSourceOrder = [];
+    function readerMetadata(entry) {
+        return JSON.stringify([entry.comment, entry.key, entry.keysecondary, entry.order]);
+    }
     function buildSearchIndex() {
+        readerSnapshot = new Map(entries.map(entry => [String(entry.uid), {
+            content: entry.content, metadata: readerMetadata(entry),
+        }]));
+        readerSourceOrder = Object.values(currentData?.entries || {})
+            .filter(entry => entry && typeof entry.content === 'string').map(entry => String(entry.uid));
         searchIndex = new Map();
-        for (const entry of entries) {
-            searchIndex.set(String(entry.uid), [
-                entry.comment || '',
-                ...(Array.isArray(entry.key) ? entry.key : []),
-                ...(Array.isArray(entry.keysecondary) ? entry.keysecondary : []),
-                entry.content || '',
-            ].join(' ').toLocaleLowerCase());
+        entryNumbers = new Map();
+        filteredCache = null;
+        for (const [index, entry] of entries.entries()) {
+            entryNumbers.set(String(entry.uid), index + 1);
+            indexEntry(entry);
         }
+    }
+    function indexEntry(entry) {
+        searchIndex.set(String(entry.uid), [
+            entry.comment || '',
+            ...(Array.isArray(entry.key) ? entry.key : []),
+            ...(Array.isArray(entry.keysecondary) ? entry.keysecondary : []),
+            entry.content || '',
+        ].join(' ').toLocaleLowerCase());
     }
     function filtered() {
         // Presentation-only sort: preserve live WorldInfo entries, UIDs,
         // displayIndex and translation/source data. Filter before ordering.
         const needle = query.toLocaleLowerCase().trim();
+        const order = libraryListOrder();
+        if (filteredCache?.needle === needle && filteredCache.order === order) return filteredCache.found;
         const found = needle
             ? entries.filter(item => searchIndex.get(String(item.uid))?.includes(needle))
             : entries.slice();
-        const order = libraryListOrder();
-        if (order === 'normal') return found;
-        if (order === 'reverse') return found.reverse();
-        const direction = order === 'title-desc' ? -1 : 1;
-        // Read the same translated/original title shown in the UI only once
-        // per entry, not on every O(n log n) comparison.
-        return found.map((entry, index) => ({ entry, index, title: titleOf(entry) }))
-            .sort((a, b) => direction * LIBRARY_TITLE_COLLATOR.compare(a.title, b.title)
-                || a.index - b.index)
-            .map(item => item.entry);
+        let result = found;
+        if (order === 'reverse') result = found.reverse();
+        else if (order !== 'normal') {
+            const direction = order === 'title-desc' ? -1 : 1;
+            result = found.map((entry, index) => ({ entry, index, title: titleOf(entry) }))
+                .sort((a, b) => direction * LIBRARY_TITLE_COLLATOR.compare(a.title, b.title)
+                    || a.index - b.index)
+                .map(item => item.entry);
+        }
+        filteredCache = { needle, order, found: result };
+        return result;
     }
     function originalEntryNumber(entry) {
-        return entries.findIndex(item => String(item.uid) === String(entry.uid)) + 1;
+        return entryNumbers.get(String(entry.uid)) || 0;
     }
     function titleOf(entry) {
         const name = String(entry.comment || '').trim();
@@ -1906,6 +1976,12 @@ export function createStandaloneLibrary({
         else if (type === 'people') renderPeople(inner, found);
         else if (['mac', 'blackberry'].includes(libraryTheme())) renderCleanCatalog(inner, found);
         else renderCatalog(inner, found);
+        const firstDetail = body.querySelector('.slb-library-detail');
+        const uid = firstDetail?.dataset.uid;
+        if (uid != null && !suppressRecent && (recent?.book !== currentBook || recent.uid !== uid)) {
+            recent = { book: currentBook, uid };
+            setRecent(recent);
+        }
     }
     function renderCatalog(body, found) {
         const selectedIndex = found.findIndex(item => String(item.uid) === selectedUid);
@@ -2019,7 +2095,7 @@ export function createStandaloneLibrary({
         frame.append(contents);
         body.append(frame);
         const journal = element(doc, 'div', 'slb-library-journal');
-        const numberOfPages = diaryStep();
+        const numberOfPages = diaryPageCount = diaryStep();
         for (const [offset, entry] of found.slice(diaryIndex, diaryIndex + numberOfPages).entries()) {
             const page = element(doc, 'article', 'slb-library-diary-page');
             page.dataset.uid = String(entry.uid);
@@ -2029,7 +2105,7 @@ export function createStandaloneLibrary({
             head.append(element(doc, 'h3', '', titleOf(entry)));
             page.append(head, renderDetail(entry, 'memory'));
             page.append(element(doc, 'small', 'slb-library-diary-page-number',
-                String(originalEntryNumber(entry)).padStart(2, '0') + ' / ' + String(found.length).padStart(2, '0')));
+                String(originalEntryNumber(entry)).padStart(2, '0') + ' / ' + String(entries.length).padStart(2, '0')));
             journal.append(page);
         }
         body.append(journal);
@@ -2050,7 +2126,7 @@ export function createStandaloneLibrary({
         pager.append(first, previous, element(doc, 'span', '',
             String(originalEntryNumber(found[diaryIndex])).padStart(2, '0') + '–'
             + String(originalEntryNumber(found[Math.min(found.length - 1, diaryIndex + numberOfPages - 1)])).padStart(2, '0')
-            + ' / ' + String(found.length).padStart(2, '0')), next, last);
+            + ' / ' + String(entries.length).padStart(2, '0')), next, last);
         body.append(pager);
     }
     function renderIndex(body, found, type) {
@@ -2073,7 +2149,7 @@ export function createStandaloneLibrary({
             const uid = String(entry.uid);
             const item = button(doc, 'slb-library-index-item', '', 'entry', uid);
             if (String(chosen.uid) === uid) item.classList.add('is-selected');
-            const originalPosition = entries.findIndex(item => String(item.uid) === uid) + 1;
+            const originalPosition = originalEntryNumber(entry);
             item.append(element(doc, 'span', 'slb-library-index-initial',
                 String(originalPosition).padStart(2, '0')));
             item.append(element(doc, 'span', '', titleOf(entry)));
@@ -2259,7 +2335,7 @@ export function createStandaloneLibrary({
             editor.append(element(doc, 'label', '', edit.kind === 'source' ? '원문 수정 · 저장 전에는 실제 로어북에 반영되지 않습니다.' : '번역 수정 · 실리태번 원문은 변경되지 않습니다.'));
             const input = element(doc, 'textarea', 'slb-library-editor-text');
             input.rows = 10;
-            input.value = edit.initial;
+            input.value = edit.textarea?.value ?? edit.initial;
             input.setAttribute('aria-label', edit.kind === 'source' ? '원문 수정' : '번역 수정');
             editor.append(input);
             const actions = element(doc, 'div', 'slb-library-edit-actions');
@@ -2274,7 +2350,13 @@ export function createStandaloneLibrary({
         const current = [...(overlay?.querySelectorAll('.slb-library-detail') || [])]
             .find(node => node.dataset.uid === String(uid));
         const entry = entries.find(item => String(item.uid) === String(uid));
-        if (current && entry) current.replaceWith(renderDetail(entry, getType(currentBook) || 'general'));
+        if (current && entry) {
+            const focusAction = current.contains(doc.activeElement) ? doc.activeElement.dataset.action : null;
+            const replacement = renderDetail(entry, getType(currentBook) || 'general');
+            current.replaceWith(replacement);
+            if (focusAction) [...replacement.querySelectorAll('[data-action]')]
+                .find(node => node.dataset.action === focusAction)?.focus({ preventScroll: true });
+        }
     }
     function pickEntryImage(uid) {
         const current = [...(overlay?.querySelectorAll('.slb-library-detail') || [])]
@@ -2335,6 +2417,7 @@ export function createStandaloneLibrary({
         if (!discardOrStay({ allowTags: true })) return;
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!entry) return;
+        const previousEditUid = edit?.uid;
         const current = translationFor(currentBook, entry) || {};
         // If there is no saved translation the reader displays the source.
         // Therefore the single Edit action must never write a phantom
@@ -2348,7 +2431,8 @@ export function createStandaloneLibrary({
             textarea: null,
         };
         if (getType(currentBook) !== 'memory') selectedUid = String(uid);
-        renderBook();
+        if (previousEditUid && previousEditUid !== String(uid)) replaceEntryDetail(previousEditUid);
+        replaceEntryDetail(uid);
         edit.textarea?.focus();
     }
     async function saveEdit() {
@@ -2359,7 +2443,7 @@ export function createStandaloneLibrary({
         if (!entry || typeof next !== 'string') return;
         if (next === active.initial) {
             resetEdit();
-            renderBook();
+            replaceEntryDetail(active.uid);
             return;
         }
         saving = true;
@@ -2377,7 +2461,8 @@ export function createStandaloneLibrary({
                 await saveTranslation(currentBook, entry, next, active.initial);
             }
             resetEdit();
-            renderBook();
+            if (active.kind === 'source') renderBook();
+            else replaceEntryDetail(active.uid);
             notifyStatus('저장 완료 · 원본 로어북/번역 파일에 반영되었습니다.', 'success');
         } catch (error) {
             active.textarea.disabled = false;
@@ -2394,12 +2479,18 @@ export function createStandaloneLibrary({
             return;
         }
         if (!doc.defaultView.confirm('이 항목의 원문을 AI로 번역하시겠습니까? 연결 방식에 따라 API 이용 요금이 발생할 수 있습니다.')) return;
+        const previousEditUid = edit?.uid;
+        resetEdit();
+        if (previousEditUid) replaceEntryDetail(previousEditUid);
         saving = true;
         notifyStatus('AI 번역 중…');
         try {
+            const beforeTitle = titleOf(entry);
             await translateOne(currentBook, entry);
             entryReadViews.set(String(uid), 'translated');
-            renderBook();
+            filteredCache = null;
+            if (beforeTitle !== titleOf(entry)) renderBook();
+            else replaceEntryDetail(uid);
             notifyStatus('AI 번역이 저장되었습니다.', 'success');
         } catch (error) {
             notifyStatus('AI 번역 실패: ' + (error.message || error), 'error');
@@ -2411,11 +2502,77 @@ export function createStandaloneLibrary({
         if (!discardOrStay({ allowTags: true })) return;
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!entry) return;
+        const previousEditUid = edit?.uid;
         resetEdit();
         const current = entryReadViews.get(String(uid))
             || (String(translationFor(currentBook, entry)?.text || '') ? 'translated' : 'source');
         entryReadViews.set(String(uid), current === 'source' ? 'translated' : 'source');
-        renderBook();
+        if (previousEditUid && previousEditUid !== String(uid)) replaceEntryDetail(previousEditUid);
+        replaceEntryDetail(uid);
+    }
+    function openGlobalSearch() {
+        if (!isOpen() || currentBook) return;
+        ++externalOpenSerial;
+        ++globalSearchSerial;
+        globalSearchOpen = true;
+        const body = overlay.querySelector('.slb-library-body');
+        body.replaceChildren();
+        body.dataset.type = 'global-search';
+        const controls = element(doc, 'div', 'slb-library-global-controls');
+        const input = element(doc, 'input', 'slb-library-global-input');
+        input.type = 'search';
+        input.id = 'slb-library-global-query';
+        input.placeholder = '제목 · 키워드 · 원문';
+        input.setAttribute('aria-label', '전체 로어북 본문 검색');
+        const run = button(doc, '', '검색', 'run-global-search');
+        controls.append(button(doc, '', '‹ 서가', 'books'), input, run);
+        const results = element(doc, 'div', 'slb-library-global-results');
+        results.setAttribute('aria-live', 'polite');
+        body.append(controls, results);
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); run.click(); }
+        });
+        input.focus();
+    }
+    async function runGlobalSearch() {
+        const input = overlay?.querySelector('#slb-library-global-query');
+        const results = overlay?.querySelector('.slb-library-global-results');
+        const needle = input?.value.toLocaleLowerCase().trim();
+        const run = overlay?.querySelector('[data-action="run-global-search"]');
+        if (!globalSearchOpen || !results || !needle || run?.disabled) return;
+        if (run) run.disabled = true;
+        const serial = ++globalSearchSerial;
+        const alive = () => isOpen() && globalSearchOpen && serial === globalSearchSerial && results.isConnected;
+        results.replaceChildren(element(doc, 'p', '', '검색 중…'));
+        const matches = [];
+        let failed = 0;
+        const limit = 100;
+        for (const book of bookNames) {
+            if (!alive()) return;
+            try {
+                const data = await loadBook(book);
+                if (!alive()) return;
+                for (const entry of Object.values(data?.entries || {})) {
+                    if (!entry || !/^\d+$/.test(String(entry.uid))) continue;
+                    const haystack = [entry.comment, ...(Array.isArray(entry.key) ? entry.key : []),
+                        ...(Array.isArray(entry.keysecondary) ? entry.keysecondary : []), entry.content]
+                        .join(' ').toLocaleLowerCase();
+                    if (haystack.includes(needle)) matches.push({ book, uid: String(entry.uid), title: entry.comment || '항목 #' + entry.uid });
+                    if (matches.length >= limit) break;
+                }
+            } catch { failed++; }
+            if (matches.length >= limit) break;
+        }
+        if (!alive()) return;
+        if (run) run.disabled = false;
+        results.replaceChildren(element(doc, 'p', '', (matches.length >= limit ? '처음 ' : '') +
+            matches.length + '개 결과' + (failed ? ' · 읽지 못한 책 ' + failed + '권' : '')));
+        for (const match of matches) {
+            const row = button(doc, 'slb-library-global-result', '', 'global-result', match.uid);
+            row.dataset.book = match.book;
+            row.append(element(doc, 'strong', '', match.title), element(doc, 'small', '', match.book));
+            results.append(row);
+        }
     }
     async function onClick(event) {
         const target = event.target.closest?.('[data-action]');
@@ -2431,6 +2588,35 @@ export function createStandaloneLibrary({
             else setMinimized(false);
         }
         else if (action === 'settings') setSettingsOpen(!settingsOpen);
+        else if (action === 'global-search') openGlobalSearch();
+        else if (action === 'run-global-search') void runGlobalSearch();
+        else if (action === 'global-result') {
+            ++globalSearchSerial;
+            void openEntry(target.dataset.book, uid).then(opened => {
+                if (!opened && globalSearchOpen) notifyStatus('검색 결과의 로어를 열지 못했습니다.', 'warning');
+            });
+        } else if (action === 'resume-reading') {
+            if (recent) void openEntry(recent.book, recent.uid).then(opened => {
+                if (!opened && isOpen()) notifyStatus('마지막으로 읽은 항목을 찾지 못했습니다.', 'warning');
+            });
+        } else if (action === 'favorite-book') {
+            if (saving || !currentBook) return;
+            const book = currentBook;
+            const next = new Set(favorites);
+            if (next.has(book)) next.delete(book); else next.add(book);
+            saving = true;
+            try {
+                await setFavorites([...next]);
+                favorites = next;
+                target.textContent = favorites.has(book) ? '★ 즐겨찾기 해제' : '☆ 즐겨찾기 추가';
+                target.setAttribute('aria-pressed', String(favorites.has(book)));
+                const summary = target.closest('.slb-library-book-meta')?.querySelector('summary');
+                const mark = summary?.querySelector('.slb-library-favorite-mark');
+                if (favorites.has(book) && !mark) summary?.append(element(doc, 'span', 'slb-library-favorite-mark', '★'));
+                else if (!favorites.has(book)) mark?.remove();
+            } catch (error) { notifyStatus('즐겨찾기 저장 실패: ' + (error?.message || error), 'error'); }
+            finally { saving = false; }
+        }
         else if (['memory-toc-toggle', 'world-toc-toggle', 'people-toc-toggle'].includes(action)) {
             const isMemory = action === 'memory-toc-toggle';
             const isWorld = action === 'world-toc-toggle';
@@ -2481,6 +2667,7 @@ export function createStandaloneLibrary({
         else if (action === 'books') {
             if (!discardOrStay()) return;
             loadVersion += 1;
+            ++externalOpenSerial;
             bookList();
         } else if (action === 'shelf-tag') {
             shelfTag = target.dataset.filter || 'all';
@@ -2503,6 +2690,7 @@ export function createStandaloneLibrary({
             // Mobile long-press can synthesize a regular click afterward.
             // Keep the explicit cover menu open instead of opening a book.
             if (coverContextBook === target.dataset.book && target.classList.contains('slb-library-cover-open')) return;
+            ++externalOpenSerial;
             void selectBook(target.dataset.book);
         } else if (action === 'book-tag-save') {
             void saveBookTags();
@@ -2587,14 +2775,19 @@ export function createStandaloneLibrary({
         else if (action === 'edit') showEdit(uid);
         else if (action === 'cancel-edit') {
             if (!discardOrStay({ allowTags: true })) return;
+            const previousUid = edit?.uid;
             resetEdit();
-            renderBook();
+            if (previousUid) replaceEntryDetail(previousUid);
         } else if (action === 'save-edit') void saveEdit();
         else if (action === 'translate') void runTranslate(uid);
         else if (action === 'advanced') {
             if (!discardOrStay()) return;
             const book = currentBook;
-            if (close()) void openAdvanced(book, uid);
+            if (close()) {
+                recent = { book, uid: String(uid) };
+                setRecent(recent);
+                void openAdvanced(book, uid);
+            }
         }
     }
     function onChange(event) {
@@ -2663,9 +2856,10 @@ export function createStandaloneLibrary({
     }
     function onInput(event) {
         if (event.target?.id === 'slb-library-shelf-search') {
+            if (event.isComposing || event.target.value === shelfQuery) return;
             shelfQuery = event.target.value;
             shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
-            bookList({ restoreSearchFocus: true });
+            bookList({ resultsOnly: true });
             return;
         }
         if (event.target?.id === 'slb-library-book-tag-input') {
@@ -2675,7 +2869,7 @@ export function createStandaloneLibrary({
             syncTagSuggestionStates();
             return;
         }
-        if (event.target?.id !== 'slb-library-search') return;
+        if (event.target?.id !== 'slb-library-search' || event.isComposing || event.target.value === query) return;
         if (!discardOrStay({ allowTags: true })) {
             event.target.value = query;
             return;
@@ -2725,7 +2919,9 @@ export function createStandaloneLibrary({
         else if (minimized) setMinimized(false);
         if (!isOpen()) return false;
         if (currentBook !== name || !currentData) {
-            await selectBook(name, data);
+            suppressRecent = true;
+            try { await selectBook(name, data); }
+            finally { suppressRecent = false; }
             if (serial !== externalOpenSerial || !isOpen() || currentBook !== name || !currentData) {
                 if (!wasOpen && serial === externalOpenSerial) close();
                 return false;
@@ -2770,6 +2966,8 @@ export function createStandaloneLibrary({
         savedScrollPositions = [];
         originalFocus = doc.activeElement;
         bookNames = listBooks();
+        favorites = new Set((getFavorites() || []).filter(book => bookNames.includes(book)));
+        recent = getRecent();
         bookToneByName = new Map(bookNames.map((book, index) => [book, index % 12]));
         linkedNames = linkedBooks();
         allBooks = !Boolean(getLinkedOnly());
@@ -2827,7 +3025,10 @@ export function createStandaloneLibrary({
         shell.focus();
     }
     function refreshTranslations(book) {
-        if (isOpen() && book && currentBook === book && currentData && !edit && !saving) renderBook();
+        if (isOpen() && book && currentBook === book && currentData) {
+            filteredCache = null;
+            if (!edit && !saving) renderBook();
+        }
     }
     function onExternalWorldUpdate(book, data) {
         if (!isOpen() || book !== currentBook || !data?.entries) return;
@@ -2835,9 +3036,46 @@ export function createStandaloneLibrary({
             notifyStatus('다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요.', 'warning');
             return;
         }
+        const next = Object.values(data.entries).filter(entry => entry && typeof entry.content === 'string');
+        // Compare the fields the reader actually uses, not full lore JSON.
+        // ST may mutate the same entry object, so retain immutable field snapshots.
+        const changed = [];
+        const sameStructure = next.length === readerSnapshot.size && next.every((entry, index) => {
+            const uid = String(entry.uid);
+            const previous = readerSnapshot.get(uid);
+            if (!previous || readerSourceOrder[index] !== uid || previous.metadata !== readerMetadata(entry)) return false;
+            if (previous.content !== entry.content) changed.push(entry);
+            return true;
+        });
         currentData = data;
-        entries = orderedLoreEntries(data);
-        buildSearchIndex();
+        if (sameStructure) {
+            if (!changed.length) return;
+            filteredCache = null;
+            for (const entry of changed) {
+                const uid = String(entry.uid);
+                entries[entryNumbers.get(uid) - 1] = entry;
+                readerSnapshot.get(uid).content = entry.content;
+                indexEntry(entry);
+            }
+            if (!query.trim()) {
+                for (const entry of changed) {
+                    replaceEntryDetail(entry.uid);
+                    const card = [...overlay.querySelectorAll('.slb-library-catalog-card')]
+                        .find(node => node.dataset.uid === String(entry.uid));
+                    if (card) {
+                        const excerpt = String(entry.content ?? '').replace(/\s+/g, ' ').trim().slice(0, 110);
+                        const previous = card.querySelector('.slb-library-card-excerpt');
+                        if (excerpt && previous) previous.textContent = excerpt;
+                        else if (excerpt) card.append(element(doc, 'span', 'slb-library-card-excerpt', excerpt));
+                        else previous?.remove();
+                    }
+                }
+                return;
+            }
+        } else {
+            entries = orderedLoreEntries(data);
+            buildSearchIndex();
+        }
         renderBook();
     }
     function updateTheme() {

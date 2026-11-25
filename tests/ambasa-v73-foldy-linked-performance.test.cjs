@@ -66,6 +66,7 @@ function fixture({count = 25, foldy = true} = {}) {
         MANAGER_MODE_STANDARD:'standard',
         jQuery: () => ({off(){return this},on(){return this}}),
         releaseNativePageCache: () => {},
+        pruneMetadataAppearanceObservers: () => {},
         console,
     };
     vm.runInNewContext(['bindWorkspaceEntries','syncEntryHeaderActions','isEntryHeaderReadyForReveal'].map(production).join('\n')+'\nglobalThis.bind=bindWorkspaceEntries;globalThis.actions=syncEntryHeaderActions;',ctx);

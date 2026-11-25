@@ -67,6 +67,7 @@ function fixture(groupModule = null) {
         jQuery: makeJQuery(dom.window), setTimeout, getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
         entryData: uid => data.entries[uid],
         updateNavigatorEntry() {}, scheduleSourceTranslation() {},
+        metadataAppearanceTargets: new Map(), metadataAppearanceObserver: null,
         scheduleAutomaticLorebookBackup() { backupCalls++; },
         hashText: text => text, normalizeEntryLanguage: value => value,
         oppositeEntryLanguage: () => 'ko', ENTRY_LANGUAGE_ENGLISH: 'en',
@@ -75,7 +76,7 @@ function fixture(groupModule = null) {
         translateText: async (source, language) => { requests.push([source, language]); return translate(source); },
 
     });
-    vm.runInContext(['mapLimit', 'throwIfTranslationCancelled', 'awaitCancelableTranslation', 'cancelBulkTranslation', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateMultipleLorebooks', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
+    vm.runInContext(['mapLimit', 'throwIfTranslationCancelled', 'awaitCancelableTranslation', 'cancelBulkTranslation', 'deleteSelectedEntries', 'translateCurrentLorebook', 'translateMultipleLorebooks', 'translateLoreFieldsForEntry', 'translateEntryCombinedFields', 'lorebookEntries', 'hasEntryTranslation', 'syncSourceVisibility', 'selectedTranslationFields', 'getEntryTranslationSources', 'currentMetadataTranslation', 'saveMetadataTranslations', 'syncMetadataTranslations', 'syncMetadataFieldAppearance', 'unobserveMetadataAppearance', 'pruneMetadataAppearanceObservers', 'hasSamePersistedTranslationPayload', 'saveTranslationRecord', 'findTranslationRecord', 'saveEntryLanguagePair', 'markTranslationSynced', 'translateEntrySource', 'translateEntryBodySource', 'setEntryBusy'].map(fn).join('\n'), context);
     function ui(uid) {
         const row = dom.window.document.createElement('div'); row.dataset.uid = String(uid);
         row.innerHTML = '<div class="world_entry_edit"><div class="slb-content-grid"><div class="slb-source-pane"><textarea></textarea></div><textarea class="translation"></textarea></div></div>';
@@ -638,7 +639,7 @@ test('native resize observer refreshes cached translation dimensions', () => {
     const f = fixture();
     try {
         let resized;
-        f.context.ResizeObserver = class { constructor(callback) { resized = callback; } observe() {} disconnect() {} };
+        f.context.ResizeObserver = class { constructor(callback) { resized = callback; } observe() {} unobserve() {} disconnect() {} };
         const ui = f.ui(0);
         ui.entry.insertAdjacentHTML('afterbegin', '<div class="slb-keyword-core-field"><textarea name="key">key</textarea></div>');
         f.settings.translations['A:0'] = { language: 'ko', fields: { key: { source: 'key', text: '키워드' } } };
@@ -648,7 +649,7 @@ test('native resize observer refreshes cached translation dimensions', () => {
         f.context.syncMetadataTranslations(ui.entry);
         const view = ui.entry.querySelector('[data-field="key"]');
         assert.equal(view.style.height, '29px');
-        height = 64; resized();
+        height = 64; resized([{target: source}]);
         assert.equal(view.style.height, '64px');
     } finally { f.close(); }
 });

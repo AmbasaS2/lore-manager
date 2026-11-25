@@ -285,7 +285,7 @@ test('ordering and page jumps are read-only and use compact, scoped UI controls'
     assert.match(index, /libraryListOrder:\s*'normal'/);
     assert.match(index, /\['normal', 'reverse', 'title-asc', 'title-desc'\]\.includes\(settings\.libraryListOrder\)/);
     assert.match(index, /setListOrder:\s*async value =>/);
-    assert.match(js, /if \(order === 'reverse'\) return found\.reverse\(\);/);
+    assert.match(js, /if \(order === 'reverse'\) result = found\.reverse\(\);/);
     assert.match(js, /LIBRARY_TITLE_COLLATOR\.compare/);
     assert.match(js, /function finishPageJump\(input, commit\)/);
     const scoped = css.slice(css.lastIndexOf('/* ambasa.56'));

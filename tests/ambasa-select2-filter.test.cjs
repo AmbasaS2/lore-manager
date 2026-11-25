@@ -13,11 +13,11 @@ function productionFunction(name) {
 }
 
 test('Select2 filtering works with and without jQuery data', () => {
-    const dom = new JSDOM(`<div class="select2-container--open"><div class="select2-results">
+    const dom = new JSDOM(`<div class="select2-container--open"><div class="select2-results" id="select2-world_editor_select-results">
         <li role="option" class="select2-results__option">Remus</li>
         <li role="option" class="select2-results__option">Sirius</li>
         <li role="option" class="select2-results__option">Global</li>
-    </div></div>`, { runScripts: 'outside-only' });
+    </div></div><div class="select2-container--open"><ul id="select2-other-results"><li role="option" class="select2-results__option">Other</li></ul></div>`, { runScripts: 'outside-only' });
     const w = dom.window;
     w.jQuery = makeJQuery(w);
     w.eval(`
@@ -32,6 +32,7 @@ test('Select2 filtering works with and without jQuery data', () => {
         assert.equal(items[0].classList.contains('slb-unlinked-world-option'), false);
         assert.equal(items[1].classList.contains('slb-unlinked-world-option'), false);
         assert.equal(items[2].classList.contains('slb-unlinked-world-option'), true);
+        assert.equal(items[3].classList.contains('slb-unlinked-world-option'), false);
         w.renderConnectedWorldResults(null);
         assert.equal(items[2].classList.contains('slb-unlinked-world-option'), false);
     } finally { w.close(); }

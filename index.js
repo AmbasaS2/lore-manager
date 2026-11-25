@@ -9,7 +9,7 @@ import {
 } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 import { getTokenCountAsync } from '../../../tokenizers.js';
-import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, world_names, world_info, world_info_position } from '../../../world-info.js';
+import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, sortWorldInfoEntries, world_names, world_info, world_info_position } from '../../../world-info.js';
 import { Popup, POPUP_TYPE, POPUP_RESULT } from '../../../popup.js';
 import { showdown, DOMPurify } from '../../../../lib.js';
 import { isMobile } from '../../../RossAscends-mods.js';
@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.74';
+const VERSION = '1.4.85-ambasa.75';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -130,6 +130,8 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryShelfRows: 3,
     libraryListOrder: 'normal',
     libraryWindowSizes: {},
+    libraryFavorites: [],
+    libraryRecent: null,
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
@@ -383,6 +385,9 @@ function getSettings() {
         settings.libraryListOrder = 'normal';
     if (!settings.libraryWindowSizes || typeof settings.libraryWindowSizes !== 'object'
         || Array.isArray(settings.libraryWindowSizes)) settings.libraryWindowSizes = {};
+    if (!Array.isArray(settings.libraryFavorites)) settings.libraryFavorites = [];
+    if (settings.libraryRecent && (typeof settings.libraryRecent.book !== 'string'
+        || !/^\d+$/.test(String(settings.libraryRecent.uid)))) settings.libraryRecent = null;
     settings.autoBackupEnabled = Boolean(settings.autoBackupEnabled);
 
     return settings;
@@ -905,6 +910,7 @@ function applyManagerMode(requestedMode, {
         state.workspaceObserver?.disconnect();
         state.workspaceObserver = null;
         state.workspaceObserverTarget = null;
+        state.workspaceObserverNodes = null;
         if (state.refreshTimer) cancelAnimationFrame(state.refreshTimer);
         state.refreshTimer = null;
         if (state.enhanceChunkRaf) cancelAnimationFrame(state.enhanceChunkRaf);
@@ -4088,6 +4094,20 @@ function saveMetadataTranslations(book, uid, pair, sources, results) {
     scheduleAutomaticLorebookBackup(book);
 }
 
+const metadataAppearanceTargets = new Map();
+let metadataAppearanceObserver = null;
+function unobserveMetadataAppearance(view) {
+    const target = view.slbAppearanceObservedTarget;
+    if (!target) return;
+    metadataAppearanceObserver?.unobserve(target);
+    metadataAppearanceTargets.delete(target);
+    view.slbAppearanceObservedTarget = null;
+}
+function pruneMetadataAppearanceObservers() {
+    for (const [target, record] of metadataAppearanceTargets) {
+        if (!target.isConnected || !record.view.isConnected || record.view.hidden) unobserveMetadataAppearance(record.view);
+    }
+}
 function syncMetadataFieldAppearance(view, field, name, force = false) {
     const textarea = field.querySelector(`textarea[name="${name}"]`);
     const select = field.querySelector(`select[name="${name}"]`);
@@ -4098,9 +4118,9 @@ function syncMetadataFieldAppearance(view, field, name, force = false) {
     // Ordinary metadata refreshes do not need another layout/style measurement.
     // ResizeObserver and responsive changes explicitly invalidate this cache.
     const signature = `${target.getAttribute('style')}|${target.className}|${field.closest('.world_entry')?.classList.contains('slb-compact-entry')}`;
-    if (!force && view.slbAppearanceTarget === target && view.slbAppearanceSignature === signature) return;
+    if (!force && view.slbAppearanceTarget === target && view.slbAppearanceSignature === signature
+        && (name === 'comment' || view.slbAppearanceObservedTarget === target || typeof ResizeObserver !== 'function')) return;
     view.slbAppearanceSignature = signature;
-    const previousTarget = view.slbAppearanceTarget;
     view.slbAppearanceTarget = target;
     const style = getComputedStyle(target);
     // Use the user's actual theme and native control size, including manually
@@ -4135,14 +4155,19 @@ function syncMetadataFieldAppearance(view, field, name, force = false) {
         }
     }
     if (textarea) view.rows = textarea.rows;
-    if (name !== 'comment' && typeof ResizeObserver === 'function' && previousTarget !== target) {
-        view.slbAppearanceObserver?.disconnect();
-        view.slbAppearanceTarget = target;
-        view.slbAppearanceObserver = new ResizeObserver(() => {
-            if (!view.isConnected || !target.isConnected) view.slbAppearanceObserver.disconnect();
-            else syncMetadataFieldAppearance(view, field, name, true);
+    if (name !== 'comment' && typeof ResizeObserver === 'function' && view.slbAppearanceObservedTarget !== target) {
+        unobserveMetadataAppearance(view);
+        metadataAppearanceObserver ??= new ResizeObserver(records => {
+            for (const record of records) {
+                const item = metadataAppearanceTargets.get(record.target);
+                if (!item) continue;
+                if (!record.target.isConnected || !item.view.isConnected || item.view.hidden) unobserveMetadataAppearance(item.view);
+                else syncMetadataFieldAppearance(item.view, item.field, item.name, true);
+            }
         });
-        view.slbAppearanceObserver.observe(target);
+        view.slbAppearanceObservedTarget = target;
+        metadataAppearanceTargets.set(target, { view, field, name });
+        metadataAppearanceObserver.observe(target);
     }
 }
 
@@ -4203,6 +4228,7 @@ function syncMetadataTranslations(entry, options = {}) {
             view.hidden = !text && !editing;
             view.slbMetadataContext = { book, language, source: sources[name] };
             if (!view.hidden) syncMetadataFieldAppearance(view, field, name, options.refreshAppearance === true);
+            else unobserveMetadataAppearance(view);
         }
         const visible = Boolean(view && !view.hidden);
         field.classList.toggle('slb-field-original-hidden', visible && settings.hideOriginalWhenTranslated);
@@ -4787,6 +4813,9 @@ function unbindWorkspaceEntries() {
     }
     state.observer?.disconnect();
     state.observer = null;
+    metadataAppearanceObserver?.disconnect();
+    for (const { view } of metadataAppearanceTargets.values()) view.slbAppearanceObservedTarget = null;
+    metadataAppearanceTargets.clear();
     state.responsiveObserver?.disconnect();
     state.responsiveObserverTarget = null;
     state.responsiveObservedWidth = 0;
@@ -5000,6 +5029,9 @@ function bindWorkspaceEntries(entries) {
                 });
             }
         }
+        if ((listChanged || entryChanged) && relevantMutations.some(mutation =>
+            [...mutation.removedNodes].some(node => node instanceof Element && !node.isConnected)))
+            pruneMetadataAppearanceObservers();
         if (listChanged || entryChanged) scheduleEnhance();
     });
     state.observer.observe(entries, { childList: true, subtree: true });
@@ -5022,13 +5054,24 @@ function bindWorkspaceEntries(entries) {
 
 function bindWorkspacePopupObserver(popup) {
     const observerTarget = document.getElementById('WorldInfo') || popup;
-    if (state.workspaceObserverTarget === observerTarget && state.workspaceObserver) return;
+    const watched = new Set([popup,
+        document.getElementById('slb-entry-selection-toolbar'),
+        document.getElementById('slb-token-summary-section'),
+        document.getElementById('slb-entry-filters-section')].filter(Boolean));
+    for (let node = popup.parentElement; node && observerTarget.contains(node); node = node.parentElement) {
+        watched.add(node);
+        if (node === observerTarget) break;
+    }
+    if (state.workspaceObserverTarget === observerTarget && state.workspaceObserver
+        && state.workspaceObserverNodes?.size === watched.size
+        && [...watched].every(node => state.workspaceObserverNodes.has(node))) return;
     state.workspaceObserver?.disconnect();
     state.workspaceObserverTarget = observerTarget;
+    state.workspaceObserverNodes = watched;
     state.workspaceObserver = new MutationObserver(mutations => {
         const relevantMutation = mutations.some(mutation => {
             if (mutation.type !== 'childList') return false;
-            if (mutation.target === observerTarget || mutation.target?.id === 'world_popup') return true;
+            if (watched.has(mutation.target)) return true;
             return [...mutation.addedNodes, ...mutation.removedNodes].some(node => (
                 node instanceof Element
                 && (
@@ -5064,7 +5107,7 @@ function bindWorkspacePopupObserver(popup) {
         // mutation instead of scheduling an empty retry loop.
         if (workspaceMissing && livePopup && liveEntries) scheduleEnhance();
     });
-    state.workspaceObserver.observe(observerTarget, { childList: true, subtree: true });
+    for (const node of watched) state.workspaceObserver.observe(node, { childList: true });
 }
 
 function createWorkspace() {
@@ -6993,7 +7036,11 @@ function useNativeConnectionFilterLists(root) {
             sync();
         });
         jQuery(select).on('input.slbNativeFilter change.slbNativeFilter', sync);
-        new MutationObserver(sync).observe(select, { childList: true, subtree: true, attributes: true, characterData: true });
+        new MutationObserver(mutations => {
+            if (mutations.some(mutation => mutation.type !== 'attributes'
+                || mutation.target.matches?.('option, optgroup'))) sync();
+        }).observe(select, { childList: true, subtree: true, attributes: true,
+            attributeFilter: ['selected', 'disabled', 'value', 'label'], characterData: true });
         nativeConnectionFilterLists.set(select, { list, sync });
         sync();
     });
@@ -8892,8 +8939,8 @@ function currentCharacterLinkedBooks() {
 }
 
 function renderConnectedWorldResults(linked) {
-    const results = document.querySelector('.select2-container--open .select2-results');
-    if (!results) return;
+    const results = document.getElementById('select2-world_editor_select-results');
+    if (!results?.closest('.select2-container--open')) return;
     for (const item of results.querySelectorAll('.select2-results__option[role="option"]')) {
         const data = jQuery(item).data('data');
         // Select2 stores item data internally on some SillyTavern versions,
@@ -8938,12 +8985,14 @@ function bindConnectedWorldFilter() {
     const startResultsObserver = () => {
         stopResultsObserver();
         syncConnectedWorldOptions();
-        const results = document.querySelector('.select2-container--open .select2-results');
-        if (!results) return;
+        const results = document.getElementById('select2-world_editor_select-results');
+        if (!results?.closest('.select2-container--open') || getSettings().managerMode === 'native'
+            || getSettings().showOnlyLinkedLorebooks === false) return;
         state.linkedBookResultContainer = results;
         state.linkedBookResultObserver = new MutationObserver(() => {
             renderConnectedWorldResults(
-                getSettings().showOnlyLinkedLorebooks === false ? null : currentCharacterLinkedBooks()
+                getSettings().managerMode === 'native' || getSettings().showOnlyLinkedLorebooks === false
+                    ? null : currentCharacterLinkedBooks()
             );
         });
         state.linkedBookResultObserver.observe(results, { childList: true, subtree: true });
@@ -9388,22 +9437,25 @@ async function translateLibraryEntry(book, entry) {
 // One-shot navigation back to the native ST WorldInfo list. Never scan or
 // observe the list while the independent library is idle.
 function openLibraryAdvanced(book, uid) {
+    state.libraryAdvancedCancel?.();
     const select = document.getElementById('world_editor_select');
     const option = Array.from(select?.options || [])
         .find(item => item.value !== '' && item.textContent.trim() === book);
     const list = document.getElementById('world_popup_entries_list');
-    if (!select || !option || !list) {
+    if (!select || !option || !list || !/^\d+$/.test(String(uid))) {
         notify('원본 로어북에서 해당 항목을 찾을 수 없습니다.', 'warning');
         return;
     }
     const wasSameBook = currentBookName() === book;
+    const switching = state.bookSwitch?.book === book && !state.bookSwitch.ready;
+    const oldRows = new Set(wasSameBook
+        ? (switching ? state.bookSwitch.previousRows || [] : [])
+        : list.querySelectorAll('.world_entry'));
     const seek = () => {
-        // On a book change ST must finish replacing the previous book rows.
+        if (currentBookName() !== book) return false;
         const item = Array.from(list.querySelectorAll('.world_entry'))
-            .find(row => getUid(row) === String(uid));
+            .find(row => !oldRows.has(row) && getUid(row) === String(uid));
         if (!item) return false;
-        // Integrated mode's existing tab system can open the activation panel
-        // immediately or use this saved tab when the async builder finishes.
         if (state.managerMode !== 'native') {
             item.dataset.slbActiveTab = 'activation';
             item.querySelector('.slb-tab[data-tab="activation"]')?.click();
@@ -9413,37 +9465,63 @@ function openLibraryAdvanced(book, uid) {
         item.scrollIntoView?.({ block: 'center', behavior: 'auto' });
         return true;
     };
-    let observer = null;
-    let timer = null;
+    if (!isWorldInfoDrawerOpen()) document.querySelector('#WI-SP-button > .drawer-toggle')?.click();
+    if (wasSameBook && seek()) return;
+    const pager = jQuery('#world_info_pagination');
+    const oldPlugin = wasSameBook ? null : pager.data('pagination');
+    let observer, timer, stopped = false, requestedPage = false, data = null;
     const stop = () => {
+        stopped = true;
         observer?.disconnect();
-        observer = null;
         clearTimeout(timer);
+        select.removeEventListener('change', cancelOnSelection);
+        if (state.libraryAdvancedCancel === stop) state.libraryAdvancedCancel = null;
     };
-    if (!isWorldInfoDrawerOpen()) {
-        document.querySelector('#WI-SP-button > .drawer-toggle')?.click();
-    }
-    if (!wasSameBook) {
-        // Attach before firing the native change event; there is no polling.
-        observer = new MutationObserver(() => {
-            if (currentBookName() !== book) return;
-            if (seek()) stop();
-        });
-        observer.observe(list, { childList: true, subtree: true });
-        select.value = option.value;
-        jQuery(select).trigger('change');
-    } else if (seek()) return;
-    if (!observer) {
-        observer = new MutationObserver(() => {
-            if (seek()) stop();
-        });
-        observer.observe(list, { childList: true, subtree: true });
-    }
+    const cancelOnSelection = () => { if (currentBookName() !== book) stop(); };
+    const fail = message => { stop(); notify(message, 'warning'); };
+    const advance = () => {
+        if (stopped || currentBookName() !== book) return;
+        const plugin = pager.data('pagination');
+        // Changing the select value alone does not prove that new-book rows
+        // have arrived. Wait for the new pager and exclude every old row.
+        if (!wasSameBook && (!plugin?.initialized || plugin === oldPlugin)) return;
+        if (seek()) { stop(); return; }
+        if (requestedPage || !data?.entries || !plugin?.initialized) return;
+        // The ST callback creates a complete page asynchronously; do not
+        // start another pagination callback while that page is still building.
+        const rows = Array.from(list.querySelectorAll('.world_entry'));
+        if (Array.isArray(plugin.currentPageData) && plugin.currentPageData.length
+            && (!rows.length || !rows.some(row => !oldRows.has(row)))) return;
+        if (state.managerMode === 'foldy') return; // Foldy owns its non-native layout.
+        try {
+            const sorted = sortWorldInfoEntries(worldInfoFilter.applyFilters(Object.values(data.entries).filter(Boolean)));
+            const position = sorted.findIndex(entry => String(entry.uid) === String(uid));
+            const pageSize = Number(plugin.model?.pageSize);
+            if (position < 0) { fail('현재 월드 인포 검색 또는 필터에 가려진 항목입니다. 필터를 해제한 뒤 다시 열어 주세요.'); return; }
+            if (!Number.isInteger(pageSize) || pageSize < 1) return;
+            const page = Math.floor(position / pageSize) + 1;
+            requestedPage = true;
+            if (page !== Number(plugin.model.pageNumber)) pager.pagination('go', page);
+        } catch (error) {
+            console.warn('[로어북 매니저] 원본 항목 페이지 이동 실패', error);
+        }
+    };
+    state.libraryAdvancedCancel = stop;
+    observer = new MutationObserver(advance);
+    observer.observe(list, { childList: true, subtree: true });
+    select.addEventListener('change', cancelOnSelection);
     timer = setTimeout(() => {
-        stop();
-        if (currentBookName() === book && seek()) return;
-        notify('원본 로어북 항목을 아직 표시하지 못했습니다. 로딩 상태를 확인하세요.', 'warning');
+        if (!stopped && currentBookName() === book) fail('원본 로어북 항목을 아직 표시하지 못했습니다. 로딩 상태를 확인하세요.');
+        else stop();
     }, 12000);
+    if (!wasSameBook) {
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    Promise.resolve(loadWorldInfo(book)).then(value => {
+        data = value;
+        advance();
+    }).catch(() => { if (!stopped && currentBookName() === book) fail('원본 로어북을 불러오지 못했습니다.'); });
 }
 
 // Each lore UID may optionally reference one image stored in ST's existing
@@ -9696,6 +9774,20 @@ function initStandaloneLibrary() {
                 throw error;
             }
         },
+        getFavorites: () => getSettings().libraryFavorites,
+        setFavorites: async value => {
+            const settings = getSettings(), previous = settings.libraryFavorites;
+            settings.libraryFavorites = [...new Set(value.filter(book => world_names.includes(book)))];
+            try { await saveSettings(); } catch (error) { settings.libraryFavorites = previous; throw error; }
+        },
+        getRecent: () => getSettings().libraryRecent,
+        setRecent: value => {
+            if (!value || !world_names.includes(value.book) || !/^\d+$/.test(String(value.uid))) return;
+            const settings = getSettings();
+            if (settings.libraryRecent?.book === value.book && String(settings.libraryRecent.uid) === String(value.uid)) return;
+            settings.libraryRecent = { book: value.book, uid: String(value.uid) };
+            saveSettingsDebounced();
+        },
         getLinkedOnly: () => getSettings().libraryLinkedOnly !== false,
         setLinkedOnly: async enabled => {
             const settings = getSettings(), previous = settings.libraryLinkedOnly;
@@ -9750,7 +9842,7 @@ function bindStandaloneLibraryMenu() {
     action.setAttribute('role', 'button');
     action.tabIndex = 0;
     action.setAttribute('aria-label', '독립 로어북 매니저 서재 열기');
-    action.append(createElement('div', 'fa-solid fa-book-open extensionsMenuExtensionButton'));
+    action.append(createElement('div', 'fa-solid fa-address-book extensionsMenuExtensionButton'));
     action.append(createElement('span', '', '로어북 매니저'));
     const open = () => void openStandaloneLibrary();
     action.addEventListener('click', open);

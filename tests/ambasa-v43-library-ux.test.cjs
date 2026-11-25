@@ -87,7 +87,10 @@ test('shelf title search filters metadata only and preserves input caret, withou
  const f=await setup({nBooks:35,linkedOnly:false});
  try{
    assert.equal(f.all('.slb-library-book-spine').length,35);
+   const input = f.q('#slb-library-shelf-search');
+   input.focus();
    f.input('#slb-library-shelf-search','Book 34');
+   assert.equal(f.q('#slb-library-shelf-search'), input);
    assert.equal(f.all('.slb-library-book-spine').length,1);
    assert.equal(f.q('.slb-library-book-spine').dataset.book,'Book 34');
    assert.equal(f.q('#slb-library-shelf-search').value,'Book 34');

@@ -4,7 +4,7 @@ A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverh
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.74 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.75 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저--ambasas2-포크) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -60,6 +60,8 @@ The independent library is separate from these choices.
 ## 2. The Lore Library
 
 Open the library from the extension menu or the settings panel. Search and filter books by tags or show books linked to the current character. If no linked books are found, the linked-only view falls back to all books.
+
+Use the book tag panel to mark favorites; favorited books appear first in the shelf. Resume Reading restores the last book and entry. Global content search reads books only when you explicitly run a search (up to 100 results, no AI calls). Native-editor entry jumps respect the current search/filter and sort; clear filters if the entry is hidden. Foldy retains its own page navigation.
 
 Choose a reading format for each book:
 
@@ -131,7 +133,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.74 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.75 (원작 1.4.85 기반)
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
@@ -189,6 +191,8 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 ## 2. 독립 서재
 
 확장 메뉴 또는 설정의 **독립 서재 열기**에서 실행합니다. 책을 검색하거나 태그로 필터링할 수 있습니다. 현재 캐릭터에 연결된 로어북만 볼 수도 있으며 연결된 책이 없다면 전체 목록을 표시합니다.
+
+책 태그 패널에서 즐겨찾기를 설정하면 서재 상단에 우선 표시됩니다. 이어 읽기로 마지막 책과 항목을 복원하고, 전체 본문 검색은 명시적으로 실행할 때만 책을 읽습니다(최대 100개 결과, AI 호출 없음). 원본 편집기 이동은 현재 정렬과 검색·필터를 따르며, 항목이 숨겨져 있다면 필터를 해제해야 합니다. Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="카드파일·메모리·백과사전·인물록 · 예시 데이터" width="860"></p>
 

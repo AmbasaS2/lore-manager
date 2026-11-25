@@ -7221,3 +7221,59 @@
         width: 100%;
     }
 }
+
+/* ambasa.75 · on-demand shelf actions; inherit all four reader themes. */
+#slb-library-overlay .slb-library-shelf-shortcuts,
+#slb-library-overlay .slb-library-global-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 5px 12px;
+    min-width: 0;
+}
+#slb-library-overlay .slb-library-shelf-shortcuts button,
+#slb-library-overlay .slb-library-global-controls button,
+#slb-library-overlay .slb-library-book-favorite {
+    min-height: 27px;
+    padding: 3px 9px;
+    border: 1px solid var(--ll-line, currentColor);
+    border-radius: 6px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+#slb-library-overlay .slb-library-global-input {
+    flex: 1 1 100px;
+    min-width: 0;
+    max-width: 100%;
+    font: inherit;
+    color: inherit;
+}
+#slb-library-overlay .slb-library-global-results {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 12px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-global-result {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--ll-line, currentColor);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+#slb-library-overlay .slb-library-global-result small { opacity: .75; }
+#slb-library-overlay .slb-library-favorite-mark { font-size: 11px; }
