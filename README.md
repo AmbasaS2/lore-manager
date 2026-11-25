@@ -14,6 +14,25 @@ The original extension provides the foundation for lorebook editing, translation
 
 [한국어 Notion 사용 설명서](https://app.notion.com/p/422a96b06fd48160a2a6f0a9bbffb073)
 
+## Start here — Lorebook Manager in five minutes
+
+**Current version: 1.4.85-ambasa.77.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
+
+<p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="860"></p>
+
+1. Install the fork without resetting your data, then reload. In Extensions settings → 로어북 매니저 select the native display mode if you only want the independent reader.
+2. Open the library from the Extensions menu. Choose a book, one of four reading formats and your preferred theme.
+3. Tap the shelf magnifier, type a search term, then press Enter or the same magnifier. In-book search only searches that book. Saved translations are searchable; no AI request.
+4. Read the original or saved translation. Use the entry … menu to edit, translate or jump to the native editor. Set a translation provider only if you need new translations.
+
+### Works alone, better together
+
+The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
+
+[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo) · [Four-extension workflow guide (Korean, bilingual diagrams)](https://app.notion.com/p/423a96b06fd48147be13ec0929ee088d)
+
+The detailed sections below explain optional settings. Compatibility is version-dependent; it does not guarantee every third-party extension or device.
+
 ## Who is this for?
 
 - Players who want to read lorebook content without the native World Info editor's many setting fields.
@@ -121,6 +140,10 @@ Use **로어북 일괄 번역** to select one or more books, translate missing e
 
 These choices address my own usage pattern; they do not guarantee better performance on every device or server. Some processing happens in the browser, not on the server. Desktop and mobile-width layouts have been checked in isolated Chromium tests; this does not establish compatibility with every actual device or extension combination.
 
+## Troubleshooting
+
+If search seems to do nothing, press Enter or the same magnifier after typing. If an entry jump cannot find its row, clear the native editor's search/filter. For reading only, choose the native display mode and the independent library. Do not reset data to switch versions; back up original books and separate translation JSON files.
+
 ## Credits and license
 
 Original project: **로어북 매니저 / Lorebook Manager**  
@@ -144,6 +167,23 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 **서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
 
 [한국어 Notion 사용 설명서](https://app.notion.com/p/422a96b06fd48160a2a6f0a9bbffb073)
+
+## 먼저 읽어 보세요 · 처음 사용하는 분을 위한 5분 안내
+
+**현재 버전: 1.4.85-ambasa.77.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
+
+1. 원본과 동시 사용하지 말고 데이터를 보존한 채 포크 설치 후 새로고침합니다. 확장 관리 → 로어북 매니저 → 화면·고급 설정에서 기본 화면을 고르면 독립 서재만 사용할 수 있습니다.
+2. 확장 메뉴 → 로어북 매니저 → 원하는 책 선택 → 카드파일·메모리·백과사전·인물록 중 보기 방식과 테마 선택.
+3. 서가 돋보기 → 검색어 입력 → Enter 또는 같은 돋보기로 실행. 책 안 검색은 해당 책만 검색하며 저장 번역 검색에도 AI 요청은 없습니다.
+4. 원문 또는 번역문을 읽고 … 메뉴에서 수정·번역·기본 월드 인포 이동을 합니다. 새 번역이 필요할 때만 제공자를 설정하세요.
+
+### 단독으로도 충분하고, 함께 쓰면 더 편리합니다
+
+AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
+
+[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo) · [4개 확장 연동 사용설명서](https://app.notion.com/p/423a96b06fd48147be13ec0929ee088d)
+
+아래에서 필요한 설정만 자세히 읽으세요. 지원 버전 기준이며 모든 기기·다른 확장 조합을 보장하는 것은 아닙니다.
 
 ## 이런 분들께 추천합니다!
 
@@ -293,4 +333,4 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 **AGPL-3.0-only** 라이선스를 따릅니다. [LICENSE](LICENSE)와 [NOTICE](NOTICE)를 확인해 주세요. [원작 README](docs/UPSTREAM_README.md)는 원문 그대로 보존했으며, 포크의 수정 이력은 [AMBASA_FORK_NOTES.md](AMBASA_FORK_NOTES.md)에 기록되어 있습니다. 공개 포크 유지에 관한 원작자의 요청은 자발적인 요청이며 AGPL의 의무는 그대로 적용됩니다.
 
-*안내 이미지는 실제 한국어 확장 화면을 예시 로어북 데이터로 렌더링한 것이며, 설명 및 주요 UI 용어는 한영 병기로 표기합니다.*
+*서재·설정 이미지는 실제 한국어 확장 화면을 예시 데이터로 렌더링한 것이며, 새 5분 안내 이미지는 설명용 구성도입니다. 주요 용어는 한영 병기로 표기합니다.*
