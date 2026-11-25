@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.75';
+const VERSION = '1.4.85-ambasa.76';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -200,6 +200,7 @@ function loadTranslationBook(book) {
 function saveBookTranslations(book) {
     if (book === currentBookName()) releaseNativePageCache();
     translationFiles.scheduleSave(book);
+    standaloneLibrary?.invalidateTranslationSearch(book);
 }
 const GOOGLE_LANGUAGE_CODES = Object.freeze({
     [ENTRY_LANGUAGE_KOREAN]: 'ko',
@@ -2604,6 +2605,7 @@ async function flushExtensionSettings() {
 async function clearTranslationStorage({ refreshUI = true } = {}) {
     // A verified recovery backup is written before any server record is cleared.
     await translationFiles.clearAll({ onlyTranslations: true });
+    standaloneLibrary?.invalidateTranslationSearch();
     translationFallbackLookup.invalidate(getSettings().translations);
     state.translationTimers.forEach(timer => clearTimeout(timer));
     state.translationTimers.clear();
@@ -9669,13 +9671,19 @@ function initStandaloneLibrary() {
             try {
                 await translationFiles.start();
                 await translationFiles.ensureBook(book);
+                return true;
             } catch (error) {
                 // Failed translated-file reads must not prevent the user from
                 // reading the original lorebook in the independent modal.
                 console.warn('[로어북 매니저] 독립 서재 번역 기록 불러오기 실패', error);
+                return false;
             }
         },
         translationFor: librarySavedTranslation,
+        // Search the saved record regardless of display language/staleness.
+        // Direct lookup avoids running display-language and source hash checks
+        // once for every entry in a whole-library search.
+        searchTranslationFor: (book, entry) => translationFiles.memory.records[translationKey(book, entry.uid)],
         renderReadMarkdown: renderLibraryReadingMarkdown,
         saveContent: saveLibraryOriginal,
         saveTranslation: saveLibraryTranslation,

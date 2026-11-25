@@ -101,9 +101,10 @@ test('narrow search button opens the real search and Escape closes it, not the m
   assert.ok(f.q('.slb-library-shelf-toolbar.is-search-open'));
   assert.equal(f.w.document.activeElement.id,'slb-library-shelf-search');
   const search=f.q('#slb-library-shelf-search');
+  const prior = f.qa('[data-action="select-book"]').length;
   search.value='Book 44';
   search.dispatchEvent(new f.w.Event('input',{bubbles:true}));
-  assert.equal(f.qa('[data-action="select-book"]').length,1);
+  assert.equal(f.qa('[data-action="select-book"]').length,prior);
   f.w.document.dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
   assert.ok(f.q('#slb-library-overlay'));
   assert.equal(f.q('.slb-library-shelf-toolbar.is-search-open'),null);
@@ -158,6 +159,7 @@ test('reader has exactly one shared search; encyclopedia and people no longer du
    assert.equal(f.q('.slb-library-people-search'),null);
    const input=f.q('#slb-library-search');
    input.value='Article 19';input.dispatchEvent(new f.w.Event('input',{bubbles:true}));
+   f.click('[data-action="submit-reader-search"]');
    if(kind==='people'){
     assert.equal(f.qa('.slb-library-person-row').length,1);
     assert.equal(f.q('.slb-library-person-row strong').textContent,'Article 19');

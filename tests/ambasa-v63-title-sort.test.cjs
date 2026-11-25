@@ -188,6 +188,7 @@ test('title search filters entries before alphabetic sorting, and first/last pag
         const search = f.q('#slb-library-search');
         search.value = 'group-even';
         search.dispatchEvent(new f.win.Event('input', { bubbles: true }));
+        f.click('[data-action="submit-reader-search"]');
         await f.setOrder('title-asc');
         assert.match(f.q('.slb-library-world-pages').getAttribute('aria-label'), /120개 항목/);
         assert.equal(f.q('.slb-library-page-jump').textContent, '1 / 24');

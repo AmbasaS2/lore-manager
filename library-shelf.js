@@ -93,6 +93,7 @@ export function createStandaloneLibrary({
     saveContent,
     loadTranslations,
     translationFor,
+    searchTranslationFor = translationFor,
     renderReadMarkdown = null,
     translateOne,
     saveTranslation,
@@ -149,6 +150,7 @@ export function createStandaloneLibrary({
     let edit = null;
     let saving = false;
     let searchIndex = new Map();
+    let searchIndexDirty = true;
     let entryNumbers = new Map();
     let filteredCache = null;
     let shelfColumnCount = 0;
@@ -524,6 +526,19 @@ export function createStandaloneLibrary({
         // While minimized, Escape belongs to SillyTavern and other extensions,
         // not to this hidden reader with possible unsaved edits.
         if (!isOpen() || minimized) return;
+        if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229
+            && overlay.contains(event.target)) {
+            if (event.target.id === 'slb-library-shelf-search') {
+                event.preventDefault();
+                void runGlobalSearch();
+                return;
+            }
+            if (event.target.id === 'slb-library-search') {
+                event.preventDefault();
+                submitReaderSearch();
+                return;
+            }
+        }
         if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
             const opener = event.target.closest?.('.slb-library-cover-open');
             if (opener) {
@@ -540,6 +555,7 @@ export function createStandaloneLibrary({
         else if (activeToolsUid !== null) closeReaderTools();
         else if (settingsOpen) setSettingsOpen(false);
         else if (shelfSearchOpen) closeShelfSearch();
+        else if (globalSearchOpen) returnToShelf();
         else if (readerSearchOpen) closeReaderSearch();
         else close();
     }
@@ -560,7 +576,7 @@ export function createStandaloneLibrary({
         if (!isOpen() || coverEditor) return;
         const target = event.target;
         if (shelfSearchOpen && !target.closest?.('.slb-library-books-head')) closeShelfSearch();
-        if (readerSearchOpen && !target.closest?.('.slb-library-reader-search-toggle, #slb-library-search')) closeReaderSearch();
+        if (readerSearchOpen && !target.closest?.('.slb-library-reader-search-toggle, .slb-library-reader-search-panel')) closeReaderSearch();
     }
     function cancelCoverLongPress() {
         if (coverLongPressTimer !== null) doc.defaultView.clearTimeout(coverLongPressTimer);
@@ -689,6 +705,9 @@ export function createStandaloneLibrary({
         search.autocomplete = 'off';
         search.placeholder = '검색';
         search.setAttribute('aria-label', '로어북 내 검색');
+        search.setAttribute('enterkeyhint', 'search');
+        const readerSearchPanel = element(doc, 'div', 'slb-library-search-panel slb-library-reader-search-panel');
+        readerSearchPanel.append(searchField(search, 'submit-reader-search', '현재 로어북 검색 실행'));
         const navTools = element(doc, 'div', 'slb-library-nav-tools');
         const searchToggle = button(doc, 'slb-library-reader-search-toggle', '', 'reader-search-toggle');
         searchToggle.append(faIcon(doc, 'magnifying-glass'));
@@ -696,7 +715,7 @@ export function createStandaloneLibrary({
         searchToggle.setAttribute('title', '검색');
         searchToggle.setAttribute('aria-controls', 'slb-library-search');
         searchToggle.setAttribute('aria-expanded', 'false');
-        navTools.append(filters, searchToggle, search);
+        navTools.append(filters, searchToggle, readerSearchPanel);
         const appearance = element(doc, 'div', 'slb-library-appearance');
         const appearanceLabel = element(doc, 'label', '', '테마');
         appearanceLabel.htmlFor = 'slb-library-theme-mode';
@@ -1320,8 +1339,31 @@ export function createStandaloneLibrary({
         if (mode === 'blackberry') return Math.max(3, Math.min(5, Math.floor((shellWidth - 16) / 98)));
         return Math.max(3, Math.min(14, Math.floor((width - 28 + 4) / 47)));
     }
+    function searchField(input, action, label) {
+        const field = element(doc, 'div', 'slb-library-search-field');
+        const submit = button(doc, 'slb-library-search-submit', '', action);
+        submit.setAttribute('aria-label', label);
+        submit.title = label;
+        submit.append(faIcon(doc, 'magnifying-glass'));
+        field.append(input, submit);
+        return field;
+    }
+    function clearGlobalSearch() {
+        ++globalSearchSerial;
+        globalSearchOpen = false;
+        const body = overlay?.querySelector('.slb-library-body');
+        body?.querySelector('.slb-library-global-panel')?.remove();
+        body?.classList.remove('is-global-search');
+    }
+    function returnToShelf() {
+        clearGlobalSearch();
+        const body = overlay?.querySelector('.slb-library-body');
+        if (body?.dataset.type === 'books' && shelfColumns(body, libraryTheme()) !== shelfColumnCount)
+            bookList({ resultsOnly: true });
+    }
     function bookList({ resultsOnly = false } = {}) {
         if (!isOpen()) return;
+        clearGlobalSearch();
         const body = overlay.querySelector('.slb-library-body');
         const oldScroll = body.dataset.type === 'books' ? body.scrollTop : 0;
         const oldShelf = body.querySelector('.slb-library-bookshelf');
@@ -1375,9 +1417,17 @@ export function createStandaloneLibrary({
         titleSearch.type = 'search';
         titleSearch.autocomplete = 'off';
         titleSearch.placeholder = '검색';
-        titleSearch.setAttribute('aria-label', '로어북 제목 검색');
+        titleSearch.setAttribute('aria-label', '전체 로어북 검색');
+        titleSearch.setAttribute('enterkeyhint', 'search');
         titleSearch.value = shelfQuery;
-        head.append(titleSearch);
+        const searchPanel = element(doc, 'div', 'slb-library-search-panel slb-library-shelf-search-panel');
+        searchPanel.append(searchField(titleSearch, 'submit-shelf-search', '전체 로어북 검색 실행'));
+        if (recent && bookNames.includes(recent.book)) {
+            const resume = button(doc, 'slb-library-resume-search-action', '이어 읽기', 'resume-reading');
+            resume.title = recent.book;
+            searchPanel.append(resume);
+        }
+        head.append(searchPanel);
 
         tagbar = element(doc, 'nav', 'slb-library-tagbar');
         tagbar.setAttribute('aria-label', '로어북 태그');
@@ -1403,7 +1453,6 @@ export function createStandaloneLibrary({
         tagSelect.value = '';
         tagbar.append(tagSelect);
         }
-        const needle = shelfQuery.toLocaleLowerCase().trim();
         const typeMap = typeof getTypeMap === 'function' ? getTypeMap() : null;
         const mode = libraryTheme();
         const savedTypeOf = book => {
@@ -1414,7 +1463,6 @@ export function createStandaloneLibrary({
         };
         let candidates = linked.filter(book => {
             const tags = tagsFor(book.name);
-            if (needle && !book.name.toLocaleLowerCase().includes(needle)) return false;
             if (shelfTag === 'untagged' && tags.length) return false;
             if (shelfSelectedTags.size && !tags.some(tag => shelfSelectedTags.has(tag))) return false;
             if (mode === 'mac' && shelfType !== 'all' && savedTypeOf(book.name) !== shelfType) return false;
@@ -1574,14 +1622,6 @@ export function createStandaloneLibrary({
         } else if (ebook) shelf.append(scroll);
         else shelf.append(scroll, element(doc, 'div', 'slb-library-wood-plank'));
         if (!partial) {
-        const shortcuts = element(doc, 'div', 'slb-library-shelf-shortcuts');
-        if (recent && bookNames.includes(recent.book)) {
-            const resume = button(doc, '', '이어 읽기', 'resume-reading');
-            resume.title = recent.book;
-            shortcuts.append(resume);
-        }
-        shortcuts.append(button(doc, '', '전체 본문 검색', 'global-search'));
-        body.append(shortcuts);
         const toolbar = element(doc, 'div', 'slb-library-shelf-toolbar');
         toolbar.classList.toggle('is-search-open', shelfSearchOpen);
         toolbar.append(tagbar, head);
@@ -1786,6 +1826,7 @@ export function createStandaloneLibrary({
         overlay.querySelector('.slb-library-current').textContent = book;
         overlay.querySelector('#slb-library-search').value = '';
         overlay.querySelector('#slb-library-book-type').value = getType(book) || 'general';
+        body.classList.remove('is-global-search');
         body.replaceChildren(element(doc, 'p', 'slb-library-loading', '책과 번역 기록을 여는 중…'));
         body.dataset.type = 'loading';
         notifyStatus('선택한 로어북 파일을 불러오는 중입니다.');
@@ -1817,26 +1858,46 @@ export function createStandaloneLibrary({
         readerSourceOrder = Object.values(currentData?.entries || {})
             .filter(entry => entry && typeof entry.content === 'string').map(entry => String(entry.uid));
         searchIndex = new Map();
+        searchIndexDirty = true;
         entryNumbers = new Map();
         filteredCache = null;
         for (const [index, entry] of entries.entries()) {
             entryNumbers.set(String(entry.uid), index + 1);
-            indexEntry(entry);
         }
     }
-    function indexEntry(entry) {
-        searchIndex.set(String(entry.uid), [
+    function searchableFields(entry, translation) {
+        return [
             entry.comment || '',
             ...(Array.isArray(entry.key) ? entry.key : []),
             ...(Array.isArray(entry.keysecondary) ? entry.keysecondary : []),
             entry.content || '',
-        ].join(' ').toLocaleLowerCase());
+            translation?.text,
+            translation?.title,
+            translation?.fields?.comment?.text,
+            translation?.fields?.key?.text,
+            translation?.fields?.keysecondary?.text,
+        ].filter(value => typeof value === 'string').join('\n').toLocaleLowerCase();
+    }
+    function indexEntry(entry) {
+        searchIndex.set(String(entry.uid), searchableFields(entry, searchTranslationFor?.(currentBook, entry)));
+    }
+    function ensureSearchIndex() {
+        if (!searchIndexDirty) return;
+        searchIndex.clear();
+        for (const entry of entries) indexEntry(entry);
+        searchIndexDirty = false;
+    }
+    function invalidateTranslationSearch(book = null) {
+        if (book && book !== currentBook) return;
+        searchIndexDirty = true;
+        filteredCache = null;
     }
     function filtered() {
         // Presentation-only sort: preserve live WorldInfo entries, UIDs,
         // displayIndex and translation/source data. Filter before ordering.
         const needle = query.toLocaleLowerCase().trim();
         const order = libraryListOrder();
+        if (needle) ensureSearchIndex();
         if (filteredCache?.needle === needle && filteredCache.order === order) return filteredCache.found;
         const found = needle
             ? entries.filter(item => searchIndex.get(String(item.uid))?.includes(needle))
@@ -2459,9 +2520,10 @@ export function createStandaloneLibrary({
                 buildSearchIndex();
             } else {
                 await saveTranslation(currentBook, entry, next, active.initial);
+                invalidateTranslationSearch(currentBook);
             }
             resetEdit();
-            if (active.kind === 'source') renderBook();
+            if (active.kind === 'source' || query.trim()) renderBook();
             else replaceEntryDetail(active.uid);
             notifyStatus('저장 완료 · 원본 로어북/번역 파일에 반영되었습니다.', 'success');
         } catch (error) {
@@ -2488,8 +2550,8 @@ export function createStandaloneLibrary({
             const beforeTitle = titleOf(entry);
             await translateOne(currentBook, entry);
             entryReadViews.set(String(uid), 'translated');
-            filteredCache = null;
-            if (beforeTitle !== titleOf(entry)) renderBook();
+            invalidateTranslationSearch(currentBook);
+            if (query.trim() || beforeTitle !== titleOf(entry)) renderBook();
             else replaceEntryDetail(uid);
             notifyStatus('AI 번역이 저장되었습니다.', 'success');
         } catch (error) {
@@ -2510,63 +2572,68 @@ export function createStandaloneLibrary({
         if (previousEditUid && previousEditUid !== String(uid)) replaceEntryDetail(previousEditUid);
         replaceEntryDetail(uid);
     }
-    function openGlobalSearch() {
+    async function runGlobalSearch() {
         if (!isOpen() || currentBook) return;
-        ++externalOpenSerial;
-        ++globalSearchSerial;
-        globalSearchOpen = true;
         const body = overlay.querySelector('.slb-library-body');
-        body.replaceChildren();
-        body.dataset.type = 'global-search';
-        const controls = element(doc, 'div', 'slb-library-global-controls');
-        const input = element(doc, 'input', 'slb-library-global-input');
-        input.type = 'search';
-        input.id = 'slb-library-global-query';
-        input.placeholder = '제목 · 키워드 · 원문';
-        input.setAttribute('aria-label', '전체 로어북 본문 검색');
-        const run = button(doc, '', '검색', 'run-global-search');
-        controls.append(button(doc, '', '‹ 서가', 'books'), input, run);
+        const input = body.querySelector('#slb-library-shelf-search');
+        const needle = input?.value.toLocaleLowerCase().trim();
+        if (!input) return;
+        shelfQuery = input.value;
+        ++externalOpenSerial;
+        closeShelfSearch();
+        if (!needle) { returnToShelf(); return; }
+        clearGlobalSearch();
+        const serial = globalSearchSerial;
+        globalSearchOpen = true;
+        const panel = element(doc, 'section', 'slb-library-global-panel');
+        const heading = element(doc, 'div', 'slb-library-global-heading');
+        heading.append(element(doc, 'strong', '', '검색 결과'),
+            button(doc, 'slb-library-search-action', '서가로 돌아가기', 'return-to-shelf'));
         const results = element(doc, 'div', 'slb-library-global-results');
         results.setAttribute('aria-live', 'polite');
-        body.append(controls, results);
-        input.addEventListener('keydown', event => {
-            if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); run.click(); }
-        });
-        input.focus();
-    }
-    async function runGlobalSearch() {
-        const input = overlay?.querySelector('#slb-library-global-query');
-        const results = overlay?.querySelector('.slb-library-global-results');
-        const needle = input?.value.toLocaleLowerCase().trim();
-        const run = overlay?.querySelector('[data-action="run-global-search"]');
-        if (!globalSearchOpen || !results || !needle || run?.disabled) return;
-        if (run) run.disabled = true;
-        const serial = ++globalSearchSerial;
+        panel.append(heading, results);
+        body.append(panel);
+        body.classList.add('is-global-search');
+        body.scrollTop = 0;
         const alive = () => isOpen() && globalSearchOpen && serial === globalSearchSerial && results.isConnected;
         results.replaceChildren(element(doc, 'p', '', '검색 중…'));
+        const bookMatches = bookNames.filter(book => book.toLocaleLowerCase().includes(needle));
         const matches = [];
         let failed = 0;
+        let translationFailed = 0;
         const limit = 100;
+        // Read on submit only. ST caches original books, and ensureBook caches
+        // the translation files; no separate persistent corpus or polling.
         for (const book of bookNames) {
             if (!alive()) return;
             try {
-                const data = await loadBook(book);
+                const [source, translated] = await Promise.allSettled([loadBook(book), loadTranslations(book)]);
                 if (!alive()) return;
-                for (const entry of Object.values(data?.entries || {})) {
+                if (source.status !== 'fulfilled' || !source.value?.entries) { failed++; continue; }
+                if (translated.status !== 'fulfilled' || translated.value === false) translationFailed++;
+                for (const entry of Object.values(source.value.entries)) {
                     if (!entry || !/^\d+$/.test(String(entry.uid))) continue;
-                    const haystack = [entry.comment, ...(Array.isArray(entry.key) ? entry.key : []),
-                        ...(Array.isArray(entry.keysecondary) ? entry.keysecondary : []), entry.content]
-                        .join(' ').toLocaleLowerCase();
-                    if (haystack.includes(needle)) matches.push({ book, uid: String(entry.uid), title: entry.comment || '항목 #' + entry.uid });
+                    const translation = searchTranslationFor?.(book, entry);
+                    if (searchableFields(entry, translation).includes(needle)) {
+                        const title = translation?.title || translation?.fields?.comment?.text || entry.comment || '항목 #' + entry.uid;
+                        matches.push({ book, uid: String(entry.uid), title });
+                    }
                     if (matches.length >= limit) break;
                 }
             } catch { failed++; }
             if (matches.length >= limit) break;
         }
         if (!alive()) return;
-        if (run) run.disabled = false;
-        results.replaceChildren(element(doc, 'p', '', (matches.length >= limit ? '처음 ' : '') +
-            matches.length + '개 결과' + (failed ? ' · 읽지 못한 책 ' + failed + '권' : '')));
+        results.replaceChildren(element(doc, 'p', '', '책 ' + bookMatches.length + '권 · ' +
+            (matches.length >= limit ? '처음 ' : '') + '항목 ' + matches.length + '개' +
+            (failed ? ' · 읽지 못한 책 ' + failed + '권' : '') +
+            (translationFailed ? ' · 번역 기록 읽기 실패 ' + translationFailed + '권' : '')));
+        for (const book of bookMatches.slice(0, limit)) {
+            const row = button(doc, 'slb-library-global-result', '', 'select-book');
+            row.dataset.book = book;
+            row.append(element(doc, 'strong', '', book), element(doc, 'small', '', '책 이름'));
+            results.append(row);
+        }
         for (const match of matches) {
             const row = button(doc, 'slb-library-global-result', '', 'global-result', match.uid);
             row.dataset.book = match.book;
@@ -2588,8 +2655,9 @@ export function createStandaloneLibrary({
             else setMinimized(false);
         }
         else if (action === 'settings') setSettingsOpen(!settingsOpen);
-        else if (action === 'global-search') openGlobalSearch();
-        else if (action === 'run-global-search') void runGlobalSearch();
+        else if (action === 'submit-shelf-search') void runGlobalSearch();
+        else if (action === 'submit-reader-search') submitReaderSearch();
+        else if (action === 'return-to-shelf') returnToShelf();
         else if (action === 'global-result') {
             ++globalSearchSerial;
             void openEntry(target.dataset.book, uid).then(opened => {
@@ -2856,10 +2924,8 @@ export function createStandaloneLibrary({
     }
     function onInput(event) {
         if (event.target?.id === 'slb-library-shelf-search') {
-            if (event.isComposing || event.target.value === shelfQuery) return;
+            // Draft text only; no fetch, filter, sort or render while typing.
             shelfQuery = event.target.value;
-            shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
-            bookList({ resultsOnly: true });
             return;
         }
         if (event.target?.id === 'slb-library-book-tag-input') {
@@ -2867,34 +2933,23 @@ export function createStandaloneLibrary({
             const save = overlay?.querySelector('[data-action="book-tag-save"]');
             if (save) save.disabled = tagSaving || tagDraft === tagInitial;
             syncTagSuggestionStates();
-            return;
         }
-        if (event.target?.id !== 'slb-library-search' || event.isComposing || event.target.value === query) return;
-        if (!discardOrStay({ allowTags: true })) {
-            event.target.value = query;
-            return;
-        }
+    }
+    function submitReaderSearch() {
+        const input = overlay?.querySelector('#slb-library-search');
+        if (!input || !currentData || !currentBook || !discardOrStay({ allowTags: true })) return;
+        const next = input.value;
+        if (next === query && (!next.trim() || !searchIndexDirty)) { closeReaderSearch(); return; }
         resetEdit();
-        query = event.target.value;
+        query = next;
         selectedUid = null;
         catalogPage = 0;
         diaryIndex = 0;
         diaryTocPage = 0;
         worldTocPage = 0;
         peoplePage = 0;
-        // RenderBook only replaces the content; preserve the active search
-        // control, focus and cursor position during input composition.
-        const caret = event.target.selectionStart;
+        closeReaderSearch();
         renderBook();
-        if (readerSearchOpen && isOpen()) {
-            const input = overlay.querySelector('#slb-library-search');
-            const nav = overlay.querySelector('.slb-library-navigation');
-            nav?.classList.add('is-search-open');
-            input?.focus();
-            if (caret !== null && input?.setSelectionRange) {
-                try { input.setSelectionRange(caret, caret); } catch {}
-            }
-        }
     }
     // Stable, opt-in entry opener for other extensions. Uses the saved WorldInfo
     // book name + UID, never a displayed/translated title or positional index.
@@ -3026,7 +3081,7 @@ export function createStandaloneLibrary({
     }
     function refreshTranslations(book) {
         if (isOpen() && book && currentBook === book && currentData) {
-            filteredCache = null;
+            invalidateTranslationSearch(book);
             if (!edit && !saving) renderBook();
         }
     }
@@ -3055,7 +3110,7 @@ export function createStandaloneLibrary({
                 const uid = String(entry.uid);
                 entries[entryNumbers.get(uid) - 1] = entry;
                 readerSnapshot.get(uid).content = entry.content;
-                indexEntry(entry);
+                if (!searchIndexDirty) indexEntry(entry);
             }
             if (!query.trim()) {
                 for (const entry of changed) {
@@ -3084,5 +3139,5 @@ export function createStandaloneLibrary({
         syncAppearanceControls();
         if (previous !== overlay.dataset.libraryTheme && !currentBook) { shelfType = 'all'; bookList(); }
     }
-    return { open, openEntry, close, isOpen, refreshTranslations, onExternalWorldUpdate, updateTheme };
+    return { open, openEntry, close, isOpen, refreshTranslations, invalidateTranslationSearch, onExternalWorldUpdate, updateTheme };
 }

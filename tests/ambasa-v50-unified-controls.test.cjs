@@ -148,6 +148,7 @@ test('search reduces contact directory and resets pagination without changing en
   f.click('[data-action="people-next"]');f.click('[data-action="people-next"]');
   f.click('[data-action="reader-search-toggle"]');
   f.search('Entry 16');
+  f.click('[data-action="submit-reader-search"]');
   assert.deepEqual(f.qa('.slb-library-person-row').map(x=>x.dataset.uid),['16']);
   assert.equal(f.q('.slb-library-people-pages small').textContent,'1 / 1');
   assert.equal(f.stats.reads,1);

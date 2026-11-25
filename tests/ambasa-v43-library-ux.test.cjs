@@ -83,7 +83,7 @@ test('linked-book choice lives in saved library setting, not native global ST fi
  }finally{f.dom.window.close()}
 });
 
-test('shelf title search filters metadata only and preserves input caret, without fetching books',async()=>{
+test('shelf typing preserves input and book cards; explicit search includes book names',async()=>{
  const f=await setup({nBooks:35,linkedOnly:false});
  try{
    assert.equal(f.all('.slb-library-book-spine').length,35);
@@ -91,11 +91,14 @@ test('shelf title search filters metadata only and preserves input caret, withou
    input.focus();
    f.input('#slb-library-shelf-search','Book 34');
    assert.equal(f.q('#slb-library-shelf-search'), input);
-   assert.equal(f.all('.slb-library-book-spine').length,1);
-   assert.equal(f.q('.slb-library-book-spine').dataset.book,'Book 34');
+   assert.equal(f.all('.slb-library-book-spine').length,35);
    assert.equal(f.q('#slb-library-shelf-search').value,'Book 34');
    assert.equal(f.w.document.activeElement.id,'slb-library-shelf-search');
    assert.deepEqual([f.stats.bookReads,f.stats.translations,f.stats.ai],[0,0,0]);
+   f.click('[data-action="submit-shelf-search"]');
+   await tick();
+   assert.equal(f.q('.slb-library-global-result[data-action="select-book"]').dataset.book,'Book 34');
+   assert.deepEqual([f.stats.bookReads,f.stats.translations,f.stats.ai],[35,35,0]);
  }finally{f.dom.window.close()}
 });
 
@@ -104,7 +107,7 @@ test('three-row initial shelf adapts to narrow widths and more shows two more ro
  try{
    Object.defineProperty(f.w,'innerWidth',{configurable:true,value:390});
    Object.defineProperty(f.q('.slb-library-body'),'clientWidth',{configurable:true,value:380});
-   f.input('#slb-library-shelf-search','Book');
+   f.click('[data-action="shelf-tag"][data-filter="all"]');
    assert.equal(f.all('.slb-library-book-spine').length,21);
    f.click('[data-action="shelf-more"]');
    assert.equal(f.all('.slb-library-book-spine').length,35);
@@ -151,6 +154,7 @@ test('world reference keeps the vertical searchable index visible beside its det
    assert.ok(f.q('.slb-library-index-layout.is-index-open'));
    assert.equal(f.q('.slb-library-detail-world').dataset.uid,'0');
    f.input('#slb-library-search','Entry 17');
+   f.click('[data-action="submit-reader-search"]');
    assert.equal(f.all('.slb-library-index-item').length,1);
    f.click('[data-action="entry"][data-uid="17"]');
    assert.equal(f.q('.slb-library-detail-world').dataset.uid,'17');
@@ -167,6 +171,7 @@ test('contacts keep their searchable TOC beside a selected profile and retain ba
    assert.equal(f.all('.slb-library-person-row').length,5);
    assert.equal(f.q('.slb-library-detail-people'),null);
    f.input('#slb-library-search','Entry 18');
+   f.click('[data-action="submit-reader-search"]');
    assert.equal(f.all('.slb-library-person-row').length,1);
    f.click('[data-action="entry"][data-uid="18"]');
    assert.equal(f.all('.slb-library-person-row').length,1);

@@ -158,6 +158,7 @@ test('page changes, searches and tag editing reuse the same editor input and nev
             assert.equal(f.stats.writes, 0);
             if (type === 'world') f.change('#slb-library-search', '항목 이름 17');
             else f.change('#slb-library-search', '항목 이름 17');
+            f.click('[data-action="submit-reader-search"]');
             assert.equal(f.q('#slb-library-book-tag-input'), input);
             assert.equal(f.stats.writes, 0);
             assert.ok(f.q('[data-action="book-tag-save"]'));

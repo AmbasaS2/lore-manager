@@ -43,12 +43,14 @@ for (const count of [25,240]) test('shelf '+count+' entries: stable input/IME, n
         assert.equal(f.q('.slb-library-bookshelf'),shelf);
         search.dispatchEvent(new f.w.CompositionEvent('compositionend',{bubbles:true}));
         assert.equal(f.q('#slb-library-shelf-search'),search);
-        assert.equal(f.q('[data-action="select-book"]').dataset.book,'B');
+        assert.equal(f.q('[data-action="select-book"]').dataset.book,'A');
+        search.dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true}));
+        assert.equal(f.q('.slb-library-global-panel'),null);
         assert.equal(f.reads.length,0);
         const shelfAfter=f.q('.slb-library-bookshelf');
         f.w.dispatchEvent(new f.w.Event('resize'));
         assert.equal(f.q('.slb-library-bookshelf'),shelfAfter);
-        f.click('[data-action="select-book"]');
+        f.click('[data-action="select-book"][data-book="B"]');
         await tick();await tick();
         const toc=f.q('#slb-library-memory-toc'), frame=f.q('.slb-library-reader-frame');
         const n=f.stats().translations;
@@ -65,6 +67,7 @@ for (const count of [25,240]) test('shelf '+count+' entries: stable input/IME, n
         assert.equal(f.q('#slb-library-memory-toc'),toc);
         assert.notEqual(f.q('.slb-library-detail'),detail);
         f.input('#slb-library-search','source B 1');
+        f.click('[data-action="submit-reader-search"]');
         assert.match(f.q('.slb-library-diary-page-number').textContent,new RegExp(' / '+String(count).padStart(2,'0')+'$'));
     }finally{f.close();}
 });
@@ -85,10 +88,10 @@ test('favorites survive close, recent resumes exact UID, global search is explic
         assert.equal(f.q('.slb-library-detail').dataset.uid,'4');
         f.click('[data-action="books"]');
         const before=f.reads.length;
-        f.click('[data-action="global-search"]');
-        f.input('#slb-library-global-query','source B 7');
+        f.click('[data-action="shelf-search-toggle"]');
+        f.input('#slb-library-shelf-search','source B 7');
         assert.equal(f.reads.length,before);
-        f.click('[data-action="run-global-search"]');await tick();await tick();
+        f.click('[data-action="submit-shelf-search"]');await tick();await tick();
         const result=f.q('[data-action="global-result"]');
         assert.equal(result.dataset.book,'B');assert.equal(result.dataset.uid,'7');
         result.click();await tick();await tick();

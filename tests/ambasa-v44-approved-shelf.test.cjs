@@ -73,8 +73,9 @@ test('classic binding material/palette follows book identity, not book type or a
         assert.ok(f.q('[data-action="select-book"][data-book="Book 3"]').classList.contains('slb-library-spine-type-general'),
             'general book must use FILE binding, regardless of shelf color order');
         const originalClass=book.className;
-        f.q('#slb-library-shelf-search').value='Book 1';
-        f.q('#slb-library-shelf-search').dispatchEvent(new f.w.Event('input',{bubbles:true}));
+        const tag = f.q('#slb-library-shelf-tag-select');
+        tag.value='tag:기억';
+        tag.dispatchEvent(new f.w.Event('change',{bubbles:true}));
         assert.equal(f.q('.slb-library-book-spine').dataset.book,'Book 1');
         assert.equal(f.q('.slb-library-book-spine').className,originalClass);
         assert.match(css,/#59636b/i,'approved slate replaces rejected ochre');
