@@ -19,7 +19,11 @@ The original extension provides the foundation for lorebook editing, translation
 
 <p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="860"></p>
 
+**Set up once**
+
 1. Install the fork without resetting your data, then reload. In Extensions settings → 로어북 매니저 select the native display mode if you only want the independent reader.
+**Everyday reading (no AI setup needed)**
+
 2. Open the library from the Extensions menu. Choose a book, one of four reading formats and your preferred theme.
 3. Tap the shelf magnifier, type a search term, then press Enter or the same magnifier. In-book search only searches that book. Saved translations are searchable; no AI request.
 4. Read the original or saved translation. Use the entry … menu to edit, translate or jump to the native editor. Set a translation provider only if you need new translations.
@@ -56,7 +60,7 @@ Do not run the original and this fork together. When replacing an existing insta
 
 ## First setup: Extension settings
 
-Open **Extensions → 로어북 매니저**. Start by choosing how you want to open and read lorebooks; translation and backup are optional.
+Open **Extensions → 로어북 매니저**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
 
 | Settings section (current Korean UI) | What to configure |
 |---|---|
@@ -181,7 +185,11 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 **현재 버전: 1.4.85-ambasa.77.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
 
+**처음 한 번만 설정하기**
+
 1. 원본과 동시 사용하지 말고 데이터를 보존한 채 포크 설치 후 새로고침합니다. 확장 관리 → 로어북 매니저 → 화면·고급 설정에서 기본 화면을 고르면 독립 서재만 사용할 수 있습니다.
+**평소 서재 사용법 (AI 연결 불필요)**
+
 2. 확장 메뉴 → 로어북 매니저 → 원하는 책 선택 → 카드파일·메모리·백과사전·인물록 중 보기 방식과 테마 선택.
 3. 서가 돋보기 → 검색어 입력 → Enter 또는 같은 돋보기로 실행. 책 안 검색은 해당 책만 검색하며 저장 번역 검색에도 AI 요청은 없습니다.
 4. 원문 또는 번역문을 읽고 … 메뉴에서 수정·번역·기본 월드 인포 이동을 합니다. 새 번역이 필요할 때만 제공자를 설정하세요.
@@ -217,7 +225,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ## 처음 한 번: 확장 관리에서 설정하기
 
-확장 관리 → **로어북 매니저**를 펼쳐 주세요.
+확장 관리 → **로어북 매니저**를 펼쳐 주세요. 서재만 쓰실 분은 화면 · 고급 설정에서 기본 화면을 선택하고 서재를 열면 됩니다. 새 번역·통합 편집·백업 설정은 필요할 때 살펴보세요.
 
 | 설정 영역 | 설정할 수 있는 것 / 추천 사용법 |
 |---|---|
