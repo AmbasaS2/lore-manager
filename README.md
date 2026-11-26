@@ -37,7 +37,7 @@ The original editing, translation, token and backup tools are still available. I
 **Current version: 1.4.85-ambasa.80.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
 
 <details>
-<summary>View the illustrated workflow</summary>
+<summary>View the workflow</summary>
 
 <p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="860"></p>
 
@@ -434,5 +434,3 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 이 확장의 기반을 만들어 공개해 주시고 수정과 공개를 허락해 주신 원작자님께 감사드립니다.
 
 **AGPL-3.0-only** 라이선스를 따릅니다. [LICENSE](LICENSE)와 [NOTICE](NOTICE)를 확인해 주세요. [원작 README](docs/UPSTREAM_README.md)는 원문 그대로 보존했으며, 포크의 수정 이력은 [AMBASA_FORK_NOTES.md](AMBASA_FORK_NOTES.md)에 기록되어 있습니다. 공개 포크 유지에 관한 원작자의 요청은 자발적인 요청이며 AGPL의 의무는 그대로 적용됩니다.
-
-*서재·설정 이미지는 실제 한국어 확장 화면을 예시 데이터로 렌더링한 것이며, 새 5분 안내 이미지는 설명용 구성도입니다. 주요 용어는 한영 병기로 표기합니다.*
