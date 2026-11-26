@@ -36,7 +36,7 @@ test('menu action registers even if WorldInfo has not yet initialized', () => {
         assert.equal(f.w.__initCalled,1);
         assert.equal(f.w.document.getElementById('WorldInfo'),null);
         assert.equal(f.w.document.querySelectorAll('#slb-library-menu-action').length,1);
-        assert.equal(f.w.document.querySelector('#slb-library-menu-action span').textContent,'로어북 매니저');
+        assert.equal(f.w.document.querySelector('#slb-library-menu-action span').textContent,'로어북 매니저 리딩 누크');
         f.w.document.querySelector('#slb-library-menu-action').click();
         assert.equal(f.w.__opened,1);
     }finally{f.dom.window.close();}

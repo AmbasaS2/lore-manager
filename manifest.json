@@ -1,12 +1,12 @@
 {
-  "display_name": "로어북 매니저",
+  "display_name": "Lorebook Manager: Reading Nook",
   "loading_order": 22,
   "requires": [],
   "optional": [],
   "js": "index.js",
   "css": "style.css",
   "author": "AmbasaS2 (fork; original by foreverharibo-boop)",
-  "version": "1.4.85-ambasa.80",
+  "version": "1.4.85-ambasa.81",
   "homePage": "https://github.com/AmbasaS2/lore-manager",
   "auto_update": false,
   "hooks": {

@@ -1,12 +1,12 @@
-# 📚 Lorebook Manager
+# 📚 Lorebook Manager: Reading Nook
 
 A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverharibo-boop/lore-manager)** for SillyTavern, made with the original author's permission.
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.80 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.81 · Based on upstream 1.4.85
 
-[한국어 안내 ↓](#-로어북-매니저) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
+[한국어 안내 ↓](#-로어북-매니저-리딩-누크) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
 
 **One extension, two ways to use it.** Keep SillyTavern's native editor if you only want the independent library. Use the integrated editor if you also want the original batch-editing and translation tools.
@@ -16,7 +16,7 @@ The original extension provides the foundation for lorebook editing, translation
 1. Back up your SillyTavern data, settings and translations, particularly when switching from the original.
 2. Open SillyTavern's extension installer and enter:
    <code>https://github.com/AmbasaS2/lore-manager</code>
-3. Reload SillyTavern. Open **Extensions → 로어북 매니저** to configure the extension or use the **로어북 매니저** item in the extension menu to open the library.
+3. Reload SillyTavern. Open **Extensions → 로어북 매니저 리딩 누크** to configure the extension or use the **로어북 매니저 리딩 누크** item in the extension menu to open the library.
 
 Do not run the original and this fork together. When replacing an existing installation, preserve your data and replace only the extension code; do not use data reset or uninstall as a migration method. Based on SillyTavern 1.18; other versions and combinations of third-party extensions may behave differently. The interface currently uses Korean labels.
 
@@ -34,7 +34,7 @@ The original editing, translation, token and backup tools are still available. I
 
 ## ⚡ Quick start
 
-**Current version: 1.4.85-ambasa.80.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
+**Current version: 1.4.85-ambasa.81.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
 
 <details>
 <summary>View the workflow</summary>
@@ -54,7 +54,7 @@ The original editing, translation, token and backup tools are still available. I
 
 ## 📖 How to use
 
-Open **Extensions → 로어북 매니저**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
+Open **Extensions → 로어북 매니저 리딩 누크**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
 
 ### 1. Choose a display mode
 
@@ -156,7 +156,7 @@ Use **로어북 일괄 번역** to select one or more books, translate missing e
 
 ### Integrated editing: statistics and filters
 
-Open Extensions → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션. These controls apply on desktop and mobile: activation-type icons; total, constant, selective and vectorized token statistics plus entry count; all/constant/keyword/vector filters; and the bulk-edit toolbar for selected entries. These are book/editor statistics, not the actual injection total of the latest reply.
+Open Extensions → 로어북 매니저 리딩 누크 → 화면·고급 설정 → 통합 화면 표시 옵션. These controls apply on desktop and mobile: activation-type icons; total, constant, selective and vectorized token statistics plus entry count; all/constant/keyword/vector filters; and the bulk-edit toolbar for selected entries. These are book/editor statistics, not the actual injection total of the latest reply.
 
 ### Backup and restore controls
 
@@ -181,7 +181,7 @@ If search seems to do nothing, press Enter or the same magnifier after typing. I
 
 > The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
 
-[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
+[Lorebook Ordering: Curator](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books: Sloth / 게으름뱅이 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info: Insight / 월드인포인포 인사이트](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
 
 The detailed sections below explain optional settings. Compatibility is version-dependent; it does not guarantee every third-party extension or device.
 
@@ -197,11 +197,13 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ---
 
-# 📚 로어북 매니저
+<a id="-로어북-매니저"></a>
+
+# 📚 로어북 매니저 리딩 누크
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.80 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.81 (원작 1.4.85 기반)
 
 
 **서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
@@ -210,7 +212,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 1. 기존 로어북과 번역 기록, SillyTavern 설정을 백업합니다.
 2. 확장 설치 메뉴에 <code>https://github.com/AmbasaS2/lore-manager</code> 를 입력합니다.
-3. 새로고침한 뒤 확장 탭의 **로어북 매니저**에서 설정하거나, 확장 메뉴에서 **로어북 매니저**를 눌러 독립 서재를 엽니다.
+3. 새로고침한 뒤 확장 탭의 **로어북 매니저 리딩 누크**에서 설정하거나, 확장 메뉴에서 **로어북 매니저 리딩 누크**를 눌러 독립 서재를 엽니다.
 
 원작과 이 포크를 동시에 실행하지 마세요. 기존 설치에서 전환할 때는 데이터를 유지하고 확장 코드만 교체하세요. 삭제·전체 초기화를 전환 방법으로 사용하지 마세요. SillyTavern 1.18 기반이며 다른 버전 및 확장 조합에서는 동작이 다를 수 있습니다.
 
@@ -228,14 +230,14 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ## ⚡ 간단 사용 설명
 
-**현재 버전: 1.4.85-ambasa.80.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
+**현재 버전: 1.4.85-ambasa.81.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
 
 **처음 한 번만 설정하기**
 
-1. 원본과 동시 사용하지 말고 데이터를 보존한 채 포크 설치 후 새로고침합니다. 확장 관리 → 로어북 매니저 → 화면·고급 설정에서 기본 화면을 고르면 독립 서재만 사용할 수 있습니다.
+1. 원본과 동시 사용하지 말고 데이터를 보존한 채 포크 설치 후 새로고침합니다. 확장 관리 → 로어북 매니저 리딩 누크 → 화면·고급 설정에서 기본 화면을 고르면 독립 서재만 사용할 수 있습니다.
 **평소 서재 사용법 (AI 연결 불필요)**
 
-2. 확장 메뉴 → 로어북 매니저 → 원하는 책 선택 → 카드파일·메모리·백과사전·인물록 중 보기 방식과 테마 선택.
+2. 확장 메뉴 → 로어북 매니저 리딩 누크 → 원하는 책 선택 → 카드파일·메모리·백과사전·인물록 중 보기 방식과 테마 선택.
 3. 서가 돋보기 → 검색어 입력 → Enter 또는 같은 돋보기로 실행. 책 안 검색은 해당 책만 검색하며 저장 번역 검색에도 AI 요청은 없습니다.
 4. 원문 또는 번역문을 읽고 … 메뉴에서 수정·번역·기본 월드 인포 이동을 합니다. 새 번역이 필요할 때만 제공자를 설정하세요.
 
@@ -245,7 +247,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ### 1. 화면 표시 방식
 
-확장 탭 → 로어북 매니저 → **화면·고급 설정**에서 선택합니다.
+확장 탭 → 로어북 매니저 리딩 누크 → **화면·고급 설정**에서 선택합니다.
 
 **실리태번 기본 화면**  
 기본 월드 인포 화면을 유지하고 필요할 때 독립 서재를 사용합니다.
@@ -342,7 +344,7 @@ AI 전용 연결 프로필 또는 구글 번역(무료), AI 출력 토큰, 연�
 
 ### 평소 사용 방법
 
-RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원문 또는 번역 읽기 → 필요할 때 수정.
+RP 중 확장 메뉴 → 로어북 매니저 리딩 누크 → 원하는 책과 항목 → 원문 또는 번역 읽기 → 필요할 때 수정.
 
 서재 톱니바퀴에서 테마·표시 줄 수·메모리 보기 방식·캐릭터 연결 필터를 정하고, 책 안에서는 메모리·인물록·백과사전·카드파일 중 책의 분류를 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
 
@@ -362,7 +364,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 ### 통합 화면의 토큰 통계·필터
 
-확장 관리 → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션에서 제목 옆 발동 방식 아이콘, 전체·상시 주입·선택 주입·벡터화 토큰 및 항목 수, 전체/상시/키워드/벡터 항목 필터, 일괄 편집 버튼을 켤 수 있습니다. PC·모바일 공통이며 이번 답변의 실제 주입 토큰과는 다른 통계입니다.
+확장 관리 → 로어북 매니저 리딩 누크 → 화면·고급 설정 → 통합 화면 표시 옵션에서 제목 옆 발동 방식 아이콘, 전체·상시 주입·선택 주입·벡터화 토큰 및 항목 수, 전체/상시/키워드/벡터 항목 필터, 일괄 편집 버튼을 켤 수 있습니다. PC·모바일 공통이며 이번 답변의 실제 주입 토큰과는 다른 통계입니다.
 
 ### 백업과 복원 사용법
 
@@ -420,7 +422,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 > AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
 
-[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
+[Lorebook Ordering: Curator](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books: Sloth / 게으름뱅이 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info: Insight / 월드인포인포 인사이트](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
 
 아래에서 필요한 설정만 자세히 읽으세요. 지원 버전 기준이며 모든 기기·다른 확장 조합을 보장하는 것은 아닙니다.
 
