@@ -1,3 +1,5 @@
+import { getCurrentLocale } from '../../../i18n.js';
+import { configureUiLocale, uiText, uiHtml } from './ui-language.js';
 import {
     eventSource,
     event_types,
@@ -27,9 +29,10 @@ import { prepareFirstNativePageHeaders } from './native-page-fastpath.js';
 import { attachNativePageCache } from './native-page-cache.js';
 import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames } from './library-shelf.js';
 
+configureUiLocale(getCurrentLocale);
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.82';
+const VERSION = '1.4.85-ambasa.83';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -55,7 +58,7 @@ const entryBulkEditor = createLorebookBulkEditor({
     onDelete: deleteSelectedEntries,
     onError(error) {
         console.error('[로어북 매니저] 선택 항목 변경 실패', error);
-        notify('선택 항목 변경에 실패했습니다. 설정을 확인하고 다시 시도해주세요.', 'error');
+        notify(uiText("선택 항목 변경에 실패했습니다. 설정을 확인하고 다시 시도해주세요."), 'error');
     },
 });
 const nativeConnectionFilterLists = new WeakMap();
@@ -164,7 +167,7 @@ const translationFiles = createLoreTranslationStorage({
     },
     onError(error) {
         console.warn('[로어북 매니저] 번역 서버 파일 저장/이전 실패', error);
-        notify(error?.message || '번역 저장소에 접근할 수 없습니다. 번역 기록은 메모리에 유지됩니다.', 'error');
+        notify(error?.message || uiText("번역 저장소에 접근할 수 없습니다. 번역 기록은 메모리에 유지됩니다."), 'error');
     },
 });
 const pendingTranslationFallbackBooks = new Set();
@@ -186,7 +189,7 @@ function refreshTranslationFromLoadedBook(book) {
         if (saved && !ui.translation.value.trim()) {
             ui.translation.value = saved.text || '';
             ui.reflectionBaseline = getTranslationReflectionBaseline(saved, ui.source.value, ui.translationLanguage);
-            ui.status.textContent = '저장된 번역을 불러왔습니다.';
+            ui.status.textContent = uiText("저장된 번역을 불러왔습니다.");
             syncSourceVisibility(ui);
         }
     }
@@ -416,8 +419,8 @@ function syncCompactStrategyIcon(entry, _value) {
     // stays inside the activation tab; duplicating its blue/green glyph
     // created an extra child and unnecessary DOM work on every state sync.
     const select = entry?.querySelector('.slb-strategy-field > select');
-    if (select && select.getAttribute('aria-label') !== '로어 등장 방식') {
-        select.setAttribute('aria-label', '로어 등장 방식');
+    if (select && select.getAttribute('aria-label') !== uiText("로어 등장 방식")) {
+        select.setAttribute('aria-label', uiText("로어 등장 방식"));
     }
 }
 
@@ -487,10 +490,10 @@ function syncMobileEntryStateBadge(entry, _syncTheme = true) {
         child.remove();
     }
     const tooltip = (value === 'constant'
-        ? '항상 포함 (파랑)'
+        ? uiText("항상 포함 (파랑)")
         : value === 'vectorized'
-            ? '비슷한 내용 찾기 (링크)'
-            : '키워드로 등장 (초록)') + ' · 눌러서 변경';
+            ? uiText("비슷한 내용 찾기 (링크)")
+            : uiText("키워드로 등장 (초록)")) + ' · 눌러서 변경';
     if (badge.title !== tooltip) badge.title = tooltip;
     if (badge.getAttribute('aria-label') !== tooltip) badge.setAttribute('aria-label', tooltip);
     if (badge.getAttribute('role') !== 'button') badge.setAttribute('role', 'button');
@@ -685,9 +688,9 @@ function notify(message, type = 'info', skipInlineStatus = false) {
     const status = document.getElementById('slb-ai-status');
     if (status && !skipInlineStatus) status.textContent = message;
 
-    if (type === 'error') toastr.error(message, '로어북 매니저');
-    if (type === 'success') toastr.success(message, '로어북 매니저', { timeOut: 2200 });
-    if (type === 'warning') toastr.warning(message, '로어북 매니저', { timeOut: 5000 });
+    if (type === 'error') toastr.error(message, uiText("로어북 매니저"));
+    if (type === 'success') toastr.success(message, uiText("로어북 매니저"), { timeOut: 2200 });
+    if (type === 'warning') toastr.warning(message, uiText("로어북 매니저"), { timeOut: 5000 });
 }
 
 function currentBookName() {
@@ -947,13 +950,13 @@ function applyManagerMode(requestedMode, {
     }));
     if (announce) {
         if (unavailable) {
-            notify('Foldy 로어북 기능을 찾지 못해 기본 화면를 유지했습니다.', 'warning');
+            notify(uiText("Foldy 로어북 기능을 찾지 못해 기본 화면를 유지했습니다."), 'warning');
         } else if (mode === MANAGER_MODE_FOLDY) {
-            notify('Foldy 연동 화면으로 전환되었습니다.', 'success');
+            notify(uiText("Foldy 연동 화면으로 전환되었습니다."), 'success');
         } else if (mode === MANAGER_MODE_NATIVE) {
-            notify('실리태번 기본 로어북 화면으로 전환되었습니다.', 'success');
+            notify(uiText("실리태번 기본 로어북 화면으로 전환되었습니다."), 'success');
         } else {
-            notify('로어북 매니저 통합 화면으로 전환되었습니다.', 'success');
+            notify(uiText("로어북 매니저 통합 화면으로 전환되었습니다."), 'success');
         }
     }
     if (!initial) scheduleEnhance();
@@ -1937,7 +1940,7 @@ async function translateText(source, targetLanguage, onProgress = null, options 
         onWarning: ({ field, issues }) => {
             if (options.signal?.aborted) return;
             console.warn('[로어북 매니저] AI 번역 구조 점검 필요', field, issues);
-            notify('AI 번역 결과는 표시하지만 일부 원문 형식·숫자를 확인해야 합니다. 원문에 반영하기 전 비교해주세요.', 'warning');
+            notify(uiText("AI 번역 결과는 표시하지만 일부 원문 형식·숫자를 확인해야 합니다. 원문에 반영하기 전 비교해주세요."), 'warning');
         },
     });
 }
@@ -2582,7 +2585,7 @@ async function clearAllLorebookBackups() {
     state.backupRenderRunId += 1;
     const count = document.getElementById('slb-backup-count');
     const list = document.getElementById('slb-backup-list');
-    if (count) count.textContent = '0개';
+    if (count) count.textContent = uiText("0개");
     if (list) list.replaceChildren();
 }
 
@@ -2596,7 +2599,7 @@ function clearVisibleTranslations() {
         if (ui) syncSourceVisibility(ui);
     });
     document.querySelectorAll('.slb-translation-status').forEach(status => {
-        status.textContent = '번역본이 없습니다.';
+        status.textContent = uiText("번역본이 없습니다.");
     });
 }
 
@@ -3024,18 +3027,18 @@ function showLorebookExportSelection() {
     dialog.setAttribute('aria-labelledby', 'slb-export-modal-title');
 
     const header = createElement('div', 'slb-export-modal-header');
-    const title = createElement('strong', '', '로어북 선택 내보내기');
+    const title = createElement('strong', '', uiText("로어북 선택 내보내기"));
     title.id = 'slb-export-modal-title';
     const closeButton = createElement('button', 'menu_button slb-export-modal-close');
     closeButton.type = 'button';
-    closeButton.title = '닫기';
-    closeButton.setAttribute('aria-label', '닫기');
+    closeButton.title = uiText("닫기");
+    closeButton.setAttribute('aria-label', uiText("닫기"));
     closeButton.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
     header.append(title, closeButton);
 
     const controls = createElement('div', 'slb-export-modal-controls');
-    const selectAllButton = createElement('button', 'menu_button', '전체 선택');
-    const clearButton = createElement('button', 'menu_button', '전체 해제');
+    const selectAllButton = createElement('button', 'menu_button', uiText("전체 선택"));
+    const clearButton = createElement('button', 'menu_button', uiText("전체 해제"));
     selectAllButton.type = 'button';
     clearButton.type = 'button';
     const count = createElement('small', 'slb-export-selected-count');
@@ -3052,10 +3055,10 @@ function showLorebookExportSelection() {
         list.append(label);
     }
 
-    const status = createElement('small', 'slb-export-modal-status', '내보낼 로어북을 선택해주세요.');
+    const status = createElement('small', 'slb-export-modal-status', uiText("내보낼 로어북을 선택해주세요."));
     const footer = createElement('div', 'slb-export-modal-footer');
-    const cancelButton = createElement('button', 'menu_button', '취소');
-    const exportButton = createElement('button', 'menu_button', '선택한 로어북 내보내기');
+    const cancelButton = createElement('button', 'menu_button', uiText("취소"));
+    const exportButton = createElement('button', 'menu_button', uiText("선택한 로어북 내보내기"));
     cancelButton.type = 'button';
     exportButton.type = 'button';
     footer.append(cancelButton, exportButton);
@@ -3066,7 +3069,7 @@ function showLorebookExportSelection() {
     const checkboxes = () => Array.from(list.querySelectorAll('input[type="checkbox"]'));
     const updateCount = () => {
         const selected = checkboxes().filter(input => input.checked).length;
-        count.textContent = `${selected} / ${names.length}개 선택`;
+        count.textContent = uiText("{0}개 선택", `${selected} / ${names.length}`);
         exportButton.disabled = selected === 0;
     };
     const close = () => {
@@ -3106,7 +3109,7 @@ function showLorebookExportSelection() {
             reportBulkExportResult(result);
             close();
         } catch (error) {
-            status.textContent = error.message || '선택한 로어북 내보내기에 실패했습니다.';
+            status.textContent = error.message || uiText("선택한 로어북 내보내기에 실패했습니다.");
             toastr.error(status.textContent, '로어북 내보내기');
             setBulkExportButtonBusy(exportButton, false);
             closeButton.disabled = false;
@@ -3175,13 +3178,13 @@ async function restoreLorebookBackup(id, mode) {
 
     if (mode === 'current') {
         if (!targetBook) throw new Error('복원할 현재 로어북을 먼저 선택해주세요.');
-        const confirmed = window.confirm(`현재 로어북 “${targetBook}”을 “${backup.book}” 백업 상태로 복원할까요?\n복원 직전 상태도 자동으로 안전 백업됩니다.`);
+        const confirmed = window.confirm(uiText("현재 로어북 “{0}”을 “{1}” 백업 상태로 복원할까요?\n복원 직전 상태도 자동으로 안전 백업됩니다.", targetBook, backup.book));
         if (!confirmed) return false;
         const currentData = await loadWorldInfo(targetBook);
         await createLorebookBackup(targetBook, { reason: 'before-restore', force: true, data: currentData });
     } else {
         const suggested = uniqueRestoredLorebookName(backup.book);
-        const entered = window.prompt('새 로어북 이름을 입력해주세요.', suggested);
+        const entered = window.prompt(uiText("새 로어북 이름을 입력해주세요."), suggested);
         if (!entered?.trim()) return false;
         targetBook = safeBackupFilename(entered);
         if (existingLorebookNames().includes(targetBook)) throw new Error('같은 이름의 로어북이 이미 있습니다.');
@@ -3261,24 +3264,24 @@ function createBackupRecordRow(record) {
             new Date(record.createdAt).toLocaleString() + ' · ' + Number(record.entryCount || 0).toLocaleString() + '개 항목'),
     );
     const actions = createElement('div', 'slb-backup-actions');
-    const currentButton = createElement('button', 'menu_button', '현재 로어북 복원');
-    const copyButton = createElement('button', 'menu_button', '새 로어북으로 복원');
-    const exportButton = createElement('button', 'menu_button', 'JSON 내보내기');
-    const deleteButton = createElement('button', 'menu_button', '백업 삭제');
-    currentButton.title = '현재 선택된 로어북을 이 백업 시점으로 복원합니다. 복원 전에 안전 백업을 만듭니다.';
-    copyButton.title = '기존 로어북은 그대로 두고 새 이름으로 이 백업을 복원합니다.';
-    exportButton.title = '이 백업 전체를 JSON 파일로 저장합니다.';
-    deleteButton.title = '이 브라우저에 보관한 이 백업만 삭제합니다.';
+    const currentButton = createElement('button', 'menu_button', uiText("현재 로어북 복원"));
+    const copyButton = createElement('button', 'menu_button', uiText("새 로어북으로 복원"));
+    const exportButton = createElement('button', 'menu_button', uiText("JSON 내보내기"));
+    const deleteButton = createElement('button', 'menu_button', uiText("백업 삭제"));
+    currentButton.title = uiText("현재 선택된 로어북을 이 백업 시점으로 복원합니다. 복원 전에 안전 백업을 만듭니다.");
+    copyButton.title = uiText("기존 로어북은 그대로 두고 새 이름으로 이 백업을 복원합니다.");
+    exportButton.title = uiText("이 백업 전체를 JSON 파일로 저장합니다.");
+    deleteButton.title = uiText("이 브라우저에 보관한 이 백업만 삭제합니다.");
     currentButton.addEventListener('click', async () => {
         currentButton.disabled = true;
         try { await restoreLorebookBackup(record.id, 'current'); }
-        catch (error) { notify(error.message || '백업 복원에 실패했습니다.', 'error'); }
+        catch (error) { notify(error.message || uiText("백업 복원에 실패했습니다."), 'error'); }
         finally { currentButton.disabled = false; }
     });
     copyButton.addEventListener('click', async () => {
         copyButton.disabled = true;
         try { await restoreLorebookBackup(record.id, 'copy'); }
-        catch (error) { notify(error.message || '새 로어북 복원에 실패했습니다.', 'error'); }
+        catch (error) { notify(error.message || uiText("새 로어북 복원에 실패했습니다."), 'error'); }
         finally { copyButton.disabled = false; }
     });
     exportButton.addEventListener('click', async () => {
@@ -3293,20 +3296,19 @@ function createBackupRecordRow(record) {
             downloadJsonFile(safeBackupFilename(record.book) + '-' + stamp + '.json',
                 backupExportEnvelope([fullRecord]));
         } catch (error) {
-            notify(error.message || '개별 백업 내보내기에 실패했습니다.', 'error');
+            notify(error.message || uiText("개별 백업 내보내기에 실패했습니다."), 'error');
         } finally {
             exportButton.disabled = false;
         }
     });
     deleteButton.addEventListener('click', async () => {
-        if (!window.confirm('“' + record.book + '”의 ' + backupReasonLabel(record.reason)
-            + ' 1개를 이 브라우저의 백업 저장소에서 삭제할까요? 실제 로어북 원본은 유지됩니다.')) return;
+        if (!window.confirm(uiText("“{0}”의 {1} 1개를 이 브라우저의 백업 저장소에서 삭제할까요? 실제 로어북 원본은 유지됩니다.", record.book, backupReasonLabel(record.reason)))) return;
         deleteButton.disabled = true;
         try {
             await deleteLorebookBackup(record.id);
             await renderBackupList();
         } catch (error) {
-            notify(error.message || '백업 삭제에 실패했습니다.', 'error');
+            notify(error.message || uiText("백업 삭제에 실패했습니다."), 'error');
         } finally {
             deleteButton.disabled = false;
         }
@@ -3326,14 +3328,14 @@ async function renderBackupList() {
     const scrollTop = list.scrollTop;
     const openBooks = new Set(Array.from(list.querySelectorAll('.slb-backup-group[open]'))
         .map(group => group.dataset.book));
-    list.replaceChildren(createElement('small', 'slb-backup-empty', '백업 목록을 불러오는 중…'));
+    list.replaceChildren(createElement('small', 'slb-backup-empty', uiText("백업 목록을 불러오는 중…")));
     try {
         const records = await listLorebookBackups();
         if (runId !== state.backupRenderRunId || !list.isConnected || !section.open) return;
-        if (count) count.textContent = records.length + '개';
+        if (count) count.textContent = records.length + uiText("개");
         list.replaceChildren();
         if (!records.length) {
-            list.append(createElement('small', 'slb-backup-empty', '아직 저장된 로어북 백업이 없습니다.'));
+            list.append(createElement('small', 'slb-backup-empty', uiText("아직 저장된 로어북 백업이 없습니다.")));
             return;
         }
         const grouped = new Map();
@@ -3371,8 +3373,8 @@ async function renderBackupList() {
         list.scrollTop = scrollTop;
     } catch (error) {
         if (runId !== state.backupRenderRunId || !list.isConnected || !section.open) return;
-        if (count) count.textContent = '오류';
-        list.replaceChildren(createElement('small', 'slb-backup-empty', error.message || '백업 목록을 불러오지 못했습니다.'));
+        if (count) count.textContent = uiText("오류");
+        list.replaceChildren(createElement('small', 'slb-backup-empty', error.message || uiText("백업 목록을 불러오지 못했습니다.")));
     }
 }
 
@@ -3386,123 +3388,123 @@ function createAIBar() {
     bar.innerHTML = `
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b class="slb-extension-title"><i class="fa-solid fa-book" aria-hidden="true"></i><span>로어북 매니저 나무늘보씨</span></b>
+                <b class="slb-extension-title"><i class="fa-solid fa-book" aria-hidden="true"></i><span>${uiHtml("로어북 매니저 나무늘보씨")}</span></b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content" style="display: none;">
                 <details class="slb-settings-card slb-translation-settings" open>
-                    <summary><span><i class="fa-solid fa-language" aria-hidden="true"></i> 번역 설정</span><small>방식 · 지시문</small></summary>
+                    <summary><span><i class="fa-solid fa-language" aria-hidden="true"></i> ${uiHtml("번역 설정")}</span><small>${uiHtml("방식 · 지시문")}</small></summary>
                     <div class="slb-settings-card-body">
                         <div class="slb-ai-fields">
-                    <label class="slb-field slb-provider-field"><small>번역 방식</small><select id="slb-provider" class="text_pole">
-                        <option value="profile">AI 전용 연결 프로필</option>
-                        <option value="google">구글 번역 (무료)</option>
+                    <label class="slb-field slb-provider-field"><small>${uiHtml("번역 방식")}</small><select id="slb-provider" class="text_pole">
+                        <option value="profile">${uiHtml("AI 전용 연결 프로필")}</option>
+                        <option value="google">${uiHtml("구글 번역 (무료)")}</option>
                     </select></label>
-                    <label class="slb-field slb-profile-field"><small>AI 전용 연결 프로필</small><select id="slb-profile" class="text_pole"></select></label>
-                    <label class="slb-field slb-output-tokens-field" title="AI 번역·AI 수정·번역본의 원문 반영에 적용됩니다."><small>AI 출력 토큰</small><input id="slb-output-tokens" class="text_pole" type="number" min="512" max="65536" step="512" inputmode="numeric"></label>
-                    <button type="button" id="slb-test-profile" class="menu_button"><i class="fa-solid fa-plug-circle-check"></i> 연결 테스트</button>
+                    <label class="slb-field slb-profile-field"><small>${uiHtml("AI 전용 연결 프로필")}</small><select id="slb-profile" class="text_pole"></select></label>
+                    <label class="slb-field slb-output-tokens-field" title="${uiHtml("AI 번역·AI 수정·번역본의 원문 반영에 적용됩니다.")}"><small>${uiHtml("AI 출력 토큰")}</small><input id="slb-output-tokens" class="text_pole" type="number" min="512" max="65536" step="512" inputmode="numeric"></label>
+                    <button type="button" id="slb-test-profile" class="menu_button"><i class="fa-solid fa-plug-circle-check"></i> ${uiHtml("연결 테스트")}</button>
                 </div>
                 <fieldset class="slb-translation-targets">
-                    <legend>번역할 항목</legend>
+                    <legend>${uiHtml("번역할 항목")}</legend>
                     <div class="slb-mobile-display-options">
-                        <label><input type="checkbox" id="slb-translate-content"> 본문</label>
-                        <label><input type="checkbox" id="slb-translate-title"> 제목</label>
-                        <label><input type="checkbox" id="slb-translate-keywords"> 호출 키워드</label>
+                        <label><input type="checkbox" id="slb-translate-content"> ${uiHtml("본문")}</label>
+                        <label><input type="checkbox" id="slb-translate-title"> ${uiHtml("제목")}</label>
+                        <label><input type="checkbox" id="slb-translate-keywords"> ${uiHtml("호출 키워드")}</label>
                     </div>
-                    <small>제목·키워드는 읽기용으로 번역되며 실제 발동 설정은 바뀌지 않습니다.</small>
+                    <small>${uiHtml("제목·키워드는 읽기용으로 번역되며 실제 발동 설정은 바뀌지 않습니다.")}</small>
                 </fieldset>
                 <div class="slb-mobile-display-options slb-translation-display-options">
-                    <label><input type="checkbox" id="slb-hide-translated-source"> 번역본이 있으면 원문 대신 번역본 표시</label>
+                    <label><input type="checkbox" id="slb-hide-translated-source"> ${uiHtml("번역본이 있으면 원문 대신 번역본 표시")}</label>
                 </div>
-                <label class="slb-field slb-prompt-field"><small>AI 번역 추가 지시 (선택)</small>
-                    <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="문체, 고유명사, 용어 통일 규칙 등 추가 번역 지시문을 입력하세요. (AI 번역 전용)"></textarea>
+                <label class="slb-field slb-prompt-field"><small>${uiHtml("AI 번역 추가 지시 (선택)")}</small>
+                    <textarea id="slb-translate-prompt" class="text_pole" rows="3" placeholder="${uiHtml("문체, 고유명사, 용어 통일 규칙 등 추가 번역 지시문을 입력하세요. (AI 번역 전용)")}"></textarea>
                     <span class="slb-prompt-meta">
-                        <small class="slb-ai-note">언어 방향은 항목의 EN/KO 버튼에서 변경합니다.</small>
-                        <small id="slb-ai-status">확장 탭에서 번역 방식을 설정해주세요.</small>
+                        <small class="slb-ai-note">${uiHtml("언어 방향은 항목의 EN/KO 버튼에서 변경합니다.")}</small>
+                        <small id="slb-ai-status">${uiHtml("확장 탭에서 번역 방식을 설정해주세요.")}</small>
                     </span>
                 </label>
                         <div id="slb-quick-options-host"></div>
                     </div>
                 </details>
                 <details class="slb-settings-card slb-advanced-settings">
-                    <summary><span><i class="fa-solid fa-sliders" aria-hidden="true"></i> 화면 · 고급 설정</span><small>표시 · 연동</small></summary>
+                    <summary><span><i class="fa-solid fa-sliders" aria-hidden="true"></i> ${uiHtml("화면 · 고급 설정")}</span><small>${uiHtml("표시 · 연동")}</small></summary>
                     <div class="slb-settings-card-body">
                         <fieldset class="slb-manager-mode-settings">
-                            <legend>실리태번 로어북 화면 표시 방식</legend>
+                            <legend>${uiHtml("실리태번 로어북 화면 표시 방식")}</legend>
                             <div class="slb-manager-mode-options">
                                 <label class="slb-manager-mode-choice">
                                     <input type="radio" name="slb-manager-mode" value="native">
-                                    <span>실리태번 기본 화면</span>
+                                    <span>${uiHtml("실리태번 기본 화면")}</span>
                                 </label>
                                 <label class="slb-manager-mode-choice">
                                     <input type="radio" name="slb-manager-mode" value="standard">
-                                    <span>로어북 매니저 통합 화면</span>
+                                    <span>${uiHtml("로어북 매니저 통합 화면")}</span>
                                 </label>
                                 <label class="slb-manager-mode-choice">
                                     <input type="radio" name="slb-manager-mode" value="foldy">
-                                    <span>Foldy 연동 화면</span>
+                                    <span>${uiHtml("Foldy 연동 화면")}</span>
                                 </label>
                             </div>
                             <small id="slb-manager-mode-status"></small>
-                            <small>독립 로어북 서재는 어떤 표시 방식을 선택해도 별도로 열 수 있습니다.</small>
+                            <small>${uiHtml("독립 로어북 서재는 어떤 표시 방식을 선택해도 별도로 열 수 있습니다.")}</small>
                         </fieldset>
                         <fieldset class="slb-library-settings">
-                            <legend>독립 로어북 매니저 · 서재</legend>
-                            <button type="button" id="slb-open-library" class="menu_button"><i class="fa-solid fa-book-open"></i> 독립 서재 열기</button>
-                            <small>로어북별로 일반·기억·세계관·인물록을 선택할 수 있습니다. 이 선택은 원본 로어북과 AI 발동에 영향을 주지 않습니다.</small>
+                            <legend>${uiHtml("독립 로어북 매니저 · 서재")}</legend>
+                            <button type="button" id="slb-open-library" class="menu_button"><i class="fa-solid fa-book-open"></i> ${uiHtml("독립 서재 열기")}</button>
+                            <small>${uiHtml("로어북별로 일반·기억·세계관·인물록을 선택할 수 있습니다. 이 선택은 원본 로어북과 AI 발동에 영향을 주지 않습니다.")}</small>
                         </fieldset>
                         <div class="slb-linked-world-setting">
-                            <label><input type="checkbox" id="slb-filter-linked-lorebooks"> 선택 캐릭터의 로어북만 표시</label>
-                            <small>캐릭터 미선택 시 전체 목록. 로어북 연결은 변경되지 않습니다.</small>
+                            <label><input type="checkbox" id="slb-filter-linked-lorebooks"> ${uiHtml("선택 캐릭터의 로어북만 표시")}</label>
+                            <small>${uiHtml("캐릭터 미선택 시 전체 목록. 로어북 연결은 변경되지 않습니다.")}</small>
                         </div>
                         <div class="slb-mobile-display-settings">
-                    <strong class="slb-mobile-display-title">통합 화면 표시 옵션</strong>
+                    <strong class="slb-mobile-display-title">${uiHtml("통합 화면 표시 옵션")}</strong>
                     <div class="slb-mobile-display-options">
-                        <label><input type="checkbox" id="slb-show-mobile-entry-state"> 제목 옆 발동 방식 아이콘</label>
-                        <label><input type="checkbox" id="slb-show-mobile-token-summary"> 토큰 통계 표시</label>
-                        <label><input type="checkbox" id="slb-show-mobile-entry-filters"> 항목 필터 표시</label>
-                        <label><input type="checkbox" id="slb-show-bulk-edit-toolbar"> 일괄 편집 버튼 표시</label>
+                        <label><input type="checkbox" id="slb-show-mobile-entry-state"> ${uiHtml("제목 옆 발동 방식 아이콘")}</label>
+                        <label><input type="checkbox" id="slb-show-mobile-token-summary"> ${uiHtml("토큰 통계 표시")}</label>
+                        <label><input type="checkbox" id="slb-show-mobile-entry-filters"> ${uiHtml("항목 필터 표시")}</label>
+                        <label><input type="checkbox" id="slb-show-bulk-edit-toolbar"> ${uiHtml("일괄 편집 버튼 표시")}</label>
                     </div>
-                    <small class="slb-mobile-display-note">PC·모바일 공통. 일괄 편집은 선택한 항목의 발동 설정을 함께 수정하며 번역·삭제 선택에도 사용됩니다.</small>
+                    <small class="slb-mobile-display-note">${uiHtml("PC·모바일 공통. 일괄 편집은 선택한 항목의 발동 설정을 함께 수정하며 번역·삭제 선택에도 사용됩니다.")}</small>
                 </div>
 
                     </div>
                 </details>
                 <details class="slb-settings-card slb-backup-settings">
-                    <summary><span><i class="fa-solid fa-box-archive" aria-hidden="true"></i> 로어북 백업</span><small id="slb-backup-count">열어서 확인</small></summary>
+                    <summary><span><i class="fa-solid fa-box-archive" aria-hidden="true"></i> ${uiHtml("로어북 백업")}</span><small id="slb-backup-count">${uiHtml("열어서 확인")}</small></summary>
                     <div class="slb-backup-body">
                         <div class="slb-backup-toolbar">
-                            <label><input type="checkbox" id="slb-auto-backup-enabled"> 로어북 자동 백업</label>
+                            <label><input type="checkbox" id="slb-auto-backup-enabled"> ${uiHtml("로어북 자동 백업")}</label>
                             <div class="slb-backup-toolbar-actions">
-                                <button type="button" id="slb-backup-now" class="menu_button"><i class="fa-solid fa-floppy-disk"></i> 지금 백업</button>
-                                <button type="button" id="slb-backup-import" class="menu_button"><i class="fa-solid fa-file-import"></i> 가져오기</button>
-                                <button type="button" id="slb-backup-export-all" class="menu_button"><i class="fa-solid fa-file-export"></i> 전체 백업 내보내기</button>
+                                <button type="button" id="slb-backup-now" class="menu_button"><i class="fa-solid fa-floppy-disk"></i> ${uiHtml("지금 백업")}</button>
+                                <button type="button" id="slb-backup-import" class="menu_button"><i class="fa-solid fa-file-import"></i> ${uiHtml("가져오기")}</button>
+                                <button type="button" id="slb-backup-export-all" class="menu_button"><i class="fa-solid fa-file-export"></i> ${uiHtml("전체 백업 내보내기")}</button>
                                 <input type="file" id="slb-backup-import-file" accept="application/json,.json" hidden>
                             </div>
                         </div>
-                        <small class="slb-backup-note">백업은 이 브라우저에만 저장됩니다. 자동 백업을 켜면 로어북 열기·수정 시 백업하며, 모든 로어북을 합쳐 최근 20개를 보관합니다.</small>
-                        <button type="button" id="slb-backup-clear" class="menu_button slb-backup-clear"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> 저장된 백업 모두 삭제</button>
+                        <small class="slb-backup-note">${uiHtml("백업은 이 브라우저에만 저장됩니다. 자동 백업을 켜면 로어북 열기·수정 시 백업하며, 모든 로어북을 합쳐 최근 20개를 보관합니다.")}</small>
+                        <button type="button" id="slb-backup-clear" class="menu_button slb-backup-clear"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> ${uiHtml("저장된 백업 모두 삭제")}</button>
                         <div id="slb-backup-list" class="slb-backup-list"></div>
                         <section class="slb-lorebook-export-section">
-                            <strong>로어북 원본 파일 내보내기</strong>
+                            <strong>${uiHtml("로어북 원본 파일 내보내기")}</strong>
                             <div class="slb-lorebook-export-tools">
-                                <button type="button" id="slb-export-selected-lorebooks" class="menu_button"><i class="fa-solid fa-list-check" aria-hidden="true"></i> 여러 로어북 선택 내보내기</button>
-                                <button type="button" id="slb-export-all-lorebooks" class="menu_button"><i class="fa-solid fa-file-zipper" aria-hidden="true"></i> 모든 로어북 내보내기</button>
+                                <button type="button" id="slb-export-selected-lorebooks" class="menu_button"><i class="fa-solid fa-list-check" aria-hidden="true"></i> ${uiHtml("여러 로어북 선택 내보내기")}</button>
+                                <button type="button" id="slb-export-all-lorebooks" class="menu_button"><i class="fa-solid fa-file-zipper" aria-hidden="true"></i> ${uiHtml("모든 로어북 내보내기")}</button>
                             </div>
-                            <small>로어북 원본 JSON을 ZIP으로 저장합니다. 위의 백업 내보내기와는 별개입니다.</small>
+                            <small>${uiHtml("로어북 원본 JSON을 ZIP으로 저장합니다. 위의 백업 내보내기와는 별개입니다.")}</small>
                         </section>
                     </div>
                 </details>
                 <details class="slb-settings-card slb-data-settings">
-                    <summary><span><i class="fa-solid fa-broom" aria-hidden="true"></i> 데이터 관리</span></summary>
+                    <summary><span><i class="fa-solid fa-broom" aria-hidden="true"></i> ${uiHtml("데이터 관리")}</span></summary>
                     <div class="slb-data-body">
-                        <small>번역본 초기화는 읽기용 번역 기록만, 백업 초기화는 이 브라우저의 보관본만 삭제합니다. 전체 데이터 초기화는 확장 설정·번역·백업·캐시를 삭제합니다. 실제 로어북은 유지합니다.</small>
+                        <small>${uiHtml("번역본 초기화는 읽기용 번역 기록만, 백업 초기화는 이 브라우저의 보관본만 삭제합니다. 전체 데이터 초기화는 확장 설정·번역·백업·캐시를 삭제합니다. 실제 로어북은 유지합니다.")}</small>
                         <div class="slb-data-actions">
-                            <button type="button" id="slb-clear-translations" class="menu_button"><i class="fa-solid fa-language"></i> 번역본 초기화</button>
-                            <button type="button" id="slb-clear-backups" class="menu_button"><i class="fa-solid fa-box-archive"></i> 백업 초기화</button>
-                            <button type="button" id="slb-reset-extension" class="menu_button slb-danger-button"><i class="fa-solid fa-trash-can"></i> 전체 데이터 초기화</button>
+                            <button type="button" id="slb-clear-translations" class="menu_button"><i class="fa-solid fa-language"></i> ${uiHtml("번역본 초기화")}</button>
+                            <button type="button" id="slb-clear-backups" class="menu_button"><i class="fa-solid fa-box-archive"></i> ${uiHtml("백업 초기화")}</button>
+                            <button type="button" id="slb-reset-extension" class="menu_button slb-danger-button"><i class="fa-solid fa-trash-can"></i> ${uiHtml("전체 데이터 초기화")}</button>
                         </div>
-                        <small>Termux에서 폴더를 직접 지울 때는 코드가 실행되지 않으므로, 먼저 ‘전체 데이터 초기화’를 눌러주세요.</small>
+                        <small>${uiHtml("Termux에서 폴더를 직접 지울 때는 코드가 실행되지 않으므로, 먼저 ‘전체 데이터 초기화’를 눌러주세요.")}</small>
                     </div>
                 </details>
             </div>
@@ -3577,12 +3579,12 @@ function createAIBar() {
             input.closest('.slb-manager-mode-choice')?.classList.remove('is-disabled');
         });
         managerModeStatus.textContent = mode === 'native'
-            ? '사용 중 · 실리태번 원본 로어북 화면을 유지하며 서재는 독립적으로 실행합니다.'
+            ? uiText("사용 중 · 실리태번 원본 로어북 화면을 유지하며 서재는 독립적으로 실행합니다.")
             : mode === MANAGER_MODE_FOLDY && !available
-                ? 'Foldy 원본 로어북 기능이 준비되기를 기다리는 중입니다.'
+                ? uiText("Foldy 원본 로어북 기능이 준비되기를 기다리는 중입니다.")
             : mode === MANAGER_MODE_FOLDY
-                ? '사용 중 · Foldy 원본 폴더와 매니저를 연동합니다.'
-                : '사용 중 · 매니저 통합 로어북 편집 화면입니다.';
+                ? uiText("사용 중 · Foldy 원본 폴더와 매니저를 연동합니다.")
+                : uiText("사용 중 · 매니저 통합 로어북 편집 화면입니다.");
     };
     syncManagerModeControls();
     document.getElementById('slb-open-library')?.addEventListener('click', () => void openStandaloneLibrary());
@@ -3628,7 +3630,7 @@ function createAIBar() {
     profile.addEventListener('change', () => {
         settings.profileId = profile.value;
         saveSettingsDebounced();
-        notify(profile.value ? '로어북 AI 전용 프로필이 저장되었습니다.' : '전용 프로필을 선택해주세요.');
+        notify(profile.value ? uiText("로어북 AI 전용 프로필이 저장되었습니다.") : uiText("전용 프로필을 선택해주세요."));
     });
     outputTokens.addEventListener('change', () => {
         const value = normalizeAIOutputTokens(outputTokens.value);
@@ -3646,16 +3648,16 @@ function createAIBar() {
         } else {
             clearAllAutomaticBackupSchedules();
         }
-        notify(autoBackupEnabled.checked ? '로어북 자동 백업을 켰습니다.' : '로어북 자동 백업을 껐습니다.');
+        notify(autoBackupEnabled.checked ? uiText("로어북 자동 백업을 켰습니다.") : uiText("로어북 자동 백업을 껐습니다."));
     });
     document.getElementById('slb-backup-now').addEventListener('click', async event => {
         const button = event.currentTarget;
         button.disabled = true;
         try {
             const result = await createLorebookBackup(currentBookName(), { reason: 'manual', force: true });
-            if (result.status === 'created') notify('현재 로어북을 백업했습니다.', 'success');
+            if (result.status === 'created') notify(uiText("현재 로어북을 백업했습니다."), 'success');
         } catch (error) {
-            notify(error.message || '로어북 백업에 실패했습니다.', 'error');
+            notify(error.message || uiText("로어북 백업에 실패했습니다."), 'error');
         } finally {
             button.disabled = false;
         }
@@ -3670,7 +3672,7 @@ function createAIBar() {
             downloadJsonFile(`lorebook-backups-${date}.json`, backupExportEnvelope(records));
             notify(`${records.length}개 로어북 백업을 내보냈습니다.`, 'success');
         } catch (error) {
-            notify(error.message || '전체 백업 내보내기에 실패했습니다.', 'error');
+            notify(error.message || uiText("전체 백업 내보내기에 실패했습니다."), 'error');
         } finally {
             button.disabled = false;
         }
@@ -3686,7 +3688,7 @@ function createAIBar() {
             const count = await importLorebookBackupFile(file);
             notify(`${count}개 로어북 백업을 가져왔습니다.`, 'success');
         } catch (error) {
-            notify(error.message || '백업 파일 가져오기에 실패했습니다.', 'error');
+            notify(error.message || uiText("백업 파일 가져오기에 실패했습니다."), 'error');
         } finally {
             backupImportFile.value = '';
             backupImport.disabled = false;
@@ -3697,14 +3699,14 @@ function createAIBar() {
         else state.backupRenderRunId++;
     });
     document.getElementById('slb-clear-translations')?.addEventListener('click', async event => {
-        if (!confirm('이 확장이 저장한 모든 로어북 번역본을 삭제할까요? 실제 로어북 원문과 백업은 유지됩니다.')) return;
+        if (!confirm(uiText("이 확장이 저장한 모든 로어북 번역본을 삭제할까요? 실제 로어북 원문과 백업은 유지됩니다."))) return;
         const button = event.currentTarget;
         button.disabled = true;
         try {
             await clearTranslationStorage();
-            notify('저장된 번역본을 모두 초기화했습니다.', 'success');
+            notify(uiText("저장된 번역본을 모두 초기화했습니다."), 'success');
         } catch (error) {
-            notify(error.message || '번역본 초기화에 실패했습니다.', 'error');
+            notify(error.message || uiText("번역본 초기화에 실패했습니다."), 'error');
         } finally {
             button.disabled = false;
         }
@@ -3717,19 +3719,18 @@ function createAIBar() {
         try {
             const existing = await listLorebookBackups();
             if (!existing.length) {
-                notify('삭제할 로어북 백업이 없습니다.');
+                notify(uiText("삭제할 로어북 백업이 없습니다."));
                 return;
             }
-            const warning = '이 브라우저의 로어북 매니저 백업 ' + existing.length
-                + '개를 모두 삭제할까요?\n실제 로어북·번역 기록·확장 설정은 유지됩니다.'
-                + (getSettings().autoBackupEnabled ? '\n자동 백업이 켜져 있어 이후 새로운 백업은 다시 생성될 수 있습니다.' : '');
+            const warning = uiText("이 브라우저의 로어북 매니저 백업 {0}개를 모두 삭제할까요?\n실제 로어북·번역 기록·확장 설정은 유지됩니다.", existing.length)
+                + (getSettings().autoBackupEnabled ? uiText("\n자동 백업이 켜져 있어 이후 새로운 백업은 다시 생성될 수 있습니다.") : '');
             if (!window.confirm(warning)) return;
             clearAllAutomaticBackupSchedules();
             await clearAllLorebookBackups();
             await renderBackupList();
             notify(existing.length + '개 로어북 백업을 삭제했습니다.', 'success');
         } catch (error) {
-            notify(error.message || '백업 초기화에 실패했습니다.', 'error');
+            notify(error.message || uiText("백업 초기화에 실패했습니다."), 'error');
         } finally {
             state.backupClearRequestInProgress = false;
             buttons.forEach(button => { button.disabled = false; });
@@ -3739,18 +3740,18 @@ function createAIBar() {
         document.getElementById(id)?.addEventListener('click', clearBackupsHandler);
     }
     document.getElementById('slb-reset-extension')?.addEventListener('click', async event => {
-        if (!confirm('로어북 매니저가 저장한 번역본, 백업, 연결 프로필 선택, 표시 설정과 캐시를 모두 삭제할까요? 실제 로어북 원문은 삭제되지 않습니다.')) return;
+        if (!confirm(uiText("로어북 매니저가 저장한 번역본, 백업, 연결 프로필 선택, 표시 설정과 캐시를 모두 삭제할까요? 실제 로어북 원문은 삭제되지 않습니다."))) return;
         const button = event.currentTarget;
         button.disabled = true;
         try {
             await resetExtensionStorage({ refreshUI: true });
-            toastr.success('로어북 매니저 데이터를 모두 초기화했습니다. 화면을 새로고침합니다.', '로어북 매니저');
+            toastr.success('로어북 매니저 데이터를 모두 초기화했습니다. 화면을 새로고침합니다.', uiText("로어북 매니저"));
             setTimeout(() => location.reload(), 450);
         } catch (error) {
             state.extensionDataCleaning = false;
             state.backupRestoreInProgress = false;
             button.disabled = false;
-            notify(error.message || '전체 데이터 초기화에 실패했습니다.', 'error');
+            notify(error.message || uiText("전체 데이터 초기화에 실패했습니다."), 'error');
         }
     });
     document.getElementById('slb-test-profile').addEventListener('click', async event => {
@@ -3766,10 +3767,10 @@ function createAIBar() {
                 // 16토큰 테스트 요청 자체를 잘못된 요청으로 거부할 수 있다.
                 const answer = await requestWithProfile('Reply with exactly: OK');
                 if (!/^OK\b/i.test(answer)) throw new Error('프로필 응답 형식이 예상과 다릅니다.');
-                notify('전용 프로필 연결 성공 · 메인 연결 프로필은 변경되지 않았습니다.', 'success');
+                notify(uiText("전용 프로필 연결 성공 · 메인 연결 프로필은 변경되지 않았습니다."), 'success');
             }
         } catch (error) {
-            notify(error.message || '연결 테스트에 실패했습니다.', 'error');
+            notify(error.message || uiText("연결 테스트에 실패했습니다."), 'error');
         } finally {
             button.disabled = false;
         }
@@ -3786,16 +3787,16 @@ function createQuickTranslationOptions() {
         options.id = 'slb-quick-options';
         options.innerHTML = `
             <div class="slb-bulk-action">
-                <strong class="slb-bulk-action-title">로어북 단위 번역</strong>
-                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>로어북 일괄 번역</span></button>
-                <small class="slb-translate-book-help">로어북을 하나 이상 선택해 미번역 항목만 번역하거나 전체 재번역을 진행합니다.</small>
+                <strong class="slb-bulk-action-title">${uiHtml("로어북 단위 번역")}</strong>
+                <button type="button" class="menu_button slb-translate-book" id="slb-translate-book"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>${uiHtml("로어북 일괄 번역")}</span></button>
+                <small class="slb-translate-book-help">${uiHtml("로어북을 하나 이상 선택해 미번역 항목만 번역하거나 전체 재번역을 진행합니다.")}</small>
             </div>
-            <section class="slb-auto-options" aria-label="자동 번역 및 원문 반영 설정">
-                <strong class="slb-auto-options-title">자동 번역 · 원문 반영 설정</strong>
+            <section class="slb-auto-options" aria-label="${uiHtml("자동 번역 및 원문 반영 설정")}">
+                <strong class="slb-auto-options-title">${uiHtml("자동 번역 · 원문 반영 설정")}</strong>
                 <div class="slb-auto-option-grid">
-                    <label><input type="checkbox" id="slb-translate-missing"> 항목 열 때 자동 번역</label>
-                    <label><input type="checkbox" id="slb-auto-translate"> 원문 변경 시 재번역</label>
-                    <label><input type="checkbox" id="slb-auto-sync"> 번역 수정 시 원문 자동 반영</label>
+                    <label><input type="checkbox" id="slb-translate-missing"> ${uiHtml("항목 열 때 자동 번역")}</label>
+                    <label><input type="checkbox" id="slb-auto-translate"> ${uiHtml("원문 변경 시 재번역")}</label>
+                    <label><input type="checkbox" id="slb-auto-sync"> ${uiHtml("번역 수정 시 원문 자동 반영")}</label>
                 </div>
             </section>
             <small class="slb-bulk-status" id="slb-bulk-status" role="status"></small>`;
@@ -3844,7 +3845,7 @@ function cancelBulkTranslation({ silent = false } = {}) {
     const status = document.getElementById('slb-bulk-status');
     if (status) status.textContent = '';
     updateBulkTranslationStatus();
-    if (!silent) toastr.info('번역이 취소되었습니다.', '로어북 매니저', { timeOut: 2500 });
+    if (!silent) toastr.info(uiText("번역이 취소되었습니다."), uiText("로어북 매니저"), { timeOut: 2500 });
     return true;
 }
 
@@ -3854,14 +3855,14 @@ function updateBulkTranslationStatus(message = '') {
     if (button) {
         const job = state.bulkTranslation;
         const caption = button.querySelector('span');
-        const buttonLabel = job ? '번역 중…' : '로어북 일괄 번역';
+        const buttonLabel = job ? uiText("번역 중…") : uiText("로어북 일괄 번역");
         if (caption && caption.textContent !== buttonLabel) caption.textContent = buttonLabel;
         // The action must be explicit: another tap while busy cancels the
         // current job, it does NOT start translating another book.
         button.disabled = false;
         button.title = job
-            ? '누르면 현재 진행 중인 번역을 취소합니다.'
-            : '번역할 로어북을 선택해 미번역 항목 또는 전체를 번역합니다.';
+            ? uiText("누르면 현재 진행 중인 번역을 취소합니다.")
+            : uiText("번역할 로어북을 선택해 미번역 항목 또는 전체를 번역합니다.");
         button.setAttribute('aria-label', button.title);
     }
     if (status && message) status.textContent = message;
@@ -3871,12 +3872,12 @@ function updateBulkTranslationStatus(message = '') {
 async function showLorebookTranslationPicker() {
     const allBooks = availableLorebookNames();
     if (!allBooks.length) {
-        notify('번역할 로어북이 없습니다.', 'warning');
+        notify(uiText("번역할 로어북이 없습니다."), 'warning');
         return;
     }
     const linkedBooks = currentCharacterLinkedBooks();
     const form = createElement('div', 'slb-translation-picker');
-    const fieldLabel = createElement('strong', 'slb-translation-picker-label', '번역할 로어북 선택 (복수 선택 가능)');
+    const fieldLabel = createElement('strong', 'slb-translation-picker-label', uiText("번역할 로어북 선택 (복수 선택 가능)"));
     fieldLabel.id = 'slb-translate-world-label';
     const list = createElement('div', 'slb-translation-picker-book-list');
     list.id = 'slb-translate-world-list';
@@ -3885,7 +3886,7 @@ async function showLorebookTranslationPicker() {
     // Keep the native checkbox list compact; additional books stay scrollable.
     list.style.maxHeight = 'min(30dvh, 204px)';
     list.style.overflowY = 'auto';
-    const selectAllButton = createElement('button', 'menu_button slb-translation-picker-select-all', '모두 선택');
+    const selectAllButton = createElement('button', 'menu_button slb-translation-picker-select-all', uiText("모두 선택"));
     selectAllButton.type = 'button';
     selectAllButton.id = 'slb-translate-world-select-all';
     const selectedStatus = createElement('small', 'slb-translation-picker-selected');
@@ -3897,14 +3898,14 @@ async function showLorebookTranslationPicker() {
     showAll.checked = linkedBooks === null;
     showAll.disabled = linkedBooks === null;
     showAllLabel.append(showAll, createElement('span', 'checkmark'),
-        createElement('span', '', '모든 로어북 보기'));
+        createElement('span', '', uiText("모든 로어북 보기")));
     const status = createElement('small', 'slb-translation-picker-status');
     const selected = new Set();
     let allowed = [];
     const updateSelectedStatus = () => {
         const count = allowed.filter(name => selected.has(name)).length;
-        selectedStatus.textContent = count ? count + '개 로어북 선택됨' : '선택한 로어북 없음';
-        selectAllButton.textContent = allowed.length && count === allowed.length ? '선택 해제' : '모두 선택';
+        selectedStatus.textContent = count ? uiText("{0}개 로어북 선택됨", count) : uiText("선택한 로어북 없음");
+        selectAllButton.textContent = allowed.length && count === allowed.length ? uiText("선택 해제") : uiText("모두 선택");
         selectAllButton.disabled = allowed.length === 0;
     };
     const updateOptions = () => {
@@ -3933,7 +3934,7 @@ async function showLorebookTranslationPicker() {
             label.append(input, createElement('span', 'checkmark'), createElement('span', '', name));
             list.append(label);
         }
-        status.textContent = allowed.length ? '' : '연결된 로어북이 없습니다. 모든 로어북 보기를 선택해주세요.';
+        status.textContent = allowed.length ? '' : uiText("연결된 로어북이 없습니다. 모든 로어북 보기를 선택해주세요.");
         updateSelectedStatus();
     };
     selectAllButton.addEventListener('click', () => {
@@ -3959,13 +3960,13 @@ async function showLorebookTranslationPicker() {
         okButton: false,
         cancelButton: '닫기',
         customButtons: [
-            { text: '선택한 로어북 미번역 항목 번역', result: 2, icon: 'fa-language' },
-            { text: '선택한 로어북 전체 재번역', result: 3, icon: 'fa-arrows-rotate' },
+            { text: uiText("선택한 로어북 미번역 항목 번역"), result: 2, icon: 'fa-language' },
+            { text: uiText("선택한 로어북 전체 재번역"), result: 3, icon: 'fa-arrows-rotate' },
         ],
         onClosing: dialog => {
             if ((dialog.result === 2 || dialog.result === 3)
                 && !allowed.some(name => selected.has(name))) {
-                status.textContent = '번역할 로어북을 하나 이상 선택해주세요.';
+                status.textContent = uiText("번역할 로어북을 하나 이상 선택해주세요.");
                 return false;
             }
             return true;
@@ -3990,11 +3991,11 @@ async function translateMultipleLorebooks(books, mode = 'missing') {
     if (!selectedBooks.length) return;
     if (state.bulkTranslation) return;
     if (!selectedTranslationFields().length) {
-        notify('확장 탭에서 번역할 항목을 선택해주세요.', 'warning');
+        notify(uiText("확장 탭에서 번역할 항목을 선택해주세요."), 'warning');
         return;
     }
     if (!canTranslate()) {
-        notify('확장 탭에서 번역 방식과 연결 프로필을 먼저 설정해주세요.', 'warning');
+        notify(uiText("확장 탭에서 번역 방식과 연결 프로필을 먼저 설정해주세요."), 'warning');
         return;
     }
     const job = {
@@ -4202,9 +4203,9 @@ function syncMetadataTranslations(entry, options = {}) {
         if (text && !view) {
             view = createElement('textarea', 'text_pole slb-field-translation');
             view.rows = 1;
-            view.setAttribute('aria-label', name === 'comment' ? '제목 번역' : '호출 키워드 번역');
+            view.setAttribute('aria-label', name === 'comment' ? uiText("제목 번역") : uiText("호출 키워드 번역"));
             view.dataset.field = name;
-            view.title = '번역본 수정 · 실제 제목과 호출 키워드는 바뀌지 않습니다';
+            view.title = uiText("번역본 수정 · 실제 제목과 호출 키워드는 바뀌지 않습니다");
             view.addEventListener('click', event => event.stopPropagation());
             const saveEdit = event => {
                 event.stopPropagation();
@@ -4286,9 +4287,9 @@ function hasEntryTranslation(book, entry) {
 
 async function deleteSelectedEntries(selection) {
     const confirmed = await Popup.show.confirm(
-        `선택한 ${selection.uids.length}개 항목을 삭제할까요?`,
-        '선택한 항목의 원문과 저장된 번역본을 함께 삭제합니다.',
-        { okButton: '삭제', cancelButton: '취소', defaultResult: POPUP_RESULT.CANCELLED },
+        uiText("선택한 {0}개 항목을 삭제할까요?", selection.uids.length),
+        uiText("선택한 항목의 원문과 저장된 번역본을 함께 삭제합니다."),
+        { okButton: uiText("삭제"), cancelButton: uiText("취소"), defaultResult: POPUP_RESULT.CANCELLED },
     );
     if (confirmed !== POPUP_RESULT.AFFIRMATIVE) return;
     if (!entryBulkEditor.isCurrentSelection(selection)) return;
@@ -4350,15 +4351,15 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
     const independent = Boolean(selectedBook);
     if (selection && !entryBulkEditor.isCurrentSelection(selection)) return;
     if (!book) {
-        notify('먼저 번역할 로어북을 선택해주세요.', 'warning');
+        notify(uiText("먼저 번역할 로어북을 선택해주세요."), 'warning');
         return;
     }
     if (!selectedTranslationFields().length) {
-        notify('확장 탭에서 번역할 항목을 선택해주세요.', 'warning');
+        notify(uiText("확장 탭에서 번역할 항목을 선택해주세요."), 'warning');
         return;
     }
     if (!canTranslate()) {
-        notify('확장 탭에서 번역 방식과 연결 프로필을 먼저 설정해주세요.', 'warning');
+        notify(uiText("확장 탭에서 번역 방식과 연결 프로필을 먼저 설정해주세요."), 'warning');
         return;
     }
 
@@ -4604,7 +4605,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
     } catch (error) {
         if (!job.cancelled && state.bulkTranslation === job) {
             updateBulkTranslationStatus(error.message || '로어북 전체 번역에 실패했습니다.');
-            if (!sharedJob) notify(error.message || '로어북 전체 번역에 실패했습니다.', 'error', true);
+            if (!sharedJob) notify(error.message || uiText("로어북 전체 번역에 실패했습니다."), 'error', true);
         }
         return job.cancelled ? null : {succeeded, failed: failed + 1, skipped};
     } finally {
@@ -4632,19 +4633,19 @@ function createTokenStrip() {
     const tokens = createElement('div', 'slb-token-strip');
     tokens.id = 'slb-token-strip';
     tokens.innerHTML = `
-        <span class="slb-token-stat" data-label="전체 토큰" title="전체 토큰" aria-label="전체 토큰">
+        <span class="slb-token-stat" data-label="전체 토큰" title="${uiHtml("전체 토큰")}" aria-label="${uiHtml("전체 토큰")}">
             <i class="fa-solid fa-coins slb-stat-icon" aria-hidden="true"></i><strong id="slb-total-tokens">—</strong>
         </span>
-        <span class="slb-token-stat" data-label="상시 주입 토큰" title="상시 주입 토큰" aria-label="상시 주입 토큰">
+        <span class="slb-token-stat" data-label="상시 주입 토큰" title="${uiHtml("상시 주입 토큰")}" aria-label="${uiHtml("상시 주입 토큰")}">
             <i class="fa-solid fa-circle slb-stat-icon slb-stat-constant" aria-hidden="true"></i><strong id="slb-constant-tokens">—</strong>
         </span>
-        <span class="slb-token-stat" data-label="선택 주입 토큰" title="선택 주입 토큰" aria-label="선택 주입 토큰">
+        <span class="slb-token-stat" data-label="선택 주입 토큰" title="${uiHtml("선택 주입 토큰")}" aria-label="${uiHtml("선택 주입 토큰")}">
             <i class="fa-solid fa-circle slb-stat-icon slb-stat-normal" aria-hidden="true"></i><strong id="slb-selective-tokens">—</strong>
         </span>
-        <span class="slb-token-stat" data-label="벡터화 토큰" title="벡터화 토큰" aria-label="벡터화 토큰">
+        <span class="slb-token-stat" data-label="벡터화 토큰" title="${uiHtml("벡터화 토큰")}" aria-label="${uiHtml("벡터화 토큰")}">
             <i class="fa-solid fa-link slb-stat-icon" aria-hidden="true"></i><strong id="slb-vectorized-tokens">—</strong>
         </span>
-        <span class="slb-token-stat" data-label="항목 수" title="항목 수" aria-label="항목 수">
+        <span class="slb-token-stat" data-label="항목 수" title="${uiHtml("항목 수")}" aria-label="${uiHtml("항목 수")}">
             <i class="fa-solid fa-list-ul slb-stat-icon" aria-hidden="true"></i><strong id="slb-entry-count">—</strong>
         </span>`;
     return tokens;
@@ -4655,14 +4656,14 @@ function createEntryFilters() {
     const filter = createElement('details', 'slb-filter-details');
     filter.id = 'slb-entry-filters';
     filter.innerHTML = `
-        <summary class="menu_button slb-filter-trigger slb-bulk-mode-label" title="항목 필터" aria-label="항목 필터" aria-expanded="false">
-            <i class="fa-solid fa-filter" aria-hidden="true"></i><span>항목 필터</span>
+        <summary class="menu_button slb-filter-trigger slb-bulk-mode-label" title="${uiHtml("항목 필터")}" aria-label="${uiHtml("항목 필터")}" aria-expanded="false">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i><span>${uiHtml("항목 필터")}</span>
         </summary>
-        <div class="slb-filter-options" role="group" aria-label="로어 항목 표시">
-            <button type="button" class="slb-filter-option" data-filter="all">전체 보기</button>
-            <button type="button" class="slb-filter-option" data-filter="constant">상시 주입만 보기</button>
-            <button type="button" class="slb-filter-option" data-filter="normal">키워드 발동만 보기</button>
-            <button type="button" class="slb-filter-option" data-filter="vectorized">벡터 검색만 보기</button>
+        <div class="slb-filter-options" role="group" aria-label="${uiHtml("로어 항목 표시")}">
+            <button type="button" class="slb-filter-option" data-filter="all">${uiHtml("전체 보기")}</button>
+            <button type="button" class="slb-filter-option" data-filter="constant">${uiHtml("상시 주입만 보기")}</button>
+            <button type="button" class="slb-filter-option" data-filter="normal">${uiHtml("키워드 발동만 보기")}</button>
+            <button type="button" class="slb-filter-option" data-filter="vectorized">${uiHtml("벡터 검색만 보기")}</button>
         </div>`;
     return filter;
 }
@@ -5158,7 +5159,7 @@ function createWorkspace() {
     const { section: tokenSection } = ensureWorkspaceSummarySection({
         id: 'slb-token-summary-section',
         bodyId: 'slb-token-strip',
-        title: '토큰',
+        title: uiText("토큰"),
         createBody: createTokenStrip,
     });
     const { section: filterSection, body: filters } = ensureWorkspaceSummarySection({
@@ -5437,7 +5438,7 @@ function restoreNativeDragHandle(header, toggles) {
     handle.removeAttribute('role');
     handle.removeAttribute('aria-label');
     handle.removeAttribute('tabindex');
-    handle.title = '드래그하여 순서 변경';
+    handle.title = uiText("드래그하여 순서 변경");
     if (handle.parentElement !== toggles) toggles.prepend(handle);
     return handle;
 }
@@ -5525,7 +5526,7 @@ function enhanceEntryHeader(entry, options = {}) {
     titleField.classList.add('slb-header-field', 'slb-title-field');
 
     const strategyField = createElement('div', 'slb-header-field slb-strategy-field');
-    strategyField.append(createElement('small', 'slb-header-label', '등장 방식'));
+    strategyField.append(createElement('small', 'slb-header-label', uiText("등장 방식")));
     stateSelect.before(strategyField);
     strategyField.append(stateSelect);
 
@@ -5919,7 +5920,7 @@ function recoverResponsiveHeaderFields(entry) {
         if (document.activeElement === stateSelect) return false;
         if (!strategyField) {
             strategyField = createElement('div', 'slb-header-field slb-strategy-field');
-            strategyField.append(createElement('small', 'slb-header-label', '등장 방식'));
+            strategyField.append(createElement('small', 'slb-header-label', uiText("등장 방식")));
             stateSelect.before(strategyField);
         }
         strategyField.append(stateSelect);
@@ -6165,10 +6166,10 @@ async function commitNavigatorOrder() {
     if (!changed) return;
     try {
         await saveWorldInfo(book, data);
-        notify('항목 순서를 저장했습니다.', 'success');
+        notify(uiText("항목 순서를 저장했습니다."), 'success');
     } catch (error) {
         console.warn('[로어북 매니저] Failed to save entry order', error);
-        notify('항목 순서 저장에 실패했습니다.', 'error');
+        notify(uiText("항목 순서 저장에 실패했습니다."), 'error');
     }
 }
 
@@ -6335,7 +6336,7 @@ function rebuildNavigator() {
     state.navigatorDirty = false;
     list.replaceChildren();
     mobile.replaceChildren();
-    document.getElementById('slb-page-count').textContent = `${entries.length}개`;
+    document.getElementById('slb-page-count').textContent = uiText("항목 {0}개", entries.length);
 
     for (const entry of entries) {
         const uid = getUid(entry);
@@ -6494,7 +6495,7 @@ async function translateEntryCombinedFields(ui, pair, sources, metadataFields, b
     ui.flags.translating = true;
     if (background) {
         ui.translationPane.classList.add('slb-pane-busy');
-        ui.status.textContent = '본문과 제목·키워드를 함께 번역 중…';
+        ui.status.textContent = uiText("본문과 제목·키워드를 함께 번역 중…");
     } else {
         setEntryBusy(ui, true, '본문과 제목·키워드를 함께 번역 중…');
     }
@@ -6509,7 +6510,7 @@ async function translateEntryCombinedFields(ui, pair, sources, metadataFields, b
             || ui.sourceLanguage !== pair.sourceLanguage || ui.translationLanguage !== pair.translationLanguage
             || getSettings().translations[translationKey(ui.book, ui.uid)] !== savedBefore
             || fields.some(field => latestSources[field] !== sources[field])) {
-            ui.status.textContent = '번역 도중 원문 또는 설정이 바뀌어 이전 결과를 적용하지 않았습니다.';
+            ui.status.textContent = uiText("번역 도중 원문 또는 설정이 바뀌어 이전 결과를 적용하지 않았습니다.");
             return;
         }
         ui.flags.writingTranslation = true;
@@ -6518,9 +6519,9 @@ async function translateEntryCombinedFields(ui, pair, sources, metadataFields, b
         markTranslationSynced(ui, source, results.content);
         saveMetadataTranslations(ui.book, ui.uid, pair, sources, results);
         syncMetadataTranslations(ui.entry);
-        ui.status.textContent = '본문·제목·키워드 번역본을 저장했습니다.';
+        ui.status.textContent = uiText("본문·제목·키워드 번역본을 저장했습니다.");
     } catch(error) {
-        ui.status.textContent = error.message || '로어북 번역에 실패했습니다.';
+        ui.status.textContent = error.message || uiText("로어북 번역에 실패했습니다.");
         notify(ui.status.textContent,'error');
     } finally {
         ui.flags.translating = false;
@@ -6540,11 +6541,11 @@ async function translateEntrySource(ui, force = false, background = false) {
     }
     const selected = selectedTranslationFields();
     if (!selected.length) {
-        ui.status.textContent = '확장 탭에서 번역할 항목을 선택해주세요.';
+        ui.status.textContent = uiText("확장 탭에서 번역할 항목을 선택해주세요.");
         return;
     }
     if (!canTranslate()) {
-        ui.status.textContent = '확장 탭에서 번역 방식을 설정해주세요.';
+        ui.status.textContent = uiText("확장 탭에서 번역 방식을 설정해주세요.");
         return;
     }
     if (!force && !getSettings().autoTranslateSource) return;
@@ -6579,14 +6580,14 @@ async function translateEntrySource(ui, force = false, background = false) {
             || ui.sourceLanguage !== pair.sourceLanguage || ui.translationLanguage !== pair.translationLanguage
             || liveUI.sourceLanguage !== pair.sourceLanguage || liveUI.translationLanguage !== pair.translationLanguage
             || fields.some(field => latestSources[field] !== sources[field])) {
-            ui.status.textContent = '번역 중 제목·키워드나 언어 방향이 변경되어 이전 결과를 적용하지 않았습니다.';
+            ui.status.textContent = uiText("번역 중 제목·키워드나 언어 방향이 변경되어 이전 결과를 적용하지 않았습니다.");
             return;
         }
         saveMetadataTranslations(ui.book, ui.uid, pair, sources, results);
         syncMetadataTranslations(liveEntry);
-        ui.status.textContent = '제목·호출 키워드의 읽기용 번역을 저장했습니다.';
+        ui.status.textContent = uiText("제목·호출 키워드의 읽기용 번역을 저장했습니다.");
     } catch (error) {
-        ui.status.textContent = error.message || '제목·키워드 번역에 실패했습니다.';
+        ui.status.textContent = error.message || uiText("제목·키워드 번역에 실패했습니다.");
         notify(ui.status.textContent, 'error');
     } finally {
         ui.flags.translating = false;
@@ -6615,7 +6616,7 @@ async function translateEntryBodySource(ui, force = false, background = false) {
         return;
     }
     if (!canTranslate()) {
-        ui.status.textContent = '확장 탭에서 번역 방식(전용 프로필 또는 구글 번역)을 설정해주세요.';
+        ui.status.textContent = uiText("확장 탭에서 번역 방식(전용 프로필 또는 구글 번역)을 설정해주세요.");
         return;
     }
     if (!force && !settings.autoTranslateSource) {
@@ -6666,7 +6667,7 @@ async function translateEntryBodySource(ui, force = false, background = false) {
             || ui.sourceLanguage !== sourceLanguage
             || ui.translationLanguage !== translationLanguage
         ) {
-            ui.status.textContent = '번역 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.';
+            ui.status.textContent = uiText("번역 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.");
             return;
         }
         ui.flags.writingTranslation = true;
@@ -6678,7 +6679,7 @@ async function translateEntryBodySource(ui, force = false, background = false) {
             ? `변경된 ${sourceBadge} 원문 ${result.changedRegions}개 구간만 번역했습니다. 나머지 ${translationBadge} 번역은 유지했습니다.`
             : `현재 ${sourceBadge} 원문을 기준으로 ${translationBadge} 번역이 생성되었습니다.`;
     } catch (error) {
-        ui.status.textContent = error.message || '번역에 실패했습니다.';
+        ui.status.textContent = error.message || uiText("번역에 실패했습니다.");
         notify(ui.status.textContent, 'error');
     } finally {
         ui.flags.translating = false;
@@ -6711,7 +6712,7 @@ async function reflectEntryTranslation(ui, { manual = false } = {}) {
         return;
     }
     if (!canTranslate()) {
-        ui.status.textContent = '확장 탭에서 번역 방식(전용 프로필 또는 구글 번역)을 설정해주세요.';
+        ui.status.textContent = uiText("확장 탭에서 번역 방식(전용 프로필 또는 구글 번역)을 설정해주세요.");
         return;
     }
     const baseline = ui.reflectionBaseline;
@@ -6738,7 +6739,7 @@ async function reflectEntryTranslation(ui, { manual = false } = {}) {
                 || ui.sourceLanguage !== sourceLanguage
                 || ui.translationLanguage !== translationLanguage
             ) {
-                ui.status.textContent = '반영 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.';
+                ui.status.textContent = uiText("반영 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.");
                 return;
             }
             assertProtectedStructurePreserved(translation, revisedSource);
@@ -6772,11 +6773,11 @@ async function reflectEntryTranslation(ui, { manual = false } = {}) {
             || ui.sourceLanguage !== sourceLanguage
             || ui.translationLanguage !== translationLanguage
         ) {
-            ui.status.textContent = '반영 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.';
+            ui.status.textContent = uiText("반영 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.");
             return;
         }
         if (!result.changedRegions) {
-            ui.status.textContent = '이전 번역본과 달라진 부분이 없습니다.';
+            ui.status.textContent = uiText("이전 번역본과 달라진 부분이 없습니다.");
             return;
         }
         ui.flags.writingSource = true;
@@ -6794,7 +6795,7 @@ async function reflectEntryTranslation(ui, { manual = false } = {}) {
             notify(`첫 반영 결과를 폐기하고 1회 자동 재생성했습니다. 실패 이유: ${result.firstFailureReason}`, 'warning');
         }
     } catch (error) {
-        ui.status.textContent = error.message || '원문 반영에 실패했습니다.';
+        ui.status.textContent = error.message || uiText("원문 반영에 실패했습니다.");
         notify(ui.status.textContent, 'error');
     } finally {
         ui.flags.translating = false;
@@ -6810,17 +6811,17 @@ async function runSourceRevision(ui, savedSelection = null) {
     const start = savedSelection?.start ?? ui.source.selectionStart;
     const end = savedSelection?.end ?? ui.source.selectionEnd;
     if (!sourceSnapshot.slice(start, end).trim()) {
-        ui.status.textContent = 'AI로 수정할 원문을 먼저 드래그해서 선택해주세요.';
+        ui.status.textContent = uiText("AI로 수정할 원문을 먼저 드래그해서 선택해주세요.");
         notify(ui.status.textContent, 'warning');
         return;
     }
-    const instruction = window.prompt('선택한 원문을 어떻게 수정할까요?');
+    const instruction = window.prompt(uiText("선택한 원문을 어떻게 수정할까요?"));
     if (!instruction?.trim()) return;
     setEntryBusy(ui, true, 'AI가 선택한 원문만 수정하는 중…');
     try {
         const revised = await reviseSelectedText(sourceSnapshot, start, end, instruction.trim(), 'source');
         if (ui.flags.deleted || ui.source.value !== sourceSnapshot) {
-            ui.status.textContent = '수정 중 원문이 다시 변경되어 이전 결과를 적용하지 않았습니다.';
+            ui.status.textContent = uiText("수정 중 원문이 다시 변경되어 이전 결과를 적용하지 않았습니다.");
             return;
         }
         ui.flags.writingSource = true;
@@ -6831,10 +6832,10 @@ async function runSourceRevision(ui, savedSelection = null) {
         } finally {
             ui.flags.writingSource = false;
         }
-        ui.status.textContent = '선택한 원문만 AI 수정되었습니다.';
+        ui.status.textContent = uiText("선택한 원문만 AI 수정되었습니다.");
         if (getSettings().autoTranslateSource) scheduleSourceTranslation(ui);
     } catch (error) {
-        ui.status.textContent = error.message || 'AI 원문 수정에 실패했습니다.';
+        ui.status.textContent = error.message || uiText("AI 원문 수정에 실패했습니다.");
         notify(ui.status.textContent, 'error');
     } finally {
         setEntryBusy(ui, false);
@@ -6846,26 +6847,26 @@ async function runTranslationRevision(ui, savedSelection = null) {
     const start = savedSelection?.start ?? ui.translation.selectionStart;
     const end = savedSelection?.end ?? ui.translation.selectionEnd;
     if (!translationSnapshot.slice(start, end).trim()) {
-        ui.status.textContent = 'AI로 수정할 번역문을 먼저 드래그해서 선택해주세요.';
+        ui.status.textContent = uiText("AI로 수정할 번역문을 먼저 드래그해서 선택해주세요.");
         notify(ui.status.textContent, 'warning');
         return;
     }
-    const instruction = window.prompt('선택한 번역문을 어떻게 수정할까요?');
+    const instruction = window.prompt(uiText("선택한 번역문을 어떻게 수정할까요?"));
     if (!instruction?.trim()) return;
     setEntryBusy(ui, true, 'AI가 선택한 번역문만 수정하는 중…');
     try {
         const revised = await reviseSelectedText(translationSnapshot, start, end, instruction.trim(), 'translation');
         if (ui.flags.deleted || ui.translation.value !== translationSnapshot) {
-            ui.status.textContent = '수정 중 번역본이 다시 변경되어 이전 결과를 적용하지 않았습니다.';
+            ui.status.textContent = uiText("수정 중 번역본이 다시 변경되어 이전 결과를 적용하지 않았습니다.");
             return;
         }
         ui.translation.value = revised.text;
         ui.translation.setSelectionRange(revised.start, revised.end);
         savePendingTranslation(ui, revised.text);
-        ui.status.textContent = '선택한 번역문만 AI 수정되었습니다.';
+        ui.status.textContent = uiText("선택한 번역문만 AI 수정되었습니다.");
         if (getSettings().autoSyncToSource) scheduleTranslationReflection(ui);
     } catch (error) {
-        ui.status.textContent = error.message || 'AI 번역 수정에 실패했습니다.';
+        ui.status.textContent = error.message || uiText("AI 번역 수정에 실패했습니다.");
         notify(ui.status.textContent, 'error');
     } finally {
         setEntryBusy(ui, false);
@@ -6940,7 +6941,7 @@ function updateEntryLanguageUI(ui) {
 
 function toggleEntryLanguageDirection(ui) {
     if (ui.flags.translating) {
-        ui.status.textContent = '진행 중인 번역이 끝난 뒤 EN/KO 방향을 바꿔주세요.';
+        ui.status.textContent = uiText("진행 중인 번역이 끝난 뒤 EN/KO 방향을 바꿔주세요.");
         return;
     }
     const key = `${ui.book}:${ui.uid}`;
@@ -7003,7 +7004,7 @@ function useNativeConnectionFilterLists(root) {
         const list = document.createElement('div');
         list.className = 'slb-themed-filter-list';
         list.setAttribute('role', 'group');
-        list.setAttribute('aria-label', select.name === 'characterFilter' ? '캐릭터 및 태그 연결 필터' : '생성 유형 연결 필터');
+        list.setAttribute('aria-label', select.name === 'characterFilter' ? uiText("캐릭터 및 태그 연결 필터") : uiText("생성 유형 연결 필터"));
         select.classList.add('slb-themed-filter-source');
         select.insertAdjacentElement('afterend', list);
         let signature = '';
@@ -7301,12 +7302,12 @@ function enhanceEntry(entry) {
     const tokenMeta = nativeRow ? Array.from(nativeRow.children).find(child => child.querySelector?.('.world_entry_form_token_counter')) : null;
     const recursionMeta = nativeRow ? Array.from(nativeRow.children).find(child => child.querySelector?.('input[name="excludeRecursion"]')) : null;
 
-    const sourceAI = createMenuButton('fa-solid fa-wand-magic-sparkles', 'AI로 수정', '선택한 원문만 AI로 수정');
+    const sourceAI = createMenuButton('fa-solid fa-wand-magic-sparkles', uiText("AI로 수정"), uiText("선택한 원문만 AI로 수정"));
     const sourceActions = [];
     if (maximize) sourceActions.push(maximize);
     sourceActions.push(sourceAI);
     const sourceHeader = buildEditorHeader(
-        '원문',
+        uiText("원문"),
         entryLanguageBadge(languagePair.sourceLanguage),
         sourceActions,
         'source',
@@ -7318,10 +7319,10 @@ function enhanceEntry(entry) {
     nativeLabel?.classList.add('slb-native-content-label');
 
     const translationPane = createElement('div', 'slb-translation-pane');
-    const retranslate = createMenuButton('fa-solid fa-arrows-rotate', '번역', '현재 원문 번역');
-    const translationAI = createMenuButton('fa-solid fa-wand-magic-sparkles', 'AI로 수정', '선택한 번역문만 AI로 수정');
+    const retranslate = createMenuButton('fa-solid fa-arrows-rotate', uiText("번역"), uiText("현재 원문 번역"));
+    const translationAI = createMenuButton('fa-solid fa-wand-magic-sparkles', uiText("AI로 수정"), uiText("선택한 번역문만 AI로 수정"));
     const translationHeader = buildEditorHeader(
-        '번역',
+        uiText("번역"),
         entryLanguageBadge(languagePair.translationLanguage),
         [retranslate, translationAI],
         'translation',
@@ -7329,14 +7330,14 @@ function enhanceEntry(entry) {
     const translationLanguageButton = translationHeader.querySelector('.slb-lang-badge');
     const translation = createElement('textarea', 'text_pole slb-translation-text');
     translation.rows = 8;
-    translation.placeholder = '번역문';
+    translation.placeholder = uiText("번역문");
     translationPane.append(translationHeader, translation);
     contentBlock.classList.add('slb-content-grid');
     contentBlock.append(translationPane);
 
     const syncRow = createElement('div', 'slb-sync-row');
-    const syncStatus = createElement('small', 'slb-sync-status', '번역 준비됨');
-    const applyButton = createMenuButton('fa-solid fa-link', '지금 번역 반영', '번역 변경사항을 원문에 반영');
+    const syncStatus = createElement('small', 'slb-sync-status', uiText("번역 준비됨"));
+    const applyButton = createMenuButton('fa-solid fa-link', uiText("지금 번역 반영"), uiText("번역 변경사항을 원문에 반영"));
     applyButton.classList.add('slb-apply-translation');
     syncRow.append(syncStatus, applyButton);
 
@@ -7417,10 +7418,10 @@ function enhanceEntry(entry) {
 
     const tabbar = createElement('div', 'slb-tabbar');
     const tabs = [
-        createTab('content', '본문·번역', '로어북 본문을 쓰고 번역문을 확인하거나 수정하는 곳'),
-        createTab('activation', '등장 조건', '어떤 키워드에 반응하고 어디에 들어가는지 정하는 곳'),
-        createTab('group', '그룹·주기', '겹치는 항목 중 하나만 고르거나 유지·재등장 간격을 정하는 곳'),
-        createTab('filter', '적용 대상', '어떤 캐릭터 또는 어떤 답변 생성 상황에 사용할지 정하는 곳'),
+        createTab('content', uiText("본문·번역"), uiText("로어북 본문을 쓰고 번역문을 확인하거나 수정하는 곳")),
+        createTab('activation', uiText("등장 조건"), uiText("어떤 키워드에 반응하고 어디에 들어가는지 정하는 곳")),
+        createTab('group', uiText("그룹·주기"), uiText("겹치는 항목 중 하나만 고르거나 유지·재등장 간격을 정하는 곳")),
+        createTab('filter', uiText("적용 대상"), uiText("어떤 캐릭터 또는 어떤 답변 생성 상황에 사용할지 정하는 곳")),
     ];
     tabbar.append(...tabs);
 
@@ -7432,20 +7433,20 @@ function enhanceEntry(entry) {
 
     const keywordAssistant = createElement('section', 'slb-keyword-assistant');
     const keywordHead = createElement('div', 'slb-keyword-head');
-    const recommendButton = createMenuButton('fa-solid fa-key', 'AI 키워드 추천', 'AI가 본문을 읽고 호출 키워드를 추천합니다.');
+    const recommendButton = createMenuButton('fa-solid fa-key', uiText("AI 키워드 추천"), uiText("AI가 본문을 읽고 호출 키워드를 추천합니다."));
     recommendButton.classList.add('slb-keyword-recommend-button');
     keywordHead.append(recommendButton);
     const keywordResults = createElement('div', 'slb-keyword-results');
     keywordResults.hidden = true;
     const keywordTextarea = createElement('textarea', 'text_pole slb-keyword-textarea');
     keywordTextarea.rows = 5;
-    keywordTextarea.placeholder = '추천 키워드 · 한 줄에 하나씩 편집';
+    keywordTextarea.placeholder = uiText("추천 키워드 · 한 줄에 하나씩 편집");
     const keywordActions = createElement('div', 'slb-keyword-actions');
-    const refineKeywordsButton = createMenuButton('fa-solid fa-wand-magic-sparkles', 'AI로 재추천', '현재 후보를 AI로 다시 추천');
-    const insertKeywordsButton = createMenuButton('fa-solid fa-plus', '기본 키워드에 추가', '검토한 후보를 기본 키워드에 추가');
+    const refineKeywordsButton = createMenuButton('fa-solid fa-wand-magic-sparkles', uiText("AI로 재추천"), uiText("현재 후보를 AI로 다시 추천"));
+    const insertKeywordsButton = createMenuButton('fa-solid fa-plus', uiText("기본 키워드에 추가"), uiText("검토한 후보를 기본 키워드에 추가"));
     refineKeywordsButton.disabled = true;
     insertKeywordsButton.disabled = true;
-    const keywordStatus = createElement('small', 'slb-keyword-status', '아직 적용되지 않음');
+    const keywordStatus = createElement('small', 'slb-keyword-status', uiText("아직 적용되지 않음"));
     keywordActions.append(refineKeywordsButton, insertKeywordsButton);
     keywordResults.append(keywordTextarea, keywordActions, keywordStatus);
     keywordAssistant.append(keywordHead, keywordResults);
@@ -7682,17 +7683,17 @@ function enhanceEntry(entry) {
     async function runKeywordRecommendation(instruction = '') {
         const sourceSnapshot = ui.source.value;
         if (!sourceSnapshot.trim()) {
-            keywordStatus.textContent = '추천할 원문 내용이 없습니다.';
+            keywordStatus.textContent = uiText("추천할 원문 내용이 없습니다.");
             return;
         }
 
         const currentCandidates = instruction ? parseEditedKeywords(keywordTextarea.value) : [];
         keywordAssistant.classList.add('slb-busy');
-        keywordStatus.textContent = instruction ? 'AI가 후보를 다시 검토하는 중…' : 'AI가 원문을 읽고 키워드를 추천하는 중…';
+        keywordStatus.textContent = instruction ? uiText("AI가 후보를 다시 검토하는 중…") : uiText("AI가 원문을 읽고 키워드를 추천하는 중…");
         try {
             const keywords = await recommendKeywords(sourceSnapshot, getExistingPrimaryKeywords(entry), currentCandidates, instruction);
             if (ui.source.value !== sourceSnapshot) {
-                keywordStatus.textContent = '추천 중 원문이 변경되어 이전 결과를 적용하지 않았습니다.';
+                keywordStatus.textContent = uiText("추천 중 원문이 변경되어 이전 결과를 적용하지 않았습니다.");
                 return;
             }
             keywordTextarea.value = keywords.join('\n');
@@ -7702,7 +7703,7 @@ function enhanceEntry(entry) {
             keywordStatus.textContent = `${keywords.length}개 추천됨 · 직접 수정하거나 기본 키워드에 추가하세요.`;
         } catch (error) {
             keywordResults.hidden = false;
-            keywordStatus.textContent = error.message || '키워드 추천에 실패했습니다.';
+            keywordStatus.textContent = error.message || uiText("키워드 추천에 실패했습니다.");
             notify(keywordStatus.textContent, 'error');
         } finally {
             keywordAssistant.classList.remove('slb-busy');
@@ -7767,7 +7768,7 @@ function enhanceEntry(entry) {
     });
     recommendButton.addEventListener('click', () => runKeywordRecommendation());
     refineKeywordsButton.addEventListener('click', () => {
-        const instruction = window.prompt('추천 키워드를 어떻게 다시 고칠까요?');
+        const instruction = window.prompt(uiText("추천 키워드를 어떻게 다시 고칠까요?"));
         if (instruction?.trim()) runKeywordRecommendation(instruction.trim());
     });
     keywordTextarea.addEventListener('input', () => {
@@ -7787,7 +7788,7 @@ function enhanceEntry(entry) {
                 : '새로 추가할 키워드가 없습니다. 기존 키워드와 중복됩니다.';
             if (added) notify(`기본 키워드에 ${added}개를 추가했습니다.`, 'success');
         } catch (error) {
-            keywordStatus.textContent = error.message || '키워드 삽입에 실패했습니다.';
+            keywordStatus.textContent = error.message || uiText("키워드 삽입에 실패했습니다.");
             notify(keywordStatus.textContent, 'error');
         }
     });
@@ -8791,7 +8792,7 @@ function enhanceAll() {
                     finishWorldDrawerOpenLoading();
                     if (!state.bookSwitch) setBookSwitchLoading(false);
                     console.warn('[로어북 매니저] 항목 헤더 변환 실패', incomplete.map(getUid));
-                    notify('일부 로어북 항목의 화면 구성을 완료하지 못했습니다. 원본 편집 화면으로 표시합니다.', 'warning');
+                    notify(uiText("일부 로어북 항목의 화면 구성을 완료하지 못했습니다. 원본 편집 화면으로 표시합니다."), 'warning');
                 }
             }
         }
@@ -9030,7 +9031,7 @@ function localizeNativeSortingPopup() {
 
     const content = popup.querySelector('.popup-content');
     const heading = content?.querySelector('h3');
-    if (heading) heading.textContent = '현재 정렬을 순서값에 적용';
+    if (heading) heading.textContent = uiText("현재 정렬을 순서값에 적용");
     const paragraphs = content?.querySelectorAll('p') || [];
     if (paragraphs[0]) paragraphs[0].textContent =
         '현재 정렬된 순서에 따라 로어북의 모든 항목에 순서(Order) 값을 지정해 저장합니다.';
@@ -9079,8 +9080,8 @@ function bindNativeSortingHelp() {
     const button = document.getElementById('world_apply_current_sorting');
     if (!button || button.dataset.slbSortHelpBound === 'true') return;
     button.dataset.slbSortHelpBound = 'true';
-    button.title = '현재 정렬을 순서값에 적용 · 로어북 전체 항목의 순서 숫자를 변경합니다';
-    button.setAttribute('aria-label', '현재 정렬을 순서값에 적용');
+    button.title = uiText("현재 정렬을 순서값에 적용 · 로어북 전체 항목의 순서 숫자를 변경합니다");
+    button.setAttribute('aria-label', uiText("현재 정렬을 순서값에 적용"));
     button.removeAttribute('data-i18n');
 
     // ST constructs its own popup and retains its original values / save
@@ -9451,7 +9452,7 @@ function openLibraryAdvanced(book, uid) {
         .find(item => item.value !== '' && item.textContent.trim() === book);
     const list = document.getElementById('world_popup_entries_list');
     if (!select || !option || !list || !/^\d+$/.test(String(uid))) {
-        notify('원본 로어북에서 해당 항목을 찾을 수 없습니다.', 'warning');
+        notify(uiText("원본 로어북에서 해당 항목을 찾을 수 없습니다."), 'warning');
         return;
     }
     const wasSameBook = currentBookName() === book;
@@ -9851,7 +9852,7 @@ async function openStandaloneLibrary() {
         await ensureLibraryStyles();
         initStandaloneLibrary().open();
     } catch (error) {
-        notify(error?.message || '독립 서재를 열지 못했습니다.', 'error');
+        notify(error?.message || uiText("독립 서재를 열지 못했습니다."), 'error');
     }
 }
 
@@ -9878,9 +9879,9 @@ function bindStandaloneLibraryMenu() {
     action.id = 'slb-library-menu-action';
     action.setAttribute('role', 'button');
     action.tabIndex = 0;
-    action.setAttribute('aria-label', '독립 로어북 매니저 서재 열기');
+    action.setAttribute('aria-label', uiText("독립 로어북 매니저 서재 열기"));
     action.append(createElement('div', 'fa-solid fa-address-book extensionsMenuExtensionButton'));
-    action.append(createElement('span', '', '로어북 매니저'));
+    action.append(createElement('span', '', uiText("로어북 매니저")));
     const open = () => void openStandaloneLibrary();
     action.addEventListener('click', open);
     action.addEventListener('keydown', event => {

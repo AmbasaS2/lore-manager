@@ -1,3 +1,4 @@
+import { uiText, uiHtml } from './ui-language.js';
 // Multi-selection is session-only and scoped to one lorebook, never to row indices.
 const FIELDS = Object.freeze({
     strategy: { selector: '.slb-strategy-field select', label: '전략' },
@@ -64,13 +65,13 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
         toolbar.querySelector('.slb-bulk-mode').checked = enabled;
         toolbar.querySelector('.slb-bulk-mode').disabled = !getBook();
         toolbar.querySelector('.slb-bulk-selection-tools').hidden = !enabled;
-        toolbar.querySelector('.slb-bulk-mode-text').textContent = enabled ? '일괄 편집 종료' : '일괄 편집';
-        toolbar.querySelector('.slb-bulk-selection-count').textContent = `${selected.size}개 선택`;
+        toolbar.querySelector('.slb-bulk-mode-text').textContent = enabled ? uiText("일괄 편집 종료") : uiText("일괄 편집");
+        toolbar.querySelector('.slb-bulk-selection-count').textContent = uiText("{0}개 선택", selected.size);
         const toggleAll = toolbar.querySelector('.slb-bulk-select-all');
-        toggleAll.textContent = selected.size ? '선택 비우기' : '전체 선택';
+        toggleAll.textContent = selected.size ? uiText("선택 비우기") : uiText("전체 선택");
         toggleAll.title = selected.size
-            ? '지금 선택한 항목 모두 해제'
-            : '이 로어북의 모든 항목 선택 (다른 페이지 포함)';
+            ? uiText("지금 선택한 항목 모두 해제")
+            : uiText("이 로어북의 모든 항목 선택 (다른 페이지 포함)");
         toggleAll.disabled = selectingAll;
         // Keep accessible confirmation, but don't fill the editor with a
         // permanent instructions paragraph on every refresh.
@@ -91,11 +92,11 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
         if (!label) {
             label = document.createElement('label');
             label.className = 'slb-entry-selection';
-            label.title = '일괄 변경할 항목 선택';
+            label.title = uiText("일괄 변경할 항목 선택");
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'slb-entry-selection-checkbox';
-            checkbox.setAttribute('aria-label', '일괄 변경할 항목 선택');
+            checkbox.setAttribute('aria-label', uiText("일괄 변경할 항목 선택"));
             label.append(checkbox);
             // Selecting must not open the drawer, toggle activation, or start sorting.
             for (const type of ['click', 'pointerdown', 'mousedown', 'touchstart']) {
@@ -137,7 +138,7 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
         try {
             const data = await loadBook(expectedBook);
             if (!enabled || book !== expectedBook || getBook() !== expectedBook || revision !== expectedRevision) return;
-            if (!data?.entries) throw new Error('현재 로어북의 항목을 불러오지 못했습니다.');
+            if (!data?.entries) throw new Error(uiText("현재 로어북의 항목을 불러오지 못했습니다."));
             Object.keys(data.entries).forEach(uid => { if (data.entries[uid]) selected.add(String(uid)); });
             syncRows();
         } catch (error) {
@@ -154,10 +155,10 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
             toolbar = document.createElement('div');
             toolbar.id = 'slb-entry-selection-toolbar';
             toolbar.innerHTML = `
-                <label class="slb-bulk-mode-label"><input type="checkbox" class="slb-bulk-mode"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span class="slb-bulk-mode-text">일괄 편집</span></label>
+                <label class="slb-bulk-mode-label"><input type="checkbox" class="slb-bulk-mode"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span class="slb-bulk-mode-text">${uiHtml("일괄 편집")}</span></label>
                 <div class="slb-bulk-selection-tools" hidden>
                     <strong class="slb-bulk-selection-count" aria-live="polite"></strong>
-                    <button type="button" class="menu_button slb-bulk-select-all">전체 선택</button>
+                    <button type="button" class="menu_button slb-bulk-select-all">${uiHtml("전체 선택")}</button>
                     <small class="slb-bulk-selection-status slb-screen-reader-only" role="status"></small>
                 </div>`;
             toolbar.querySelector('.slb-bulk-mode').addEventListener('change', event => {
@@ -216,7 +217,7 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
         // Use the live native data object, never an old cloned book snapshot.
         const data = await loadBook(job.book);
         if (!isCurrent()) return;
-        if (!data?.entries) throw new Error('현재 로어북의 항목을 불러오지 못했습니다.');
+        if (!data?.entries) throw new Error(uiText("현재 로어북의 항목을 불러오지 못했습니다."));
         const affected = new Set(job.uids.filter(uid => data.entries[uid]));
         if (affected.size < 2) return;
         applying = true;
@@ -244,7 +245,7 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
             }
             await saveBook(job.book, data);
             if (getBook() === job.book) onApplied(job.book, data);
-            if (isCurrent()) updateToolbar(`선택한 ${affected.size}개 항목에 ${FIELDS[job.field].label} 변경 적용`);
+            if (isCurrent()) updateToolbar(uiText("선택한 {0}개 항목에 {1} 변경 적용", affected.size, uiText(FIELDS[job.field].label)));
         } finally {
             applying = false;
         }

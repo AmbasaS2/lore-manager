@@ -1,3 +1,4 @@
+import { uiText } from './ui-language.js';
 
 // Independent, on-demand lorebook reader. This module neither watches nor
 // reparents SillyTavern's WorldInfo DOM. Original data remains in ST world files.
@@ -256,10 +257,10 @@ export function createStandaloneLibrary({
         // A single persisted setting shared across the four reader styles.
         // Place its selector next to each contents pager, never in settings.
         const select = element(doc, 'select', 'slb-library-page-size-select');
-        select.setAttribute('aria-label', '한 페이지에 표시할 항목 수');
-        select.setAttribute('title', '한 페이지에 표시할 항목 수');
+        select.setAttribute('aria-label', uiText("한 페이지에 표시할 항목 수"));
+        select.setAttribute('title', uiText("한 페이지에 표시할 항목 수"));
         for (const size of [5, 10, 20]) {
-            const option = element(doc, 'option', '', size + '개');
+            const option = element(doc, 'option', '', size + uiText("개"));
             option.value = String(size);
             select.append(option);
         }
@@ -268,11 +269,11 @@ export function createStandaloneLibrary({
     }
     function pageOrderPicker() {
         const select = element(doc, 'select', 'slb-library-order-select');
-        select.setAttribute('aria-label', '목록 정렬 순서');
-        select.setAttribute('title', 'Order(로어북 순서값) 또는 제목 기준 정렬');
+        select.setAttribute('aria-label', uiText("목록 정렬 순서"));
+        select.setAttribute('title', uiText("Order(로어북 순서값) 또는 제목 기준 정렬"));
         for (const [value, label] of [
             ['normal', 'Order↑'], ['reverse', 'Order↓'],
-            ['title-asc', '제목↑'], ['title-desc', '제목↓'],
+            ['title-asc', uiText("제목↑")], ['title-desc', uiText("제목↓")],
         ]) {
             const option = element(doc, 'option', '', label);
             option.value = value;
@@ -296,8 +297,8 @@ export function createStandaloneLibrary({
         jump.dataset.prefix = prefix;
         jump.dataset.page = String(page);
         jump.dataset.pageCount = String(pageCount);
-        jump.setAttribute('aria-label', '페이지 이동 · ' + page + ' / ' + pageCount);
-        jump.setAttribute('title', '페이지 번호를 눌러 이동');
+        jump.setAttribute('aria-label', uiText("페이지 이동 · ") + page + ' / ' + pageCount);
+        jump.setAttribute('title', uiText("페이지 번호를 눌러 이동"));
         jump.append(element(doc, 'small', '', index));
         const editor = element(doc, 'span', 'slb-library-page-jump-editor');
         editor.hidden = true;
@@ -309,7 +310,7 @@ export function createStandaloneLibrary({
         input.step = '1';
         input.value = String(page);
         input.dataset.prefix = prefix;
-        input.setAttribute('aria-label', '이동할 페이지 번호 (1–' + pageCount + ')');
+        input.setAttribute('aria-label', uiText("이동할 페이지 번호 (1–") + pageCount + ')');
         input.autocomplete = 'off';
         input.addEventListener('keydown', event => {
             if (event.key === 'Enter') {
@@ -329,12 +330,12 @@ export function createStandaloneLibrary({
         editor.append(input, element(doc, 'small', '', '/ ' + pageCount));
         const first = button(doc, 'slb-library-page-edge', '«', prefix + '-first');
         first.disabled = page <= 1;
-        first.setAttribute('aria-label', '첫 페이지');
-        first.setAttribute('title', '첫 페이지');
+        first.setAttribute('aria-label', uiText("첫 페이지"));
+        first.setAttribute('title', uiText("첫 페이지"));
         const last = button(doc, 'slb-library-page-edge', '»', prefix + '-last');
         last.disabled = page >= pageCount;
-        last.setAttribute('aria-label', '마지막 페이지');
-        last.setAttribute('title', '마지막 페이지');
+        last.setAttribute('aria-label', uiText("마지막 페이지"));
+        last.setAttribute('title', uiText("마지막 페이지"));
         group.append(first, previous, jump, editor, next, last);
         return group;
     }
@@ -391,13 +392,13 @@ export function createStandaloneLibrary({
     function pageButtons(actionPrefix, page, total, label, includeOptions = true) {
         const info = pageData(total, page);
         const pager = element(doc, 'nav', 'slb-library-list-pages');
-        pager.setAttribute('aria-label', label + ' 페이지 · ' + total + '개 항목');
+        pager.setAttribute('aria-label', label + uiText(" 페이지 · ") + total + uiText("개 항목"));
         const previous = button(doc, '', '‹', actionPrefix + '-prev');
         previous.disabled = info.page === 0;
-        previous.setAttribute('aria-label', '이전 ' + label);
+        previous.setAttribute('aria-label', uiText("이전 ") + label);
         const next = button(doc, '', '›', actionPrefix + '-next');
         next.disabled = info.page >= info.pageCount - 1;
-        next.setAttribute('aria-label', '다음 ' + label);
+        next.setAttribute('aria-label', uiText("다음 ") + label);
         pager.append(pageNavigation(previous, (info.page + 1) + ' / ' + info.pageCount, next));
         if (includeOptions) pager.append(pageOptions());
         return pager;
@@ -418,10 +419,10 @@ export function createStandaloneLibrary({
     }
     function discardOrStay({ allowTags = false } = {}) {
         if (saving || tagSaving || appearanceSaving || coverEditor?.saving) {
-            notifyStatus('저장 작업이 완료된 후 이동할 수 있습니다.', 'warning');
+            notifyStatus(uiText("저장 작업이 완료된 후 이동할 수 있습니다."), 'warning');
             return false;
         }
-        return !hasPendingEdit({ allowTags }) || doc.defaultView.confirm('저장하지 않은 수정 사항이 있습니다. 변경 내용을 버리고 이동하시겠습니까?');
+        return !hasPendingEdit({ allowTags }) || doc.defaultView.confirm(uiText("저장하지 않은 수정 사항이 있습니다. 변경 내용을 버리고 이동하시겠습니까?"));
     }
     function resetEdit() { edit = null; }
     function placeMinimizedLauncher(left, top) {
@@ -706,30 +707,30 @@ export function createStandaloneLibrary({
         const settingsButton = button(doc, 'slb-library-settings-button', '', 'settings');
         // SillyTavern provides Font Awesome; use the existing solid icons.
         settingsButton.append(faIcon(doc, 'gear'));
-        settingsButton.setAttribute('aria-label', '서재 설정');
+        settingsButton.setAttribute('aria-label', uiText("서재 설정"));
         settingsButton.setAttribute('aria-controls', 'slb-library-settings-panel');
         settingsButton.setAttribute('aria-expanded', 'false');
         const minimizeButton = button(doc, 'slb-library-minimize-button', '', 'minimize');
         minimizeButton.append(faIcon(doc, 'minus'));
-        minimizeButton.setAttribute('aria-label', '서재 최소화');
-        minimizeButton.setAttribute('title', '서재 최소화');
+        minimizeButton.setAttribute('aria-label', uiText("서재 최소화"));
+        minimizeButton.setAttribute('title', uiText("서재 최소화"));
         const closeButton = button(doc, 'slb-library-close', '', 'close');
         closeButton.append(faIcon(doc, 'xmark'));
-        closeButton.setAttribute('aria-label', '서재 닫기');
+        closeButton.setAttribute('aria-label', uiText("서재 닫기"));
         headerActions.append(minimizeButton, settingsButton, closeButton);
         top.append(heading, headerActions);
         const navigation = element(doc, 'div', 'slb-library-navigation');
         const navTop = element(doc, 'div', 'slb-library-nav-top');
-        navTop.append(button(doc, '', '‹ 서재 목록', 'books'),
-            element(doc, 'span', 'slb-library-current', '연결된 로어북을 선택하세요.'),
+        navTop.append(button(doc, '', uiText("‹ 서재 목록"), 'books'),
+            element(doc, 'span', 'slb-library-current', uiText("연결된 로어북을 선택하세요.")),
             element(doc, 'div', 'slb-library-nav-tags'));
         const filters = element(doc, 'div', 'slb-library-filters');
-        const typeLabel = element(doc, 'label', '', '보기 방식');
+        const typeLabel = element(doc, 'label', '', uiText("보기 방식"));
         typeLabel.htmlFor = 'slb-library-book-type';
         const select = element(doc, 'select', '', '');
         select.id = 'slb-library-book-type';
         for (const [value, caption] of Object.entries(LIBRARY_BOOK_TYPES)) {
-            const option = element(doc, 'option', '', caption);
+            const option = element(doc, 'option', '', uiText(caption));
             option.value = value;
             select.append(option);
         }
@@ -740,26 +741,26 @@ export function createStandaloneLibrary({
         search.id = 'slb-library-search';
         search.type = 'search';
         search.autocomplete = 'off';
-        search.placeholder = '검색';
-        search.setAttribute('aria-label', '로어북 내 검색');
+        search.placeholder = uiText("검색");
+        search.setAttribute('aria-label', uiText("로어북 내 검색"));
         search.setAttribute('enterkeyhint', 'search');
         const navTools = element(doc, 'div', 'slb-library-nav-tools');
         const searchToggle = button(doc, 'slb-library-reader-search-toggle', '', 'reader-search-toggle');
         searchToggle.append(faIcon(doc, 'magnifying-glass'));
-        searchToggle.setAttribute('aria-label', '검색');
-        searchToggle.setAttribute('title', '검색');
+        searchToggle.setAttribute('aria-label', uiText("검색"));
+        searchToggle.setAttribute('title', uiText("검색"));
         searchToggle.setAttribute('aria-controls', 'slb-library-search');
         searchToggle.setAttribute('aria-expanded', 'false');
         const readerSearchAnchor = element(doc, 'div', 'slb-library-reader-search-anchor');
         readerSearchAnchor.append(search, searchToggle);
         navTools.append(filters, readerSearchAnchor);
         const appearance = element(doc, 'div', 'slb-library-appearance');
-        const appearanceLabel = element(doc, 'label', '', '테마');
+        const appearanceLabel = element(doc, 'label', '', uiText("테마"));
         appearanceLabel.htmlFor = 'slb-library-theme-mode';
         const themeMode = element(doc, 'select', 'slb-library-theme-select');
         themeMode.id = 'slb-library-theme-mode';
         for (const [value, title] of Object.entries(LIBRARY_THEME_LABELS)) {
-            const option = element(doc, 'option', '', title);
+            const option = element(doc, 'option', '', uiText(title));
             option.value = value;
             themeMode.append(option);
         }
@@ -768,15 +769,15 @@ export function createStandaloneLibrary({
         settingsPanel.id = 'slb-library-settings-panel';
         settingsPanel.hidden = true;
         settingsPanel.setAttribute('data-no-drag', '');
-        const settingsHeading = element(doc, 'strong', 'slb-library-settings-title', '로어북 서재 설정');
+        const settingsHeading = element(doc, 'strong', 'slb-library-settings-title', uiText("로어북 서재 설정"));
         const shelfRowsLabel = element(doc, 'label', 'slb-library-shelf-rows-setting');
         shelfRowsLabel.htmlFor = 'slb-library-shelf-rows';
-        shelfRowsLabel.append(element(doc, 'span', '', '서가 표시 줄 수'));
+        shelfRowsLabel.append(element(doc, 'span', '', uiText("서가 표시 줄 수")));
         const shelfRowsSelect = element(doc, 'select', 'slb-library-shelf-rows-select');
         shelfRowsSelect.id = 'slb-library-shelf-rows';
-        shelfRowsSelect.setAttribute('aria-label', '서가 표시 줄 수');
+        shelfRowsSelect.setAttribute('aria-label', uiText("서가 표시 줄 수"));
         for (const count of [1, 2, 3]) {
-            const option = element(doc, 'option', '', count + '줄 보기');
+            const option = element(doc, 'option', '', count + uiText("줄 보기"));
             option.value = String(count);
             shelfRowsSelect.append(option);
         }
@@ -784,11 +785,11 @@ export function createStandaloneLibrary({
         shelfRowsLabel.append(shelfRowsSelect);
         const memoryViewLabel = element(doc, 'label', 'slb-library-memory-view-setting');
         memoryViewLabel.htmlFor = 'slb-library-memory-view';
-        memoryViewLabel.append(element(doc, 'span', '', '메모리 보기 방식'));
+        memoryViewLabel.append(element(doc, 'span', '', uiText("메모리 보기 방식")));
         const memoryViewSelect = element(doc, 'select', 'slb-library-memory-view-select');
         memoryViewSelect.id = 'slb-library-memory-view';
-        memoryViewSelect.setAttribute('aria-label', '메모리 보기 방식');
-        for (const [value, label] of [['continuous', '연속 기록장'], ['timeline', '타임라인'], ['page', '페이지 넘김']]) {
+        memoryViewSelect.setAttribute('aria-label', uiText("메모리 보기 방식"));
+        for (const [value, label] of [['continuous', uiText("연속 기록장")], ['timeline', uiText("타임라인")], ['page', uiText("페이지 넘김")]]) {
             const option = element(doc, 'option', '', label);
             option.value = value;
             memoryViewSelect.append(option);
@@ -800,10 +801,10 @@ export function createStandaloneLibrary({
         linkedCheck.type = 'checkbox';
         linkedCheck.id = 'slb-library-linked-only';
         linkedLabel.append(linkedCheck, element(doc, 'span', '',
-            '현재 캐릭터에 연결된 로어북만 보기'));
+            uiText("현재 캐릭터에 연결된 로어북만 보기")));
         const linkedHint = element(doc, 'small', 'slb-library-linked-hint',
-            '연결된 로어북이 없으면 모든 책이 표시됩니다.');
-        const resume = button(doc, 'slb-library-resume-search-action', '이어 읽기', 'resume-reading');
+            uiText("연결된 로어북이 없으면 모든 책이 표시됩니다."));
+        const resume = button(doc, 'slb-library-resume-search-action', uiText("이어 읽기"), 'resume-reading');
         resume.hidden = true;
         settingsPanel.append(settingsHeading, appearance, shelfRowsLabel, memoryViewLabel, linkedLabel, linkedHint, resume);
         navigation.append(navTop, navTools);
@@ -823,16 +824,16 @@ export function createStandaloneLibrary({
         gripLines.setAttribute('d', 'M12 5 5 12M16 7 7 16M16 13 13 16');
         gripSvg.append(gripLines);
         resizeGrip.append(gripSvg);
-        resizeGrip.setAttribute('aria-label', '창 크기 조절');
-        resizeGrip.setAttribute('title', '모서리를 끌어 창 크기 조절');
+        resizeGrip.setAttribute('aria-label', uiText("창 크기 조절"));
+        resizeGrip.setAttribute('title', uiText("모서리를 끌어 창 크기 조절"));
         // Anchor settings to the title bar so it overlays the navigation
         // instead of being painted underneath the book controls.
         top.append(settingsPanel);
         shell.append(top, navigation, body, footer, resizeGrip);
         const minimizedLauncher = button(doc, 'slb-library-minimized-launcher', '', 'restore');
         minimizedLauncher.append(faIcon(doc, 'book-open'));
-        minimizedLauncher.setAttribute('aria-label', '서재 다시 열기');
-        minimizedLauncher.setAttribute('title', '서재 다시 열기');
+        minimizedLauncher.setAttribute('aria-label', uiText("서재 다시 열기"));
+        minimizedLauncher.setAttribute('title', uiText("서재 다시 열기"));
         minimizedLauncher.hidden = true;
         minimizedLauncher.addEventListener('pointerdown', beginMinimizedDrag);
         overlay.append(shell, minimizedLauncher);
@@ -956,7 +957,7 @@ export function createStandaloneLibrary({
                 centerY: top + floatingSize.height / 2,
             }, narrow);
         } catch {
-            notifyStatus('서재 창 위치를 저장하지 못했습니다.', 'warning');
+            notifyStatus(uiText("서재 창 위치를 저장하지 못했습니다."), 'warning');
         }
     }
     function restoreFloatingShell(shell) {
@@ -1059,7 +1060,7 @@ export function createStandaloneLibrary({
         try {
             setWindowSize(size, visibleLibraryViewport().width <= 760);
         } catch {
-            notifyStatus('서재 창 크기를 저장하지 못했습니다.', 'warning');
+            notifyStatus(uiText("서재 창 크기를 저장하지 못했습니다."), 'warning');
         }
     }
     function beginResize(event) {
@@ -1133,11 +1134,11 @@ export function createStandaloneLibrary({
     function dismissCoverEditor(force = false) {
         if (!coverEditor) return true;
         if (coverEditor.saving && !force) {
-            notifyStatus('표지 저장이 완료된 후 이동할 수 있습니다.', 'warning');
+            notifyStatus(uiText("표지 저장이 완료된 후 이동할 수 있습니다."), 'warning');
             return false;
         }
         if (!force && coverEditor.file
-            && !doc.defaultView.confirm('저장하지 않은 표지 이미지가 있습니다. 변경을 취소하시겠습니까?')) return false;
+            && !doc.defaultView.confirm(uiText("저장하지 않은 표지 이미지가 있습니다. 변경을 취소하시겠습니까?"))) return false;
         const previous = coverEditor;
         coverEditor = null;
         if (previous.previewUrl) doc.defaultView.URL?.revokeObjectURL?.(previous.previewUrl);
@@ -1160,7 +1161,7 @@ export function createStandaloneLibrary({
         dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-labelledby', 'slb-library-cover-dialog-title');
         const header = element(doc, 'div', 'slb-library-cover-dialog-head');
-        const title = element(doc, 'h3', '', '책 표지 설정');
+        const title = element(doc, 'h3', '', uiText("책 표지 설정"));
         title.id = 'slb-library-cover-dialog-title';
         header.append(title, button(doc, 'slb-library-cover-dismiss', '×', 'cover-cancel'));
         const bookTitle = element(doc, 'p', 'slb-library-cover-book-name', book);
@@ -1169,24 +1170,24 @@ export function createStandaloneLibrary({
         if (existing) {
             const image = element(doc, 'img', 'slb-library-cover-preview-image');
             image.src = existing;
-            image.alt = book + ' · 현재 책 표지';
+            image.alt = book + uiText(" · 현재 책 표지");
             image.addEventListener('error', () => image.remove(), { once: true });
             preview.append(image);
-        } else preview.append(element(doc, 'span', '', '기본 표지'));
+        } else preview.append(element(doc, 'span', '', uiText("기본 표지")));
         const description = element(doc, 'p', 'slb-library-cover-help',
-            '표지 이미지는 서가에만 표시됩니다. 로어북 원문과 항목 이미지는 변경되지 않습니다.');
-        const fileLabel = element(doc, 'label', 'slb-library-cover-file-label', '이미지 선택');
+            uiText("표지 이미지는 서가에만 표시됩니다. 로어북 원문과 항목 이미지는 변경되지 않습니다."));
+        const fileLabel = element(doc, 'label', 'slb-library-cover-file-label', uiText("이미지 선택"));
         fileLabel.htmlFor = 'slb-library-cover-file';
         const file = element(doc, 'input', 'slb-library-cover-file');
         file.id = 'slb-library-cover-file';
         file.type = 'file';
         file.accept = 'image/png,image/jpeg,image/webp';
-        const status = element(doc, 'p', 'slb-library-cover-file-status', 'PNG · JPG · WEBP / 최대 5MB');
+        const status = element(doc, 'p', 'slb-library-cover-file-status', uiText("PNG · JPG · WEBP / 최대 5MB"));
         const actions = element(doc, 'div', 'slb-library-cover-dialog-actions');
-        const reset = button(doc, '', '기본 표지 복원', 'cover-reset');
+        const reset = button(doc, '', uiText("기본 표지 복원"), 'cover-reset');
         reset.disabled = !existing;
-        const cancel = button(doc, '', '취소', 'cover-cancel');
-        const save = button(doc, 'slb-library-cover-save', '표지 저장', 'cover-save');
+        const cancel = button(doc, '', uiText("취소"), 'cover-cancel');
+        const save = button(doc, 'slb-library-cover-save', uiText("표지 저장"), 'cover-save');
         save.disabled = true;
         actions.append(reset, cancel, save);
         dialog.append(header, bookTitle, preview, description, fileLabel, file, status, actions);
@@ -1217,7 +1218,7 @@ export function createStandaloneLibrary({
             editor.previewUrl = null;
             editor.backdrop.querySelector('[data-action="cover-save"]').disabled = true;
             editor.backdrop.querySelector('.slb-library-cover-file-status').textContent =
-                'PNG, JPG 또는 WEBP 형식의 5MB 이하 이미지를 선택하세요.';
+                uiText("PNG, JPG 또는 WEBP 형식의 5MB 이하 이미지를 선택하세요.");
             return;
         }
         editor.file = file;
@@ -1228,7 +1229,7 @@ export function createStandaloneLibrary({
             editor.previewUrl = doc.defaultView.URL.createObjectURL(file);
             const image = element(doc, 'img', 'slb-library-cover-preview-image');
             image.src = editor.previewUrl;
-            image.alt = '선택한 표지 미리보기';
+            image.alt = uiText("선택한 표지 미리보기");
             editor.preview.append(image);
         } else editor.preview.append(element(doc, 'span', '', file.name));
         editor.backdrop.querySelector('.slb-library-cover-file-status').textContent = file.name;
@@ -1240,17 +1241,17 @@ export function createStandaloneLibrary({
         editor.saving = true;
         for (const control of editor.backdrop.querySelectorAll('button, input')) control.disabled = true;
         const status = editor.backdrop.querySelector('.slb-library-cover-file-status');
-        status.textContent = '표지를 저장하는 중입니다…';
+        status.textContent = uiText("표지를 저장하는 중입니다…");
         try {
             if (remove) await removeBookCover(editor.book);
             else await uploadBookCover(editor.book, editor.file);
             dismissCoverEditor(true);
             if (isOpen()) {
                 bookList();
-                notifyStatus(remove ? '기본 표지로 복원되었습니다.' : '책 표지가 저장되었습니다.', 'success');
+                notifyStatus(remove ? uiText("기본 표지로 복원되었습니다.") : uiText("책 표지가 저장되었습니다."), 'success');
             }
         } catch (error) {
-            status.textContent = '표지 저장 실패: ' + (error?.message || error);
+            status.textContent = uiText("표지 저장 실패: ") + (error?.message || error);
             notify?.(status.textContent, 'error');
         } finally {
             editor.saving = false;
@@ -1293,10 +1294,10 @@ export function createStandaloneLibrary({
             syncAppearanceControls();
             if (!currentBook) { shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3; shelfType = 'all'; bookList(); }
             else if (currentData) renderBook();
-            notifyStatus('서재 테마가 저장되었습니다.', 'success');
+            notifyStatus(uiText("서재 테마가 저장되었습니다."), 'success');
         } catch (error) {
             syncAppearanceControls();
-            notifyStatus('서재 테마 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("서재 테마 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
             for (const input of controls) input.disabled = false;
@@ -1325,7 +1326,7 @@ export function createStandaloneLibrary({
             resetMemoryStream();
             if (currentData) renderBook();
         } catch (error) {
-            notifyStatus('목록 표시 개수 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("목록 표시 개수 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
             // Rerendering after save replaces the pager; handle either the
@@ -1363,7 +1364,7 @@ export function createStandaloneLibrary({
             resetEdit();
             if (currentData) renderBook();
         } catch (error) {
-            notifyStatus('정렬 순서 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("정렬 순서 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
             for (const select of overlay?.querySelectorAll('.slb-library-order-select') || []) {
@@ -1387,7 +1388,7 @@ export function createStandaloneLibrary({
             shelfRows = count;
             if (!currentBook) bookList();
         } catch (error) {
-            notifyStatus('서가 표시 줄 수 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("서가 표시 줄 수 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
             if (picker) {
@@ -1408,9 +1409,9 @@ export function createStandaloneLibrary({
             allBooks = !enabled;
             shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
             if (!currentBook) bookList();
-            notifyStatus('연결된 책 표시 설정이 저장되었습니다.', 'success');
+            notifyStatus(uiText("연결된 책 표시 설정이 저장되었습니다."), 'success');
         } catch (error) {
-            notifyStatus('표시 설정 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("표시 설정 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
             if (input) {
@@ -1473,7 +1474,7 @@ export function createStandaloneLibrary({
         selectedUid = null;
         const nav = overlay.querySelector('.slb-library-navigation');
         nav.classList.remove('slb-library-has-book', 'is-search-open');
-        nav.querySelector('.slb-library-current').textContent = '로어북 서가';
+        nav.querySelector('.slb-library-current').textContent = uiText("로어북 서가");
         nav.querySelector('.slb-library-nav-tags')?.replaceChildren();
         body.replaceChildren();
         body.dataset.type = 'books';
@@ -1496,8 +1497,8 @@ export function createStandaloneLibrary({
         }
         head = element(doc, 'div', 'slb-library-books-head');
         const shelfSearchToggle = button(doc, 'slb-library-shelf-search-toggle', '', 'shelf-search-toggle');
-        shelfSearchToggle.setAttribute('aria-label', '검색');
-        shelfSearchToggle.setAttribute('title', '검색');
+        shelfSearchToggle.setAttribute('aria-label', uiText("검색"));
+        shelfSearchToggle.setAttribute('title', uiText("검색"));
         shelfSearchToggle.prepend(faIcon(doc, 'magnifying-glass'));
         shelfSearchToggle.setAttribute('aria-controls', 'slb-library-shelf-search');
         shelfSearchToggle.setAttribute('aria-expanded', String(shelfSearchOpen));
@@ -1505,15 +1506,15 @@ export function createStandaloneLibrary({
         titleSearch.id = 'slb-library-shelf-search';
         titleSearch.type = 'search';
         titleSearch.autocomplete = 'off';
-        titleSearch.placeholder = '검색';
-        titleSearch.setAttribute('aria-label', '전체 로어북 검색');
+        titleSearch.placeholder = uiText("검색");
+        titleSearch.setAttribute('aria-label', uiText("전체 로어북 검색"));
         titleSearch.setAttribute('enterkeyhint', 'search');
         titleSearch.value = shelfQuery;
         head.append(titleSearch, shelfSearchToggle);
 
         tagbar = element(doc, 'nav', 'slb-library-tagbar');
-        tagbar.setAttribute('aria-label', '로어북 태그');
-        for (const [key, name] of [['all', '전체'], ['untagged', '미분류']]) {
+        tagbar.setAttribute('aria-label', uiText("로어북 태그"));
+        for (const [key, name] of [['all', uiText("전체")], ['untagged', uiText("미분류")]]) {
             const choice = button(doc, 'slb-library-tag-tab' +
                 (shelfTag === key && !shelfSelectedTags.size ? ' is-active' : ''), name, 'shelf-tag');
             choice.dataset.filter = key;
@@ -1522,8 +1523,8 @@ export function createStandaloneLibrary({
         }
         const tagSelect = element(doc, 'select', 'slb-library-shelf-tag-select');
         tagSelect.id = 'slb-library-shelf-tag-select';
-        tagSelect.setAttribute('aria-label', '저장된 로어북 태그 선택');
-        tagSelect.append(element(doc, 'option', '', '태그 선택'));
+        tagSelect.setAttribute('aria-label', uiText("저장된 로어북 태그 선택"));
+        tagSelect.append(element(doc, 'option', '', uiText("태그 선택")));
         tagSelect.options[0].value = '';
         for (const tag of knownTags) {
             const option = element(doc, 'option', '', tag);
@@ -1560,8 +1561,8 @@ export function createStandaloneLibrary({
             (classic ? '' : ' slb-library-digital-bookshelf slb-library-mode-' + mode));
         const scroll = element(doc, 'div', 'slb-library-books-scroll');
         scroll.setAttribute('role', 'region');
-        scroll.setAttribute('aria-label', classic ? '책등 목록'
-            : ebook ? '전자책 표지 목록' : mode === 'mac' ? '폴더 목록' : '앱 목록');
+        scroll.setAttribute('aria-label', classic ? uiText("책등 목록")
+            : ebook ? uiText("전자책 표지 목록") : mode === 'mac' ? uiText("폴더 목록") : uiText("앱 목록"));
         scroll.tabIndex = 0;
         const spines = element(doc, 'div', classic ? 'slb-library-book-spines'
             : ebook ? 'slb-library-cover-grid' : mode === 'mac' ? 'slb-library-folder-grid' : 'slb-library-app-grid');
@@ -1576,7 +1577,7 @@ export function createStandaloneLibrary({
             if (mode === 'mac') {
                 const folder = button(doc, 'slb-library-folder-card', '', 'select-book');
                 folder.dataset.book = item.name;
-                folder.setAttribute('aria-label', item.name + ' · 폴더 열기');
+                folder.setAttribute('aria-label', item.name + uiText(" · 폴더 열기"));
                 const face = element(doc, 'span', 'slb-library-folder-icon slb-library-folder-type-' + type);
                 face.append(element(doc, 'span', 'slb-library-folder-symbol', LIBRARY_TYPE_MARKS[type]));
                 folder.append(face, element(doc, 'span', 'slb-library-folder-caption', item.name));
@@ -1586,7 +1587,7 @@ export function createStandaloneLibrary({
             if (mode === 'blackberry') {
                 const app = button(doc, 'slb-library-app-card', '', 'select-book');
                 app.dataset.book = item.name;
-                app.setAttribute('aria-label', item.name + ' · 앱 열기');
+                app.setAttribute('aria-label', item.name + uiText(" · 앱 열기"));
                 const icon = element(doc, 'span', 'slb-library-app-icon slb-library-app-type-' + type);
                 icon.append(element(doc, 'span', 'slb-library-app-symbol', LIBRARY_TYPE_MARKS[type]));
                 app.append(icon, element(doc, 'span', 'slb-library-app-caption', item.name));
@@ -1597,7 +1598,7 @@ export function createStandaloneLibrary({
                 const entry = element(doc, 'div', 'slb-library-cover-item');
                 const opener = button(doc, 'slb-library-cover-open', '', 'select-book');
                 opener.dataset.book = item.name;
-                opener.setAttribute('aria-label', item.name + ' · 로어북 열기');
+                opener.setAttribute('aria-label', item.name + uiText(" · 로어북 열기"));
                 const art = element(doc, 'div', 'slb-library-cover-art slb-library-cover-type-' + type
                     + ' slb-library-type-variant-' + (spineTone(item.name) % 3));
                 art.append(element(doc, 'span', 'slb-library-cover-mark',
@@ -1612,24 +1613,24 @@ export function createStandaloneLibrary({
                 if (imagePath) {
                     const image = element(doc, 'img', 'slb-library-cover-image');
                     image.src = imagePath;
-                    image.alt = item.name + ' 표지 이미지';
+                    image.alt = item.name + uiText(" 표지 이미지");
                     image.loading = 'lazy';
                     image.decoding = 'async';
                     image.addEventListener('error', () => image.remove(), { once: true });
                     art.append(image);
                 }
                 opener.append(art, element(doc, 'span', 'slb-library-cover-caption', item.name));
-                opener.title = '클릭하여 열기 · 우클릭 또는 길게 눌러 표지 설정';
+                opener.title = uiText("클릭하여 열기 · 우클릭 또는 길게 눌러 표지 설정");
                 opener.setAttribute('aria-haspopup', 'menu');
                 opener.setAttribute('aria-expanded', String(coverContextBook === item.name));
                 const menu = element(doc, 'div', 'slb-library-cover-menu');
                 menu.hidden = coverContextBook !== item.name;
                 menu.setAttribute('role', 'menu');
-                menu.setAttribute('aria-label', item.name + ' · 표지 메뉴');
-                const configure = button(doc, 'slb-library-cover-config', imagePath ? '표지 교체' : '표지 설정', 'cover-config');
+                menu.setAttribute('aria-label', item.name + uiText(" · 표지 메뉴"));
+                const configure = button(doc, 'slb-library-cover-config', imagePath ? uiText("표지 교체") : uiText("표지 설정"), 'cover-config');
                 configure.dataset.book = item.name;
                 configure.setAttribute('role', 'menuitem');
-                configure.setAttribute('aria-label', item.name + ' · 표지 설정');
+                configure.setAttribute('aria-label', item.name + uiText(" · 표지 설정"));
                 menu.append(configure);
                 entry.append(opener, menu);
                 spines.append(entry);
@@ -1645,7 +1646,7 @@ export function createStandaloneLibrary({
             spine.dataset.book = item.name;
             spine.dataset.bookType = type;
             spine.title = item.name;
-            spine.setAttribute('aria-label', item.name + ' · 로어북 열기');
+            spine.setAttribute('aria-label', item.name + uiText(" · 로어북 열기"));
             const adornment = { general: 'F', memory: 'J', world: 'W', people: 'A–Z' };
             spine.append(element(doc, 'span', 'slb-library-spine-ornament', adornment[type]));
             const name = element(doc, 'span', 'slb-library-spine-title', item.name);
@@ -1658,8 +1659,8 @@ export function createStandaloneLibrary({
         if (!shown.length) {
             spines.append(element(doc, 'p', 'slb-library-shelf-empty',
                 linked.length === 0
-                    ? (allBooks ? '저장된 로어북이 없습니다.' : '연결된 로어북이 없습니다. 설정에서 전체 보기를 선택하세요.')
-                    : '검색 또는 분류에 해당하는 로어북이 없습니다.'));
+                    ? (allBooks ? uiText("저장된 로어북이 없습니다.") : uiText("연결된 로어북이 없습니다. 설정에서 전체 보기를 선택하세요."))
+                    : uiText("검색 또는 분류에 해당하는 로어북이 없습니다.")));
         }
         scroll.append(spines);
         if (mode === 'mac') {
@@ -1668,14 +1669,14 @@ export function createStandaloneLibrary({
             const traffic = element(doc, 'span', 'slb-library-finder-traffic');
             traffic.setAttribute('aria-hidden', 'true');
             for (let i = 0; i < 3; i++) traffic.append(element(doc, 'i'));
-            titlebar.append(traffic, element(doc, 'strong', '', '내 서재'),
+            titlebar.append(traffic, element(doc, 'strong', '', uiText("내 서재")),
                 element(doc, 'span', 'slb-library-finder-caption', 'FINDER'));
             const workspace = element(doc, 'div', 'slb-library-finder-workspace');
             const sidebar = element(doc, 'nav', 'slb-library-finder-sidebar');
-            sidebar.setAttribute('aria-label', '폴더 분류');
+            sidebar.setAttribute('aria-label', uiText("폴더 분류"));
             sidebar.append(element(doc, 'small', '', 'COLLECTIONS'));
-            for (const [value, label] of [['all', '전체'],
-                ...Object.entries(LIBRARY_BOOK_TYPES)]) {
+            for (const [value, label] of [['all', uiText("전체")],
+                ...Object.entries(LIBRARY_BOOK_TYPES).map(([key, label]) => [key, uiText(label)])]) {
                 const tab = button(doc, 'slb-library-finder-category' +
                     (shelfType === value ? ' is-active' : ''), label, 'shelf-type');
                 tab.dataset.filter = value;
@@ -1710,22 +1711,22 @@ export function createStandaloneLibrary({
         body.append(toolbar);
         if (shelfSelectedTags.size) {
             const active = element(doc, 'div', 'slb-library-active-tags');
-            active.setAttribute('aria-label', '선택한 태그 필터 · 하나라도 포함하면 표시');
+            active.setAttribute('aria-label', uiText("선택한 태그 필터 · 하나라도 포함하면 표시"));
             for (const tag of shelfSelectedTags) {
                 const chip = button(doc, 'slb-library-active-tag', '× ' + tag, 'shelf-tag-chip');
                 chip.dataset.tag = tag;
-                chip.setAttribute('aria-label', tag + ' 필터 해제');
+                chip.setAttribute('aria-label', tag + uiText(" 필터 해제"));
                 active.append(chip);
             }
             body.append(active);
         }
         }
         const summary = element(doc, 'div', 'slb-library-shelf-summary');
-        summary.append(element(doc, 'span', '', candidates.length + '권 중 ' + shown.length + '권 표시'));
+        summary.append(element(doc, 'span', '', uiText("{0}권 중 {1}권 표시", candidates.length, shown.length)));
         if (candidates.length > shown.length) {
             const more = button(doc, 'slb-library-shelf-more', '', 'shelf-more');
             more.append(element(doc, 'span', 'slb-library-more-caption',
-                '더 보기 (' + (candidates.length - shown.length) + ')'));
+                uiText("더 보기 (") + (candidates.length - shown.length) + ')'));
             summary.append(more);
         }
         if (partial) {
@@ -1734,13 +1735,13 @@ export function createStandaloneLibrary({
             scroll.scrollTop = oldShelfScroll;
         } else body.append(shelf, summary);
         body.scrollTop = oldScroll;
-        notifyStatus(candidates.length + '권');
+        notifyStatus(candidates.length + uiText("권"));
     }
     function renderBookTagPanel() {
         // Native details/summary provides a lightweight toggle without observers,
         // extra DOM reflow passes or a bespoke accordion state machine.
         const row = element(doc, 'details', 'slb-library-book-meta');
-        row.setAttribute('aria-label', '현재 로어북 태그');
+        row.setAttribute('aria-label', uiText("현재 로어북 태그"));
         row.open = tagPanelExpanded;
         row.addEventListener('toggle', () => {
             if (row.isConnected) tagPanelExpanded = row.open;
@@ -1748,14 +1749,14 @@ export function createStandaloneLibrary({
         const summary = element(doc, 'summary', 'slb-library-book-meta-summary');
         const chips = element(doc, 'div', 'slb-library-book-chips');
         const existing = bookTags(currentBook);
-        if (!existing.length) chips.append(element(doc, 'span', 'slb-library-no-tags', '미분류'));
+        if (!existing.length) chips.append(element(doc, 'span', 'slb-library-no-tags', uiText("미분류")));
         else for (const tag of existing) chips.append(element(doc, 'span', 'slb-library-tag-chip', tag));
         summary.append(chips);
         if (favorites.has(currentBook)) summary.append(element(doc, 'span', 'slb-library-favorite-mark', '★'));
         // Metadata-only suggestions: no lorebook file reads, writes, or content
         // scans. The popover is absolutely positioned, so TOC controls do not shift.
         const picker = element(doc, 'div', 'slb-library-book-tag-picker');
-        const favorite = button(doc, 'slb-library-book-favorite', favorites.has(currentBook) ? '★ 즐겨찾기 해제' : '☆ 즐겨찾기 추가', 'favorite-book');
+        const favorite = button(doc, 'slb-library-book-favorite', favorites.has(currentBook) ? uiText("★ 즐겨찾기 해제") : uiText("☆ 즐겨찾기 추가"), 'favorite-book');
         favorite.setAttribute('aria-pressed', String(favorites.has(currentBook)));
         picker.append(favorite);
         const allTags = new Set();
@@ -1772,7 +1773,7 @@ export function createStandaloneLibrary({
         if (allTags.size) {
             const suggestions = element(doc, 'div', 'slb-library-book-tag-suggestions');
             suggestions.setAttribute('role', 'group');
-            suggestions.setAttribute('aria-label', '기존 태그 선택');
+            suggestions.setAttribute('aria-label', uiText("기존 태그 선택"));
             const draftTags = new Set(tagDraft.split(',').map(value => value.trim()).filter(Boolean));
             for (const tag of allTags) {
                 const isSelected = draftTags.has(tag);
@@ -1791,11 +1792,11 @@ export function createStandaloneLibrary({
         input.type = 'text';
         input.autocomplete = 'off';
         input.maxLength = 250;
-        input.placeholder = '쉼표로 구분 · 최대 8개';
-        input.setAttribute('aria-label', '로어북 태그 입력');
+        input.placeholder = uiText("쉼표로 구분 · 최대 8개");
+        input.setAttribute('aria-label', uiText("로어북 태그 입력"));
         input.value = tagDraft;
         input.disabled = tagSaving;
-        const save = button(doc, 'slb-library-book-tag-save', '태그 저장', 'book-tag-save');
+        const save = button(doc, 'slb-library-book-tag-save', uiText("태그 저장"), 'book-tag-save');
         save.disabled = tagSaving || tagDraft === tagInitial;
         field.append(input, save);
         picker.append(field);
@@ -1809,7 +1810,7 @@ export function createStandaloneLibrary({
         if (index >= 0) draft.splice(index, 1);
         else {
             if (draft.length >= 8) {
-                notifyStatus('태그는 최대 8개까지 지정할 수 있습니다.', 'warning');
+                notifyStatus(uiText("태그는 최대 8개까지 지정할 수 있습니다."), 'warning');
                 return;
             }
             draft.push(tag);
@@ -1836,7 +1837,7 @@ export function createStandaloneLibrary({
         tagDraft = input.value;
         const parts = tagDraft.split(',').map(item => item.trim()).filter(Boolean);
         if (parts.length > 8 || parts.some(item => item.length > 30)) {
-            notifyStatus('태그는 최대 8개, 각 30자까지 지정할 수 있습니다.', 'warning');
+            notifyStatus(uiText("태그는 최대 8개, 각 30자까지 지정할 수 있습니다."), 'warning');
             return;
         }
         const next = normalizeLibraryTags(parts);
@@ -1858,10 +1859,10 @@ export function createStandaloneLibrary({
             tagDraft = tagInitial;
             if (isOpen()) {
                 overlay.querySelector('.slb-library-book-meta')?.replaceWith(renderBookTagPanel());
-                notifyStatus('태그가 저장되었습니다.', 'success');
+                notifyStatus(uiText("태그가 저장되었습니다."), 'success');
             }
         } catch (error) {
-            notifyStatus('태그 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("태그 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             tagSaving = false;
             const freshInput = overlay?.querySelector('#slb-library-book-tag-input');
@@ -1912,23 +1913,23 @@ export function createStandaloneLibrary({
         overlay.querySelector('#slb-library-search').value = '';
         overlay.querySelector('#slb-library-book-type').value = getType(book) || 'general';
         body.classList.remove('is-global-search');
-        body.replaceChildren(element(doc, 'p', 'slb-library-loading', '책과 번역 기록을 여는 중…'));
+        body.replaceChildren(element(doc, 'p', 'slb-library-loading', uiText("책과 번역 기록을 여는 중…")));
         body.dataset.type = 'loading';
-        notifyStatus('선택한 로어북 파일을 불러오는 중입니다.');
+        notifyStatus(uiText("선택한 로어북 파일을 불러오는 중입니다."));
         try {
             // Translation loading does not trigger an AI call or retranslate.
             const [data] = await Promise.all([preloadedData ? Promise.resolve(preloadedData) : loadBook(book), loadTranslations(book)]);
             if (!isOpen() || version !== loadVersion || currentBook !== book) return;
-            if (!data?.entries) throw new Error('로어북 데이터가 비어 있거나 올바르지 않습니다.');
+            if (!data?.entries) throw new Error(uiText("로어북 데이터가 비어 있거나 올바르지 않습니다."));
             currentData = data;
             entries = orderedLoreEntries(data);
             buildSearchIndex();
             renderBook();
-            notifyStatus(entries.length + '개 항목');
+            notifyStatus(entries.length + uiText("개 항목"));
         } catch (error) {
             if (!isOpen() || version !== loadVersion || currentBook !== book) return;
-            body.replaceChildren(element(doc, 'p', 'slb-library-empty', '로어북 불러오기 실패: ' + (error.message || error)));
-            notifyStatus('로어북 불러오기 실패 · 원본은 변경되지 않았습니다.', 'error');
+            body.replaceChildren(element(doc, 'p', 'slb-library-empty', uiText("로어북 불러오기 실패: ") + (error.message || error)));
+            notifyStatus(uiText("로어북 불러오기 실패 · 원본은 변경되지 않았습니다."), 'error');
         }
     }
     let readerSnapshot = new Map();
@@ -2005,7 +2006,7 @@ export function createStandaloneLibrary({
     function titleOf(entry) {
         const name = String(entry.comment || '').trim();
         const translation = translationFor(currentBook, entry);
-        return translation?.title?.trim() || name || '항목 #' + entry.uid;
+        return translation?.title?.trim() || name || uiText("항목 #") + entry.uid;
     }
     function readerBookLine() {
         // Keep book name and tag editor in their original shared header.
@@ -2019,7 +2020,7 @@ export function createStandaloneLibrary({
     }
     function inlineTocHeading(type, collapsed, collapsible = true) {
         const heading = element(doc, 'div', 'slb-library-toc-heading');
-        const label = 'CONTENTS · 목차';
+        const label = uiText("CONTENTS · 목차");
         if (!collapsible) {
             heading.append(element(doc, 'strong', 'slb-library-toc-label', label));
             return heading;
@@ -2029,7 +2030,7 @@ export function createStandaloneLibrary({
         toggle.setAttribute('aria-controls', type === 'memory'
             ? 'slb-library-memory-contents' : type === 'world'
                 ? 'slb-library-world-contents' : 'slb-library-people-contents');
-        toggle.setAttribute('aria-label', collapsed ? '목차 펼치기' : '목차 접기');
+        toggle.setAttribute('aria-label', collapsed ? uiText("목차 펼치기") : uiText("목차 접기"));
         toggle.setAttribute('aria-expanded', String(!collapsed));
         toggle.append(element(doc, 'strong', 'slb-library-toc-label', label),
             element(doc, 'span', 'slb-library-toc-chevron', collapsed ? '▾' : '▴'));
@@ -2114,7 +2115,7 @@ export function createStandaloneLibrary({
         const existingTagPanel = tagSlot?.querySelector('.slb-library-book-meta');
         if (tagTarget) tagTarget.append(existingTagPanel || renderBookTagPanel());
         if (!found.length) {
-            inner.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
+            inner.append(element(doc, 'p', 'slb-library-empty', uiText("검색 결과가 없습니다.")));
             return;
         }
         if (type === 'memory') {
@@ -2135,12 +2136,12 @@ export function createStandaloneLibrary({
         const selectedIndex = found.findIndex(item => String(item.uid) === selectedUid);
         if (selectedIndex >= 0) {
             const nav = element(doc, 'div', 'slb-library-catalog-detail-nav');
-            nav.append(button(doc, '', '‹ 카드함', 'catalog-back'));
+            nav.append(button(doc, '', uiText("‹ 카드함"), 'catalog-back'));
             nav.append(element(doc, 'span', 'slb-library-catalog-position',
                 String(selectedIndex + 1).padStart(2, '0') + ' / ' + String(found.length).padStart(2, '0')));
             body.append(nav, renderDetail(found[selectedIndex], 'general'));
             const pager = element(doc, 'nav', 'slb-library-catalog-pager');
-            pager.setAttribute('aria-label', '카드 기록 탐색');
+            pager.setAttribute('aria-label', uiText("카드 기록 탐색"));
             const first = button(doc, '', '«', 'catalog-first');
             const prev = button(doc, '', '‹', 'catalog-prev');
             const next = button(doc, '', '›', 'catalog-next');
@@ -2148,7 +2149,7 @@ export function createStandaloneLibrary({
             first.disabled = prev.disabled = selectedIndex === 0;
             next.disabled = last.disabled = selectedIndex === found.length - 1;
             for (const [control, caption] of [
-                [first, '첫 기록'], [prev, '이전 기록'], [next, '다음 기록'], [last, '마지막 기록'],
+                [first, uiText("첫 기록")], [prev, uiText("이전 기록")], [next, uiText("다음 기록")], [last, uiText("마지막 기록")],
             ]) control.setAttribute('aria-label', caption);
             pager.append(first, prev, element(doc, 'small', '',
                 (selectedIndex + 1) + ' / ' + found.length), next, last);
@@ -2170,7 +2171,7 @@ export function createStandaloneLibrary({
             if (excerpt) item.append(element(doc, 'span', 'slb-library-card-excerpt', excerpt));
             stack.append(item);
         }
-        contents.append(stack, pageButtons('catalog-list', info.page, found.length, '카드 목록'));
+        contents.append(stack, pageButtons('catalog-list', info.page, found.length, uiText("카드 목록")));
         frame.append(contents);
         body.append(frame);
     }
@@ -2191,7 +2192,7 @@ export function createStandaloneLibrary({
                 element(doc, 'span', 'slb-library-clean-list-chevron', '›'));
             list.append(row);
         }
-        contents.append(list, pageButtons('catalog-list', info.page, found.length, '카드 목록'));
+        contents.append(list, pageButtons('catalog-list', info.page, found.length, uiText("카드 목록")));
         frame.append(contents);
         body.append(frame);
         const preview = element(doc, 'div', 'slb-library-clean-preview');
@@ -2226,16 +2227,16 @@ export function createStandaloneLibrary({
         const preview = memoryTimelinePreview(view === 'translated' && translated.text ? translated.text : entry.content, entry.comment);
         const head = element(doc, 'header', 'slb-library-memory-record-heading');
         head.append(element(doc, 'small', 'slb-library-memory-date',
-            '기록 ' + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '')));
+            uiText("기록 ") + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '')));
         head.append(element(doc, 'h3', '', titleOf(entry)));
         record.append(head);
         if (memoryView === 'continuous') {
             record.append(renderDetail(entry, 'memory'));
         } else {
-            const text = element(doc, 'p', 'slb-library-memory-preview', preview.text || '본문이 비어 있습니다.');
-            if (!preview.isResult) record.append(element(doc, 'small', 'slb-library-memory-excerpt-label', '본문 미리보기'));
+            const text = element(doc, 'p', 'slb-library-memory-preview', preview.text || uiText("본문이 비어 있습니다."));
+            if (!preview.isResult) record.append(element(doc, 'small', 'slb-library-memory-excerpt-label', uiText("본문 미리보기")));
             record.append(text);
-            const open = button(doc, 'slb-library-memory-open', '전문 읽기 ›', 'memory-open-page', uid);
+            const open = button(doc, 'slb-library-memory-open', uiText("전문 읽기 ›"), 'memory-open-page', uid);
             open.dataset.index = String(index);
             record.append(open);
         }
@@ -2246,11 +2247,11 @@ export function createStandaloneLibrary({
         if (memoryStreamEnd <= memoryStreamStart || diaryIndex < memoryStreamStart || diaryIndex >= memoryStreamEnd) resetMemoryStream();
         memoryStreamStart = Math.max(0, Math.min(memoryStreamStart, Math.floor((found.length - 1) / size) * size));
         memoryStreamEnd = Math.min(found.length, Math.max(memoryStreamStart + size, memoryStreamEnd));
-        const previous = button(doc, 'slb-library-memory-more', '이전 기록 더 보기', 'memory-more-prev');
+        const previous = button(doc, 'slb-library-memory-more', uiText("이전 기록 더 보기"), 'memory-more-prev');
         previous.hidden = memoryStreamStart === 0;
         const list = element(doc, 'div', 'slb-library-memory-stream slb-library-memory-' + memoryView);
         for (let i = memoryStreamStart; i < memoryStreamEnd; i++) list.append(memoryRecord(found[i], i));
-        const more = button(doc, 'slb-library-memory-more', '더 보기', 'memory-more');
+        const more = button(doc, 'slb-library-memory-more', uiText("더 보기"), 'memory-more');
         more.hidden = memoryStreamEnd >= found.length;
         const count = element(doc, 'small', 'slb-library-memory-count',
             (memoryStreamStart + 1) + '–' + memoryStreamEnd + ' / ' + found.length);
@@ -2351,7 +2352,7 @@ export function createStandaloneLibrary({
             // now-unnecessary return link without replacing an edited entry.
             else overlay.querySelector('[data-action="memory-return"]')?.remove();
         } catch (error) {
-            notifyStatus('메모리 보기 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("메모리 보기 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             appearanceSaving = false;
             picker.disabled = false;
@@ -2368,9 +2369,9 @@ export function createStandaloneLibrary({
         heading.classList.add('slb-library-memory-heading');
         if (memoryView !== 'page') heading.append(pageOptions());
         else if (preferredMemoryView() !== 'page') {
-            const back = button(doc, 'slb-library-memory-return', '‹ 타임라인', 'memory-return');
-            back.textContent = preferredMemoryView() === 'continuous' ? '‹ 연속 기록장' : '‹ 타임라인';
-            back.setAttribute('aria-label', back.textContent.slice(2) + '으로 돌아가기');
+            const back = button(doc, 'slb-library-memory-return', uiText("‹ 타임라인"), 'memory-return');
+            back.textContent = preferredMemoryView() === 'continuous' ? uiText("‹ 연속 기록장") : uiText("‹ 타임라인");
+            back.setAttribute('aria-label', back.textContent.slice(2) + uiText("으로 돌아가기"));
             heading.append(back);
         }
         frame.append(heading);
@@ -2378,7 +2379,7 @@ export function createStandaloneLibrary({
         contents.id = 'slb-library-memory-contents';
         contents.hidden = memoryTocCollapsed;
         const index = element(doc, 'nav', 'slb-library-index');
-        index.setAttribute('aria-label', '기록 목차');
+        index.setAttribute('aria-label', uiText("기록 목차"));
         for (const [offset, entry] of found.slice(info.start, info.start + info.size).entries()) {
             const position = info.start + offset;
             const item = button(doc, 'slb-library-index-item' +
@@ -2389,7 +2390,7 @@ export function createStandaloneLibrary({
                 element(doc, 'span', '', titleOf(entry)));
             index.append(item);
         }
-        contents.append(index, pageButtons('memory-list', info.page, found.length, '기록 목차', memoryView === 'page'));
+        contents.append(index, pageButtons('memory-list', info.page, found.length, uiText("기록 목차"), memoryView === 'page'));
         frame.append(contents);
         body.append(frame);
         if (memoryView !== 'page') {
@@ -2414,7 +2415,7 @@ export function createStandaloneLibrary({
         // The reading spread remains one/two actual pages, independently of
         // the number of entries displayed in the TOC.
         const pager = element(doc, 'nav', 'slb-library-diary-pager');
-        pager.setAttribute('aria-label', '일기 페이지 탐색');
+        pager.setAttribute('aria-label', uiText("일기 페이지 탐색"));
         const first = button(doc, '', '«', 'diary-first');
         const previous = button(doc, '', '‹', 'diary-prev');
         const next = button(doc, '', '›', 'diary-next');
@@ -2422,8 +2423,8 @@ export function createStandaloneLibrary({
         first.disabled = previous.disabled = diaryIndex === 0;
         next.disabled = last.disabled = diaryIndex + numberOfPages >= found.length;
         for (const [control, caption] of [
-            [first, '첫 일기 페이지'], [previous, '이전 일기 페이지'],
-            [next, '다음 일기 페이지'], [last, '마지막 일기 페이지'],
+            [first, uiText("첫 일기 페이지")], [previous, uiText("이전 일기 페이지")],
+            [next, uiText("다음 일기 페이지")], [last, uiText("마지막 일기 페이지")],
         ]) control.setAttribute('aria-label', caption);
         pager.append(first, previous, element(doc, 'span', '',
             String(originalEntryNumber(found[diaryIndex])).padStart(2, '0') + '–'
@@ -2441,7 +2442,7 @@ export function createStandaloneLibrary({
         const index = element(doc, 'nav', 'slb-library-index');
         index.id = 'slb-library-world-contents';
         index.append(inlineTocHeading('world', worldTocCollapsed));
-        index.setAttribute('aria-label', '세계관 목차');
+        index.setAttribute('aria-label', uiText("세계관 목차"));
         // Global reader search already searches titles, keys, and original content.
         // One TOC only; render five bounded entries, page via buttons (no horizontal scroll).
         const info = pageData(found.length, worldTocPage);
@@ -2459,14 +2460,14 @@ export function createStandaloneLibrary({
         }
         const pages = element(doc, 'div', 'slb-library-world-pages');
         const prev = button(doc, '', '‹', 'world-prev');
-        prev.setAttribute('aria-label', '이전 목차');
-        prev.setAttribute('title', '이전 목차');
+        prev.setAttribute('aria-label', uiText("이전 목차"));
+        prev.setAttribute('title', uiText("이전 목차"));
         prev.disabled = worldTocPage <= 0;
         const next = button(doc, '', '›', 'world-next');
-        next.setAttribute('aria-label', '다음 목차');
-        next.setAttribute('title', '다음 목차');
+        next.setAttribute('aria-label', uiText("다음 목차"));
+        next.setAttribute('title', uiText("다음 목차"));
         next.disabled = worldTocPage >= pageCount - 1;
-        pages.setAttribute('aria-label', '세계관 목차 페이지 · ' + found.length + '개 항목');
+        pages.setAttribute('aria-label', uiText("세계관 목차 페이지 · ") + found.length + uiText("개 항목"));
         pages.append(pageNavigation(prev, (worldTocPage + 1) + ' / ' + pageCount, next),
             pageOptions());
         index.append(pages);
@@ -2501,17 +2502,17 @@ export function createStandaloneLibrary({
                 element(doc, 'span', 'slb-library-person-chevron', '›'));
             names.append(row);
         }
-        if (!found.length) names.append(element(doc, 'p', 'slb-library-empty', '검색 결과가 없습니다.'));
+        if (!found.length) names.append(element(doc, 'p', 'slb-library-empty', uiText("검색 결과가 없습니다.")));
         contents.append(names);
         const pager = element(doc, 'nav', 'slb-library-people-pages');
-        pager.setAttribute('aria-label', '인물록 페이지 · ' + found.length + '개 항목');
+        pager.setAttribute('aria-label', uiText("인물록 페이지 · ") + found.length + uiText("개 항목"));
         const prev = button(doc, '', '‹', 'people-prev');
-        prev.setAttribute('aria-label', '이전 인물');
-        prev.setAttribute('title', '이전 인물');
+        prev.setAttribute('aria-label', uiText("이전 인물"));
+        prev.setAttribute('title', uiText("이전 인물"));
         prev.disabled = peoplePage === 0;
         const next = button(doc, '', '›', 'people-next');
-        next.setAttribute('aria-label', '다음 인물');
-        next.setAttribute('title', '다음 인물');
+        next.setAttribute('aria-label', uiText("다음 인물"));
+        next.setAttribute('title', uiText("다음 인물"));
         next.disabled = peoplePage >= pages - 1;
         pager.append(pageNavigation(prev, (peoplePage + 1) + ' / ' + pages, next),
             pageOptions());
@@ -2521,7 +2522,7 @@ export function createStandaloneLibrary({
             const layout = element(doc, 'div', 'slb-library-people-detail-layout');
             layout.classList.toggle('is-people-toc-open', !peopleTocCollapsed);
             const detailPage = element(doc, 'div', 'slb-library-person-profile');
-            detailPage.append(button(doc, 'slb-library-person-back', '‹ 인물록', 'people-back'));
+            detailPage.append(button(doc, 'slb-library-person-back', uiText("‹ 인물록"), 'people-back'));
             detailPage.append(renderDetail(selected, 'people'));
             layout.append(directory, detailPage);
             body.append(layout);
@@ -2536,11 +2537,11 @@ export function createStandaloneLibrary({
         const pair = info.pair || { sourceLanguage: 'English', translationLanguage: 'Korean' };
         const lang = format === 'source' ? pair.sourceLanguage : pair.translationLanguage;
         section.append(element(doc, 'small', 'slb-library-language-mark', format === 'source'
-            ? '원문 · ' + lang : translated ? '번역 · ' + lang : '번역 없음'));
+            ? uiText("원문 · ") + lang : translated ? uiText("번역 · ") + lang : uiText("번역 없음")));
         const prose = element(doc, 'div', 'slb-library-prose');
         const content = format === 'source'
-            ? (source || '원문이 비어 있습니다.')
-            : (translated || '저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다.');
+            ? (source || uiText("원문이 비어 있습니다."))
+            : (translated || uiText("저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다."));
         if (typeof renderReadMarkdown === 'function') {
             try {
                 renderReadMarkdown(prose, content);
@@ -2551,7 +2552,7 @@ export function createStandaloneLibrary({
             }
         } else prose.textContent = content;
         section.append(prose);
-        if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', '원문 변경 이전에 저장된 번역입니다. 필요한 경우 다시 번역하세요.'));
+        if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', uiText("원문 변경 이전에 저장된 번역입니다. 필요한 경우 다시 번역하세요.")));
         return section;
     }
     function renderDetail(entry, type) {
@@ -2571,35 +2572,35 @@ export function createStandaloneLibrary({
         const selectedImage = pendingImages.get(uid);
         const tools = element(doc, 'div', 'slb-library-reader-tools');
         const toggle = button(doc, 'slb-library-view-toggle',
-            view === 'translated' ? '원문 보기' : '번역 보기', 'toggle-view', uid);
+            view === 'translated' ? uiText("원문 보기") : uiText("번역 보기"), 'toggle-view', uid);
         tools.append(toggle);
         const more = button(doc, 'slb-library-more-tools', '', 'more-tools', uid);
         more.append(faIcon(doc, 'ellipsis'));
-        more.setAttribute('aria-label', '기록 추가 기능');
-        more.setAttribute('title', '수정 · 번역 · 이미지 등 추가 기능');
+        more.setAttribute('aria-label', uiText("기록 추가 기능"));
+        more.setAttribute('title', uiText("수정 · 번역 · 이미지 등 추가 기능"));
         more.setAttribute('aria-haspopup', 'true');
         more.setAttribute('aria-expanded', String(activeToolsUid === uid));
         const menu = element(doc, 'div', 'slb-library-tools-popover');
         menu.hidden = activeToolsUid !== uid;
         menu.setAttribute('role', 'group');
-        menu.setAttribute('aria-label', '기록 추가 기능');
-        menu.append(button(doc, '', '수정', 'edit', uid));
-        menu.append(button(doc, '', 'AI 번역', 'translate', uid));
-        menu.append(button(doc, '', '로어북 바로가기', 'advanced', uid));
+        menu.setAttribute('aria-label', uiText("기록 추가 기능"));
+        menu.append(button(doc, '', uiText("수정"), 'edit', uid));
+        menu.append(button(doc, '', uiText("AI 번역"), 'translate', uid));
+        menu.append(button(doc, '', uiText("로어북 바로가기"), 'advanced', uid));
         const imageControls = element(doc, 'div', 'slb-library-entry-image-controls');
         const fileInput = element(doc, 'input', 'slb-library-image-file');
         fileInput.type = 'file';
         fileInput.accept = 'image/png,image/jpeg,image/webp,image/gif';
         fileInput.dataset.uid = uid;
         fileInput.hidden = true;
-        fileInput.setAttribute('aria-label', '로어 이미지 파일 선택');
+        fileInput.setAttribute('aria-label', uiText("로어 이미지 파일 선택"));
         imageControls.append(fileInput, button(doc, 'slb-library-image-pick',
-            imagePath ? '이미지 교체' : '참고 이미지 추가', 'image-pick', uid));
+            imagePath ? uiText("이미지 교체") : uiText("참고 이미지 추가"), 'image-pick', uid));
         if (selectedImage) {
             imageControls.append(element(doc, 'small', 'slb-library-image-file-name', selectedImage.name));
-            imageControls.append(button(doc, 'slb-library-image-save', '이미지 저장', 'image-save', uid));
+            imageControls.append(button(doc, 'slb-library-image-save', uiText("이미지 저장"), 'image-save', uid));
         }
-        if (imagePath) imageControls.append(button(doc, 'slb-library-image-remove', '이미지 연결 해제', 'image-remove', uid));
+        if (imagePath) imageControls.append(button(doc, 'slb-library-image-remove', uiText("이미지 연결 해제"), 'image-remove', uid));
         menu.append(imageControls);
         tools.append(more, menu);
         article.append(tools);
@@ -2608,7 +2609,7 @@ export function createStandaloneLibrary({
             const frame = element(doc, 'figure', 'slb-library-entry-image');
             const img = element(doc, 'img', 'slb-library-entry-image-element');
             img.src = imagePath;
-            img.alt = '로어 참고 이미지';
+            img.alt = uiText("로어 참고 이미지");
             img.setAttribute('loading', 'lazy');
             img.setAttribute('decoding', 'async');
             frame.append(img);
@@ -2624,7 +2625,7 @@ export function createStandaloneLibrary({
             .map(key => key.trim()).filter(Boolean))].slice(0, 6);
         if (visibleKeys.length) {
             const chips = element(doc, 'div', 'slb-library-entry-keywords');
-            chips.setAttribute('aria-label', '이 로어의 키워드');
+            chips.setAttribute('aria-label', uiText("이 로어의 키워드"));
             for (const key of visibleKeys) {
                 const chip = element(doc, 'span', 'slb-library-keyword-chip', key.slice(0, 32));
                 if (key.length > 32) chip.title = key;
@@ -2634,14 +2635,14 @@ export function createStandaloneLibrary({
         }
         if (edit && edit.uid === uid) {
             const editor = element(doc, 'section', 'slb-library-edit-panel');
-            editor.append(element(doc, 'label', '', edit.kind === 'source' ? '원문 수정 · 저장 전에는 실제 로어북에 반영되지 않습니다.' : '번역 수정 · 실리태번 원문은 변경되지 않습니다.'));
+            editor.append(element(doc, 'label', '', edit.kind === 'source' ? uiText("원문 수정 · 저장 전에는 실제 로어북에 반영되지 않습니다.") : uiText("번역 수정 · 실리태번 원문은 변경되지 않습니다.")));
             const input = element(doc, 'textarea', 'slb-library-editor-text');
             input.rows = 10;
             input.value = edit.textarea?.value ?? edit.initial;
-            input.setAttribute('aria-label', edit.kind === 'source' ? '원문 수정' : '번역 수정');
+            input.setAttribute('aria-label', edit.kind === 'source' ? uiText("원문 수정") : uiText("번역 수정"));
             editor.append(input);
             const actions = element(doc, 'div', 'slb-library-edit-actions');
-            actions.append(button(doc, 'slb-library-save', '저장', 'save-edit', uid), button(doc, '', '취소', 'cancel-edit', uid));
+            actions.append(button(doc, 'slb-library-save', uiText("저장"), 'save-edit', uid), button(doc, '', uiText("취소"), 'cancel-edit', uid));
             editor.append(actions);
             article.append(editor);
             edit.textarea = input;
@@ -2671,15 +2672,15 @@ export function createStandaloneLibrary({
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!file || !entry) return;
         saving = true;
-        notifyStatus('이미지를 저장하는 중입니다.');
+        notifyStatus(uiText("이미지를 저장하는 중입니다."));
         try {
             await uploadEntryImage(currentBook, entry, file);
             pendingImages.delete(String(uid));
             closeReaderTools();
             replaceEntryDetail(uid);
-            notifyStatus('이미지가 연결되었습니다.', 'success');
+            notifyStatus(uiText("이미지가 연결되었습니다."), 'success');
         } catch (error) {
-            notifyStatus('이미지 저장 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("이미지 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             saving = false;
         }
@@ -2688,16 +2689,16 @@ export function createStandaloneLibrary({
         if (saving || !currentBook || !isOpen()) return;
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!entry || !safeLibraryImagePath(getEntryImage(currentBook, entry))) return;
-        if (!doc.defaultView.confirm('이 로어에서 이미지 연결을 해제하시겠습니까? 서버의 원본 이미지 파일은 삭제하지 않습니다.')) return;
+        if (!doc.defaultView.confirm(uiText("이 로어에서 이미지 연결을 해제하시겠습니까? 서버의 원본 이미지 파일은 삭제하지 않습니다."))) return;
         saving = true;
         try {
             await removeEntryImage(currentBook, entry);
             pendingImages.delete(String(uid));
             closeReaderTools();
             replaceEntryDetail(uid);
-            notifyStatus('이미지 연결이 해제되었습니다.', 'success');
+            notifyStatus(uiText("이미지 연결이 해제되었습니다."), 'success');
         } catch (error) {
-            notifyStatus('이미지 연결 해제 실패: ' + (error?.message || error), 'error');
+            notifyStatus(uiText("이미지 연결 해제 실패: ") + (error?.message || error), 'error');
         } finally {
             saving = false;
         }
@@ -2750,7 +2751,7 @@ export function createStandaloneLibrary({
         }
         saving = true;
         active.textarea.disabled = true;
-        notifyStatus('저장 중…');
+        notifyStatus(uiText("저장 중…"));
         try {
             if (active.kind === 'source') {
                 const fresh = await saveContent(currentBook, active.uid, active.initial, next);
@@ -2766,10 +2767,10 @@ export function createStandaloneLibrary({
             resetEdit();
             if (active.kind === 'source' || query.trim()) renderBook();
             else replaceEntryDetail(active.uid);
-            notifyStatus('저장 완료 · 원본 로어북/번역 파일에 반영되었습니다.', 'success');
+            notifyStatus(uiText("저장 완료 · 원본 로어북/번역 파일에 반영되었습니다."), 'success');
         } catch (error) {
             active.textarea.disabled = false;
-            notifyStatus('저장 실패: ' + (error.message || error), 'error');
+            notifyStatus(uiText("저장 실패: ") + (error.message || error), 'error');
         } finally {
             saving = false;
         }
@@ -2778,15 +2779,15 @@ export function createStandaloneLibrary({
         if (saving || !discardOrStay({ allowTags: true })) return;
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (!entry?.content?.trim()) {
-            notifyStatus('번역할 원문이 없습니다.', 'warning');
+            notifyStatus(uiText("번역할 원문이 없습니다."), 'warning');
             return;
         }
-        if (!doc.defaultView.confirm('이 항목의 원문을 AI로 번역하시겠습니까? 연결 방식에 따라 API 이용 요금이 발생할 수 있습니다.')) return;
+        if (!doc.defaultView.confirm(uiText("이 항목의 원문을 AI로 번역하시겠습니까? 연결 방식에 따라 API 이용 요금이 발생할 수 있습니다."))) return;
         const previousEditUid = edit?.uid;
         resetEdit();
         if (previousEditUid) replaceEntryDetail(previousEditUid);
         saving = true;
-        notifyStatus('AI 번역 중…');
+        notifyStatus(uiText("AI 번역 중…"));
         try {
             const beforeTitle = titleOf(entry);
             await translateOne(currentBook, entry);
@@ -2794,9 +2795,9 @@ export function createStandaloneLibrary({
             invalidateTranslationSearch(currentBook);
             if (query.trim() || beforeTitle !== titleOf(entry)) renderBook();
             else replaceEntryDetail(uid);
-            notifyStatus('AI 번역이 저장되었습니다.', 'success');
+            notifyStatus(uiText("AI 번역이 저장되었습니다."), 'success');
         } catch (error) {
-            notifyStatus('AI 번역 실패: ' + (error.message || error), 'error');
+            notifyStatus(uiText("AI 번역 실패: ") + (error.message || error), 'error');
         } finally {
             saving = false;
         }
@@ -2827,8 +2828,8 @@ export function createStandaloneLibrary({
         globalSearchOpen = true;
         const panel = element(doc, 'section', 'slb-library-global-panel');
         const heading = element(doc, 'div', 'slb-library-global-heading');
-        heading.append(element(doc, 'strong', '', '검색 결과'),
-            button(doc, 'slb-library-search-action', '서가로 돌아가기', 'return-to-shelf'));
+        heading.append(element(doc, 'strong', '', uiText("검색 결과")),
+            button(doc, 'slb-library-search-action', uiText("서가로 돌아가기"), 'return-to-shelf'));
         const results = element(doc, 'div', 'slb-library-global-results');
         results.setAttribute('aria-live', 'polite');
         panel.append(heading, results);
@@ -2836,7 +2837,7 @@ export function createStandaloneLibrary({
         body.classList.add('is-global-search');
         body.scrollTop = 0;
         const alive = () => isOpen() && globalSearchOpen && serial === globalSearchSerial && results.isConnected;
-        results.replaceChildren(element(doc, 'p', '', '검색 중…'));
+        results.replaceChildren(element(doc, 'p', '', uiText("검색 중…")));
         const bookMatches = bookNames.filter(book => book.toLocaleLowerCase().includes(needle));
         const matches = [];
         let failed = 0;
@@ -2855,7 +2856,7 @@ export function createStandaloneLibrary({
                     if (!entry || !/^\d+$/.test(String(entry.uid))) continue;
                     const translation = searchTranslationFor?.(book, entry);
                     if (searchableFields(entry, translation).includes(needle)) {
-                        const title = translation?.title || translation?.fields?.comment?.text || entry.comment || '항목 #' + entry.uid;
+                        const title = translation?.title || translation?.fields?.comment?.text || entry.comment || uiText("항목 #") + entry.uid;
                         matches.push({ book, uid: String(entry.uid), title });
                     }
                     if (matches.length >= limit) break;
@@ -2864,14 +2865,14 @@ export function createStandaloneLibrary({
             if (matches.length >= limit) break;
         }
         if (!alive()) return;
-        results.replaceChildren(element(doc, 'p', '', '책 ' + bookMatches.length + '권 · ' +
-            (matches.length >= limit ? '처음 ' : '') + '항목 ' + matches.length + '개' +
-            (failed ? ' · 읽지 못한 책 ' + failed + '권' : '') +
-            (translationFailed ? ' · 번역 기록 읽기 실패 ' + translationFailed + '권' : '')));
+        results.replaceChildren(element(doc, 'p', '', uiText("책 ") + bookMatches.length + uiText("권 · ") +
+            (matches.length >= limit ? uiText("처음 ") : '') + uiText("항목 ") + matches.length + uiText("개") +
+            (failed ? uiText(" · 읽지 못한 책 ") + failed + uiText("권") : '') +
+            (translationFailed ? uiText(" · 번역 기록 읽기 실패 ") + translationFailed + uiText("권") : '')));
         for (const book of bookMatches.slice(0, limit)) {
             const row = button(doc, 'slb-library-global-result', '', 'select-book');
             row.dataset.book = book;
-            row.append(element(doc, 'strong', '', book), element(doc, 'small', '', '책 이름'));
+            row.append(element(doc, 'strong', '', book), element(doc, 'small', '', uiText("책 이름")));
             results.append(row);
         }
         for (const match of matches) {
@@ -2899,12 +2900,12 @@ export function createStandaloneLibrary({
         else if (action === 'global-result') {
             ++globalSearchSerial;
             void openEntry(target.dataset.book, uid).then(opened => {
-                if (!opened && globalSearchOpen) notifyStatus('검색 결과의 로어를 열지 못했습니다.', 'warning');
+                if (!opened && globalSearchOpen) notifyStatus(uiText("검색 결과의 로어를 열지 못했습니다."), 'warning');
             });
         } else if (action === 'resume-reading') {
             setSettingsOpen(false);
             if (recent) void openEntry(recent.book, recent.uid).then(opened => {
-                if (!opened && isOpen()) notifyStatus('마지막으로 읽은 항목을 찾지 못했습니다.', 'warning');
+                if (!opened && isOpen()) notifyStatus(uiText("마지막으로 읽은 항목을 찾지 못했습니다."), 'warning');
             });
         } else if (action === 'favorite-book') {
             if (saving || !currentBook) return;
@@ -2915,13 +2916,13 @@ export function createStandaloneLibrary({
             try {
                 await setFavorites([...next]);
                 favorites = next;
-                target.textContent = favorites.has(book) ? '★ 즐겨찾기 해제' : '☆ 즐겨찾기 추가';
+                target.textContent = favorites.has(book) ? uiText("★ 즐겨찾기 해제") : uiText("☆ 즐겨찾기 추가");
                 target.setAttribute('aria-pressed', String(favorites.has(book)));
                 const summary = target.closest('.slb-library-book-meta')?.querySelector('summary');
                 const mark = summary?.querySelector('.slb-library-favorite-mark');
                 if (favorites.has(book) && !mark) summary?.append(element(doc, 'span', 'slb-library-favorite-mark', '★'));
                 else if (!favorites.has(book)) mark?.remove();
-            } catch (error) { notifyStatus('즐겨찾기 저장 실패: ' + (error?.message || error), 'error'); }
+            } catch (error) { notifyStatus(uiText("즐겨찾기 저장 실패: ") + (error?.message || error), 'error'); }
             finally { saving = false; }
         }
         else if (['memory-toc-toggle', 'world-toc-toggle', 'people-toc-toggle'].includes(action)) {
@@ -2947,7 +2948,7 @@ export function createStandaloneLibrary({
                     ?.classList.toggle('is-people-toc-open', !collapsed);
             }
             target.querySelector('.slb-library-toc-chevron').textContent = collapsed ? '▾' : '▴';
-            target.setAttribute('aria-label', collapsed ? '목차 펼치기' : '목차 접기');
+            target.setAttribute('aria-label', collapsed ? uiText("목차 펼치기") : uiText("목차 접기"));
             target.setAttribute('aria-expanded', String(!collapsed));
         }
         else if (action === 'shelf-search-toggle') {
@@ -3154,7 +3155,7 @@ export function createStandaloneLibrary({
             if (!file) return;
             if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)
                 || file.size > 5 * 1024 * 1024 || file.size < 1) {
-                notifyStatus('PNG, JPG, WEBP 또는 GIF 형식의 5MB 이하 이미지를 선택하세요.', 'warning');
+                notifyStatus(uiText("PNG, JPG, WEBP 또는 GIF 형식의 5MB 이하 이미지를 선택하세요."), 'warning');
                 return;
             }
             pendingImages.set(String(uid), file);
@@ -3340,7 +3341,7 @@ export function createStandaloneLibrary({
     function onExternalWorldUpdate(book, data) {
         if (!isOpen() || book !== currentBook || !data?.entries) return;
         if (edit || saving) {
-            notifyStatus('다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요.', 'warning');
+            notifyStatus(uiText("다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요."), 'warning');
             return;
         }
         const next = Object.values(data.entries).filter(entry => entry && typeof entry.content === 'string');

@@ -1,3 +1,4 @@
+import { uiText } from './ui-language.js';
 // Keep the real select and sortable callbacks: ST owns options, saving and touch support.
 export function compactNativeSort(document) {
     const search = document.getElementById('world_info_search');
@@ -21,11 +22,11 @@ export function compactNativeSort(document) {
         group.append(control);
     }
     if (sort.parentElement !== control) control.append(sort);
-    sort.setAttribute('aria-label', '항목 정렬');
+    sort.setAttribute('aria-label', uiText("항목 정렬"));
     const selected = sort.selectedOptions[0];
     const title = selected?.dataset.rule === 'custom'
-        ? '항목 정렬'
-        : `항목 정렬: ${selected?.textContent?.trim() || ''}`;
+        ? uiText("항목 정렬")
+        : `${uiText("항목 정렬")}: ${selected?.textContent?.trim() || ''} `;
     if (sort.title !== title) sort.title = title;
 }
 
@@ -52,7 +53,7 @@ export function enableNativeEntryDrag({ document, jQuery, isFoldy, getBook, noti
             }
         } catch (error) {
             console.error('[로어북 매니저] 항목 순서 저장 실패', error);
-            notify('항목 순서를 저장하지 못했습니다. 서버 연결을 확인해 주세요.', 'error');
+            notify(uiText("항목 순서를 저장하지 못했습니다. 서버 연결을 확인해 주세요."), 'error');
         }
     };
     stop.slbNativeDrag = true;
