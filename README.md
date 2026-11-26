@@ -31,7 +31,7 @@ The original extension provides the foundation for lorebook editing, translation
 ### Works alone, better together
 
 > [!TIP]
-Memory opens in Timeline by default; choose continuous full text or the original page reader in the library settings (gear icon). Timeline shows the saved Result when available, otherwise a labeled excerpt. Load more in 5/10/20-record batches; the TOC and search still jump to specific records. No new AI request is made.
+Memory opens in Timeline by default. In the library settings (gear icon), choose the memory reading mode: Timeline, continuous full text, or the original page reader. Timeline shows the saved Result when available, otherwise a labeled excerpt. In Timeline and continuous views, the count and sort controls sit beside the TOC; load more in 5/10/20-record batches. Opening a full record from Timeline and returning to the original view does not change the saved preference. The TOC and search still jump to specific records. No new AI request is made.
 
 > The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
 
@@ -74,7 +74,7 @@ Open **Extensions → 로어북 매니저**. If you only want to read, choose th
 
 **Just want to read your books?** Choose the native World Info screen and open the library from the extension menu. If you read translated lore, choose your translation provider and body translation; leave automatic reflection of edited translations into original text off unless you actually want that change.
 
-During RP, open the library → select a book and entry → read the original or translation → edit only if needed. In the library's own settings, choose the theme, shelf rows and linked-character filter; set each book's reading format inside that book.
+During RP, open the library → select a book and entry → read the original or translation → edit only if needed. In the library's own settings, choose the theme, shelf rows, memory reading mode and linked-character filter; set each book's category inside that book.
 
 ## 1. Choose a display mode
 
@@ -115,7 +115,7 @@ Choose from **MacBook, BlackBerry, E-book Library and Classic Archive**. Each th
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="Library settings, window controls and book filters" width="860"></p>
 
-Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3) and character-linked filtering. Window dimensions can be remembered separately for wide and narrow screens.
+Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3), memory reading mode and character-linked filtering. The existing settings screenshot predates the addition of the memory reading mode in .79. Window dimensions can be remembered separately for wide and narrow screens.
 
 ## 4. Read and edit records
 
@@ -199,7 +199,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 ### 단독으로도 충분하고, 함께 쓰면 더 편리합니다
 
 > [!TIP]
-메모리는 기본 타임라인에서 시작하며 서재 톱니바퀴 설정의 메모리 보기 방식에서 연속 기록장(전문) 또는 페이지 넘김으로 바꿀 수 있습니다. 타임라인은 저장된 Result(결과), 없으면 표시된 본문 미리보기를 사용합니다. 더 보기로 5/10/20개씩 이어 읽고, 목차와 검색으로 원하는 기록에 바로 이동합니다. 새 AI 호출은 발생하지 않습니다.
+메모리는 기본 타임라인에서 시작하며 서재 톱니바퀴 설정의 메모리 보기 방식에서 타임라인·연속 기록장(전문)·페이지 넘김 중 선택할 수 있습니다. 타임라인은 저장된 Result(결과), 없으면 표시된 본문 미리보기를 사용합니다. 타임라인과 연속 기록장에서는 목차 옆 표시 개수·정렬을 사용하고, 더 보기로 5/10/20개씩 이어 읽습니다. 타임라인에서 전문을 읽고 원래 보기로 돌아와도 저장된 보기 설정은 바뀌지 않습니다. 목차와 검색으로 원하는 기록에 바로 이동하며, 새 AI 호출은 발생하지 않습니다.
 
 > AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
 
@@ -245,7 +245,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원문 또는 번역 읽기 → 필요할 때 수정.
 
-서재 톱니바퀴에서 테마·표시 줄 수·메모리 보기 방식·캐릭터 연결 필터를 정하고, 책 안에서 메모리·인물록·백과사전·카드파일 중 보기 방식을 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
+서재 톱니바퀴에서 테마·표시 줄 수·메모리 보기 방식·캐릭터 연결 필터를 정하고, 책 안에서는 메모리·인물록·백과사전·카드파일 중 책의 분류를 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
 
 ## 1. 화면 표시 방식
 
@@ -284,7 +284,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="서재 테마·표시 줄 수·캐릭터 연결 필터 설정" width="860"></p>
 
-상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다. 최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다. 설정에서 테마, 서가 표시 줄 수(1–3줄), 연결된 로어북 필터를 조절합니다. 좁은 화면과 넓은 화면의 창 크기를 별도로 기억합니다.
+상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다. 최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다. 설정에서 테마, 서가 표시 줄 수(1–3줄), 메모리 보기 방식, 연결된 로어북 필터를 조절합니다. 기존 설정 캡처에는 .79에서 추가된 메모리 보기 방식 항목이 아직 표시되지 않습니다. 좁은 화면과 넓은 화면의 창 크기를 별도로 기억합니다.
 
 ## 4. 로어 읽기와 수정
 
