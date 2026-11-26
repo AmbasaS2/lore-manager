@@ -10,7 +10,9 @@ function prod(name){
 }
 test('backup restore first loads and verifies the translation file, then commits translations before native lorebook write',async()=>{
  const calls=[];
+ const { uiText } = await import('../ui-language.js');
  const ctx={
+  uiText,
   state:{backupRestoreInProgress:false},
   getLorebookBackup:async()=>({book:'A',lorebook:{entries:{0:{uid:0,content:'source'}}},
     translations:[{book:'A',uid:'0',text:'번역',language:'Korean'}]}),
@@ -36,7 +38,9 @@ test('backup restore first loads and verifies the translation file, then commits
 });
 test('failed translation file flush must not restore native original, even with an existing backup',async()=>{
  const calls=[];
+ const { uiText } = await import('../ui-language.js');
  const ctx={
+  uiText,
   state:{backupRestoreInProgress:false},
   getLorebookBackup:async()=>({book:'A',lorebook:{entries:{0:{uid:0,content:'new'}}},translations:[]}),
   currentBookName:()=> 'A',

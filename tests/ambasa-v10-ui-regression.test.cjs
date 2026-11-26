@@ -23,7 +23,7 @@ test('mobile search is fluid rather than forced to 82px or 100% width',()=>{
 });
 
 test('plain keyword recommendation and native rounded lorebook cards remain intact',()=>{
-    assert.match(source,/createMenuButton\('fa-solid fa-key', 'AI 키워드 추천'/);
+    assert.match(source,/createMenuButton\('fa-solid fa-key', uiText\("AI 키워드 추천"\)/);
     assert.doesNotMatch(source,/keywordTitle\.innerHTML/);
     assert.doesNotMatch(source,/keywordHelp = createElement/);
     assert.match(css,/#WorldInfo\.slb-active \.slb-keyword-assistant\s*\{[^}]*border:\s*0/s);
