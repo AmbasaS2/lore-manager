@@ -115,7 +115,7 @@ Choose from **MacBook, BlackBerry, E-book Library and Classic Archive**. Each th
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="Library settings, window controls and book filters" width="860"></p>
 
-Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3), memory reading mode and character-linked filtering. The existing settings screenshot predates the addition of the memory reading mode in .79. Window dimensions can be remembered separately for wide and narrow screens.
+Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3), memory reading mode and character-linked filtering. The existing settings screenshot predates the addition of the memory reading mode in .79. Window dimensions and the last dragged window position are remembered separately for wide and narrow screens (760 px layout-width threshold for position). Reopening the library restores its saved position within the visible screen; automatic viewport or keyboard adjustments do not overwrite it.
 
 ## 4. Read and edit records
 
@@ -284,7 +284,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="서재 테마·표시 줄 수·캐릭터 연결 필터 설정" width="860"></p>
 
-상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다. 최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다. 설정에서 테마, 서가 표시 줄 수(1–3줄), 메모리 보기 방식, 연결된 로어북 필터를 조절합니다. 기존 설정 캡처에는 .79에서 추가된 메모리 보기 방식 항목이 아직 표시되지 않습니다. 좁은 화면과 넓은 화면의 창 크기를 별도로 기억합니다.
+상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다. 최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다. 설정에서 테마, 서가 표시 줄 수(1–3줄), 메모리 보기 방식, 연결된 로어북 필터를 조절합니다. 기존 설정 캡처에는 .79에서 추가된 메모리 보기 방식 항목이 아직 표시되지 않습니다. 좁은 화면과 넓은 화면의 창 크기와 마지막으로 드래그한 위치를 각각 기억합니다(위치 구분 기준: 레이아웃 화면 너비 760px). 서재를 다시 열면 저장된 위치를 화면 안에서 복원하며 화면 크기나 모바일 키보드에 따른 자동 위치 조정은 저장하지 않습니다.
 
 ## 4. 로어 읽기와 수정
 
