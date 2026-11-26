@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="510" viewBox="0 0 480 510" role="img">
+<title>네 가지 보기 방식 / Four reading formats</title>
+<style>text{font-family:'Noto Sans CJK KR', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif;} .t{font-size:19px;font-weight:650;fill:#293440} .en{font-size:13px;fill:#687681}</style>
+<rect x="0" y="0" width="480" height="510" rx="13" fill="#f0f3f3"/>
+<rect x="12" y="12" width="456" height="486" rx="12" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<path d="M27 31h7l1 2 1-2h7v15h-7l-1 2-1-2h-7z M35 33v15" fill="none" stroke="#5b7eab" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="55" y="35" font-size="18" font-weight="650" fill="#293440" text-anchor="start">책의 보기 방식</text>
+<text x="55" y="53" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Reading formats</text>
+<path d="M440 33l10 10m0 -10l-10 10" fill="none" stroke="#687681" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M24 66L456 66" fill="none" stroke="#d9e0e5" stroke-width="1" stroke-linecap="round"/>
+<rect x="24" y="80" width="212" height="190" rx="8" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<text x="35" y="104" font-size="16" font-weight="650" fill="#293440" text-anchor="start">카드파일</text>
+<text x="35" y="122" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Cards</text>
+<rect x="34" y="139" width="192" height="28" rx="4" fill="#e5eef9"/>
+<text x="41" y="157" font-size="12" font-weight="400" fill="#293440" text-anchor="start">The first promise</text>
+<rect x="34" y="174" width="192" height="28" rx="4" fill="#f3f6f8"/>
+<text x="41" y="192" font-size="12" font-weight="400" fill="#293440" text-anchor="start">A rainy evening</text>
+<rect x="34" y="209" width="192" height="28" rx="4" fill="#f3f6f8"/>
+<text x="41" y="227" font-size="12" font-weight="400" fill="#293440" text-anchor="start">Old Observatory</text>
+<rect x="244" y="80" width="212" height="190" rx="8" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<text x="255" y="104" font-size="16" font-weight="650" fill="#293440" text-anchor="start">메모리</text>
+<text x="255" y="122" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Memory</text>
+<path d="M268 146L268 244" fill="none" stroke="#5b7eab" stroke-width="2" stroke-linecap="round"/>
+<circle cx="268" cy="152" r="5" fill="#5b7eab"/>
+<text x="280" y="157" font-size="12" font-weight="400" fill="#293440" text-anchor="start">01 · First meeting</text>
+<circle cx="268" cy="192" r="5" fill="#5b7eab"/>
+<text x="280" y="197" font-size="12" font-weight="400" fill="#293440" text-anchor="start">02 · The promise</text>
+<circle cx="268" cy="232" r="5" fill="#5b7eab"/>
+<text x="280" y="237" font-size="12" font-weight="400" fill="#293440" text-anchor="start">03 · Rainy evening</text>
+<rect x="24" y="285" width="212" height="190" rx="8" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<text x="35" y="309" font-size="16" font-weight="650" fill="#293440" text-anchor="start">백과사전</text>
+<text x="35" y="327" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Encyclopedia</text>
+<rect x="35" y="345" width="48" height="25" rx="5" fill="#e6eef9"/>
+<text x="59.0" y="362" font-size="13" font-weight="650" fill="#5b7eab" text-anchor="middle">A–Z</text>
+<text x="35" y="396" font-size="16" font-weight="650" fill="#293440" text-anchor="start">Observatory</text>
+<path d="M35 407L224 407" fill="none" stroke="#d9e0e5" stroke-width="1" stroke-linecap="round"/>
+<text x="35" y="428" font-size="12" font-weight="400" fill="#687681" text-anchor="start">Location · Northern hill</text>
+<rect x="244" y="285" width="212" height="190" rx="8" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<text x="255" y="309" font-size="16" font-weight="650" fill="#293440" text-anchor="start">인물록</text>
+<text x="255" y="327" font-size="13" font-weight="400" fill="#687681" text-anchor="start">People</text>
+<circle cx="270" cy="357" r="13" fill="#b0bfd0"/>
+<text x="292" y="362" font-size="14" font-weight="650" fill="#293440" text-anchor="start">Seraphina</text>
+<circle cx="270" cy="396" r="13" fill="#b3c2b5"/>
+<text x="292" y="401" font-size="14" font-weight="400" fill="#293440" text-anchor="start">Alex</text>
+<circle cx="270" cy="435" r="13" fill="#cfb8a7"/>
+<text x="292" y="440" font-size="14" font-weight="400" fill="#293440" text-anchor="start">Mira</text>
+</svg>

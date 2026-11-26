@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img">
+<title>독립 서재 목업 / Lore library</title>
+<style>text{font-family:'Noto Sans CJK KR', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif;} .t{font-size:19px;font-weight:650;fill:#293440} .en{font-size:13px;fill:#687681}</style>
+<rect x="0" y="0" width="480" height="360" rx="13" fill="#f0f3f3"/>
+<rect x="12" y="12" width="456" height="336" rx="12" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<path d="M27 31h7l1 2 1-2h7v15h-7l-1 2-1-2h-7z M35 33v15" fill="none" stroke="#5b7eab" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="55" y="35" font-size="18" font-weight="650" fill="#293440" text-anchor="start">로어북 서재</text>
+<text x="55" y="53" font-size="13" font-weight="400" fill="#687681" text-anchor="start">THE LORE LIBRARY</text>
+<path d="M440 33l10 10m0 -10l-10 10" fill="none" stroke="#687681" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M24 66L456 66" fill="none" stroke="#d9e0e5" stroke-width="1" stroke-linecap="round"/>
+<circle cx="389" cy="39" r="5" fill="none" stroke="#687681" stroke-width="2"/>
+<path d="M389 45L389 48" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M395 39L398 39" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M389 33L389 30" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M383 39L380 39" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M393.242 43.242L395.363 45.363" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M384.758 43.242L382.637 45.363" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M393.242 34.758L395.363 32.637" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M384.758 34.758L382.637 32.637" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<rect x="26" y="79" width="101" height="25" rx="5" fill="#e6eef9"/>
+<text x="76.5" y="96" font-size="13" font-weight="650" fill="#5b7eab" text-anchor="middle">전체 / All</text>
+<rect x="137" y="79" width="150" height="25" rx="5" fill="#f3f6f8"/>
+<text x="212.0" y="96" font-size="13" font-weight="650" fill="#687681" text-anchor="middle">미분류 / Untagged</text>
+<circle cx="431" cy="91" r="5.5" fill="none" stroke="#5b7eab" stroke-width="1.8"/>
+<path d="M435 95L441 101" fill="none" stroke="#5b7eab" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="25" y="119" width="430" height="218" rx="7" fill="#f3f6f8" stroke="#d9e0e5" stroke-width="1"/>
+<text x="39" y="143" font-size="16" font-weight="650" fill="#293440" text-anchor="start">내 서재</text>
+<text x="39" y="161" font-size="13" font-weight="400" fill="#687681" text-anchor="start">My library · Finder</text>
+<rect x="38" y="192" width="101" height="66" rx="7" fill="#d4a864"/>
+<rect x="41" y="187" width="43" height="14" rx="4" fill="#d4a864"/>
+<path d="M80 216h7l1 2 1-2h7v15h-7l-1 2-1-2h-7z M88 218v15" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="88" y="278" font-size="15" font-weight="650" fill="#293440" text-anchor="middle">Memory</text>
+<rect x="176" y="192" width="101" height="66" rx="7" fill="#9baab5"/>
+<rect x="179" y="187" width="43" height="14" rx="4" fill="#9baab5"/>
+<path d="M218 216h7l1 2 1-2h7v15h-7l-1 2-1-2h-7z M226 218v15" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="226" y="278" font-size="15" font-weight="650" fill="#293440" text-anchor="middle">Nexus</text>
+<rect x="314" y="192" width="101" height="66" rx="7" fill="#82a6c7"/>
+<rect x="317" y="187" width="43" height="14" rx="4" fill="#82a6c7"/>
+<path d="M356 216h7l1 2 1-2h7v15h-7l-1 2-1-2h-7z M364 218v15" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="364" y="278" font-size="15" font-weight="650" fill="#293440" text-anchor="middle">World Atlas</text>
+<text x="39" y="321" font-size="12" font-weight="400" fill="#687681" text-anchor="start">3권 중 3권  /  3 of 3 books</text>
+</svg>

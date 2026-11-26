@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="436" viewBox="0 0 480 436" role="img">
+<title>서재 설정 / Library settings</title>
+<style>text{font-family:'Noto Sans CJK KR', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif;} .t{font-size:19px;font-weight:650;fill:#293440} .en{font-size:13px;fill:#687681}</style>
+<rect x="0" y="0" width="480" height="436" rx="13" fill="#f0f3f3"/>
+<rect x="12" y="12" width="456" height="412" rx="12" fill="#ffffff" stroke="#d9e0e5" stroke-width="1"/>
+<path d="M27 31h7l1 2 1-2h7v15h-7l-1 2-1-2h-7z M35 33v15" fill="none" stroke="#5b7eab" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="55" y="35" font-size="18" font-weight="650" fill="#293440" text-anchor="start">서재 설정</text>
+<text x="55" y="53" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Library settings</text>
+<path d="M440 33l10 10m0 -10l-10 10" fill="none" stroke="#687681" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M24 66L456 66" fill="none" stroke="#d9e0e5" stroke-width="1" stroke-linecap="round"/>
+<circle cx="389" cy="39" r="5" fill="none" stroke="#687681" stroke-width="2"/>
+<path d="M389 45L389 48" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M395 39L398 39" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M389 33L389 30" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M383 39L380 39" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M393.242 43.242L395.363 45.363" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M384.758 43.242L382.637 45.363" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M393.242 34.758L395.363 32.637" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<path d="M384.758 34.758L382.637 32.637" fill="none" stroke="#687681" stroke-width="2" stroke-linecap="round"/>
+<text x="27" y="100" font-size="15" font-weight="650" fill="#293440" text-anchor="start">테마</text>
+<text x="27" y="118" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Theme</text>
+<rect x="27" y="128" width="426" height="42" rx="6" fill="#f3f6f8" stroke="#d9e0e5" stroke-width="1"/>
+<text x="39" y="154" font-size="16" font-weight="400" fill="#293440" text-anchor="start">맥북 / MacBook</text>
+<path d="M434 146l4 4 4 -4" fill="none" stroke="#687681" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="27" y="188" font-size="15" font-weight="650" fill="#293440" text-anchor="start">서가 표시 줄 수</text>
+<text x="27" y="206" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Bookshelf rows</text>
+<rect x="27" y="216" width="426" height="42" rx="6" fill="#f3f6f8" stroke="#d9e0e5" stroke-width="1"/>
+<text x="39" y="242" font-size="16" font-weight="400" fill="#293440" text-anchor="start">2줄 보기 / 2 rows</text>
+<path d="M434 234l4 4 4 -4" fill="none" stroke="#687681" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="27" y="276" font-size="15" font-weight="650" fill="#293440" text-anchor="start">메모리 보기 방식</text>
+<text x="27" y="294" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Memory reader layout</text>
+<rect x="27" y="304" width="426" height="42" rx="6" fill="#f3f6f8" stroke="#d9e0e5" stroke-width="1"/>
+<text x="39" y="330" font-size="16" font-weight="400" fill="#293440" text-anchor="start">타임라인 / Timeline</text>
+<path d="M434 322l4 4 4 -4" fill="none" stroke="#687681" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="28" y="369" width="19" height="19" rx="4" fill="#5b7eab" stroke="#5b7eab" stroke-width="1.4"/>
+<path d="M32.5 378.5l4 4 8-8" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="57" y="385" font-size="15" font-weight="650" fill="#293440" text-anchor="start">현재 캐릭터에 연결된 로어북만 보기</text>
+<text x="57" y="403" font-size="13" font-weight="400" fill="#687681" text-anchor="start">Show only books linked to the current character</text>
+</svg>

@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.81';
+const VERSION = '1.4.85-ambasa.82';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -9878,9 +9878,9 @@ function bindStandaloneLibraryMenu() {
     action.id = 'slb-library-menu-action';
     action.setAttribute('role', 'button');
     action.tabIndex = 0;
-    action.setAttribute('aria-label', '로어북 매니저 리딩 누크 서재 열기');
+    action.setAttribute('aria-label', '독립 로어북 매니저 서재 열기');
     action.append(createElement('div', 'fa-solid fa-address-book extensionsMenuExtensionButton'));
-    action.append(createElement('span', '', '로어북 매니저 리딩 누크'));
+    action.append(createElement('span', '', '로어북 매니저'));
     const open = () => void openStandaloneLibrary();
     action.addEventListener('click', open);
     action.addEventListener('keydown', event => {
