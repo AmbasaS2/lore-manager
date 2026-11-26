@@ -64,13 +64,20 @@ Do not run the original and this fork together. When replacing an existing insta
 
 Open **Extensions → 로어북 매니저**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
 
-| Settings section (current Korean UI) | What to configure |
-|---|---|
-| 번역 설정 (Translation) | AI connection profile or Google translation, AI output tokens, connection test, body/title/keyword translation, translation-first display, optional AI instructions, automatic translation and automatic application to the original. |
-| 화면 · 고급 설정 (Display / advanced) | Native editor, integrated editor or optional Foldy mode; open the independent library and filter books by the selected character. |
-| 통합 화면 표시 옵션 (Integrated editor display) | Show activation icons, token statistics, entry filters and bulk-edit toolbar. |
-| 로어북 백업 (Backup) | Automatic/manual browser backups, import/export backups, selected/all original JSONs as ZIP. |
-| 데이터 관리 (Data management) | Reset translations, backups or extension data. Do not use reset to migrate from upstream. Back up first. |
+**번역 설정 (Translation)**  
+AI connection profile or Google translation, AI output tokens, connection test, body/title/keyword translation, translation-first display, optional AI instructions, automatic translation and automatic application to the original.
+
+**화면 · 고급 설정 (Display / advanced)**  
+Native editor, integrated editor or optional Foldy mode; open the independent library and filter books by the selected character.
+
+**통합 화면 표시 옵션 (Integrated editor display)**  
+Show activation icons, token statistics, entry filters and bulk-edit toolbar.
+
+**로어북 백업 (Backup)**  
+Automatic/manual browser backups, import/export backups, selected/all original JSONs as ZIP.
+
+**데이터 관리 (Data management)**  
+Reset translations, backups or extension data. Do not use reset to migrate from upstream. Back up first.
 
 **Just want to read your books?** Choose the native World Info screen and open the library from the extension menu. If you read translated lore, choose your translation provider and body translation; leave automatic reflection of edited translations into original text off unless you actually want that change.
 
@@ -80,11 +87,14 @@ During RP, open the library → select a book and entry → read the original or
 
 Under **화면·고급 설정**, select the display mode that suits your setup.
 
-| Mode | Purpose |
-|---|---|
-| 실리태번 기본 화면 | Keep the native World Info interface and use the separate library when needed. |
-| 로어북 매니저 통합 화면 | Use the integrated editor inherited from the original extension. |
-| Foldy 연동 화면 | Use the optional Foldy integration when Foldy is installed. |
+**실리태번 기본 화면**  
+Keep the native World Info interface and use the separate library when needed.
+
+**로어북 매니저 통합 화면**  
+Use the integrated editor inherited from the original extension.
+
+**Foldy 연동 화면**  
+Use the optional Foldy integration when Foldy is installed.
 
 The independent library is separate from these choices.
 
@@ -98,12 +108,17 @@ Choose a reading format for each book:
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="Four reading formats rendered with sample records" width="860"></p>
 
-| Format | Suggested use |
-|---|---|
-| Card file (카드파일) | General settings, rules and individual records |
-| Memory (메모리) | Chronological memories and RP records: timeline, continuous full-text journal, or page turning |
-| Encyclopedia (백과사전) | Worldbuilding, locations and background information |
-| Character directory (인물록) | Character profiles and relationships |
+**Card file (카드파일)**  
+General settings, rules and individual records
+
+**Memory (메모리)**  
+Chronological memories and RP records: timeline, continuous full-text journal, or page turning
+
+**Encyclopedia (백과사전)**  
+Worldbuilding, locations and background information
+
+**Character directory (인물록)**  
+Character profiles and relationships
 
 These are presentation formats for existing lorebook entries, not new lorebook types in SillyTavern. Changing a format, tag or cover does not change World Info injection settings or generate new memories.
 
@@ -231,13 +246,20 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 확장 관리 → **로어북 매니저**를 펼쳐 주세요. 서재만 쓰실 분은 화면 · 고급 설정에서 기본 화면을 선택하고 서재를 열면 됩니다. 새 번역·통합 편집·백업 설정은 필요할 때 살펴보세요.
 
-| 설정 영역 | 설정할 수 있는 것 / 추천 사용법 |
-|---|---|
-| 번역 설정 | AI 전용 연결 프로필 또는 구글 번역(무료), AI 출력 토큰, 연결 테스트, 번역 대상(본문·제목·호출 키워드), 번역본 우선 표시, AI 번역 추가 지시, 자동 번역과 원문 자동 반영을 정합니다. |
-| 화면 · 고급 설정 | 기본 화면 / 통합 화면 / Foldy 연동 중 선택, 독립 서재 열기, 선택 캐릭터의 로어북만 표시 설정. |
-| 통합 화면 표시 옵션 | 제목 옆 발동 방식 아이콘, 토큰 통계, 항목 필터, 일괄 편집 버튼 표시. |
-| 로어북 백업 | 자동·수동 백업, 가져오기, 전체 백업 내보내기, 선택·전체 원본 JSON ZIP 내보내기. |
-| 데이터 관리 | 번역본·백업·확장 데이터 초기화. 기존 설치에서 전환할 때 사용하지 마세요. 초기화 전에 백업하세요. |
+**번역 설정**  
+AI 전용 연결 프로필 또는 구글 번역(무료), AI 출력 토큰, 연결 테스트, 번역 대상(본문·제목·호출 키워드), 번역본 우선 표시, AI 번역 추가 지시, 자동 번역과 원문 자동 반영을 정합니다.
+
+**화면 · 고급 설정**  
+기본 화면 / 통합 화면 / Foldy 연동 중 선택, 독립 서재 열기, 선택 캐릭터의 로어북만 표시 설정.
+
+**통합 화면 표시 옵션**  
+제목 옆 발동 방식 아이콘, 토큰 통계, 항목 필터, 일괄 편집 버튼 표시.
+
+**로어북 백업**  
+자동·수동 백업, 가져오기, 전체 백업 내보내기, 선택·전체 원본 JSON ZIP 내보내기.
+
+**데이터 관리**  
+번역본·백업·확장 데이터 초기화. 기존 설치에서 전환할 때 사용하지 마세요. 초기화 전에 백업하세요.
 
 **서재에서 읽기만 할 분**이라면 실리태번 기본 화면을 선택하고, 영어 로어를 번역할 분이라면 번역 방식과 본문 번역부터 설정하세요. 번역 수정 시 원문 자동 반영은 실제 로어를 함께 바꾸려는 경우에만 켜세요.
 
@@ -251,11 +273,14 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 확장 탭 → 로어북 매니저 → **화면·고급 설정**에서 선택합니다.
 
-| 표시 방식 | 설명 |
-|---|---|
-| 실리태번 기본 화면 | 기본 월드 인포 화면을 유지하고 필요할 때 독립 서재를 사용합니다. |
-| 로어북 매니저 통합 화면 | 원작의 통합 편집 화면을 기반으로 로어를 관리합니다. |
-| Foldy 연동 화면 | Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다. |
+**실리태번 기본 화면**  
+기본 월드 인포 화면을 유지하고 필요할 때 독립 서재를 사용합니다.
+
+**로어북 매니저 통합 화면**  
+원작의 통합 편집 화면을 기반으로 로어를 관리합니다.
+
+**Foldy 연동 화면**  
+Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
 
 독립 서재는 위 표시 방식과 별도로 열 수 있습니다.
 
@@ -267,12 +292,17 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="카드파일·메모리·백과사전·인물록 · 예시 데이터" width="860"></p>
 
-| 보기 방식 | 활용 예시 |
-|---|---|
-| 카드파일 | 일반 설정, 규칙, 개별 사건 |
-| 메모리 | 시간순 기억, RP 기록: 타임라인·연속 기록장·페이지 넘김 |
-| 백과사전 | 세계관, 장소, 배경 정보 |
-| 인물록 | 캐릭터 소개, 인물 관계 |
+**카드파일**  
+일반 설정, 규칙, 개별 사건
+
+**메모리**  
+시간순 기억, RP 기록: 타임라인·연속 기록장·페이지 넘김
+
+**백과사전**  
+세계관, 장소, 배경 정보
+
+**인물록**  
+캐릭터 소개, 인물 관계
 
 기존 로어북을 목적에 맞게 보여 주는 기능입니다. 보기 방식이나 태그를 바꿔도 실제 로어북의 주입 조건은 변경되지 않으며, 기억을 자동 생성하는 기능은 아닙니다.
 
@@ -321,13 +351,20 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 ## 6. 저장과 백업
 
-| 구분 | 저장 및 관리 |
-|---|---|
-| 원본 로어북 | 기존 SillyTavern 로어북 |
-| 번역 기록 | `settings.json`이 아닌 서버 사용자 파일 저장소(`/user/files/`)의 로어북별 JSON 파일, 기존 기록은 검증 및 보관 후 이전 |
-| 서재 표시 정보 | 확장의 설정, 태그·분류·이미지 연결 정보 |
-| 로어북 백업 | 현재 브라우저에 저장, 전체 로어북 합계 최근 20개 |
-| 로어북 원본 내보내기 | 선택한 책 또는 전체 원본 JSON의 ZIP |
+**원본 로어북**  
+기존 SillyTavern 로어북
+
+**번역 기록**  
+`settings.json`이 아닌 서버 사용자 파일 저장소(`/user/files/`)의 로어북별 JSON 파일, 기존 기록은 검증 및 보관 후 이전
+
+**서재 표시 정보**  
+확장의 설정, 태그·분류·이미지 연결 정보
+
+**로어북 백업**  
+현재 브라우저에 저장, 전체 로어북 합계 최근 20개
+
+**로어북 원본 내보내기**  
+선택한 책 또는 전체 원본 JSON의 ZIP
 
 **번역 저장소 변경:** 기존에는 번역 기록이 실리태번의 `settings.json` 확장 설정에 함께 저장됐지만, 이 포크에서는 번역문과 항목별 번역 언어 정보를 별도 파일로 분리했습니다. 설정을 저장할 때마다 쌓여 있는 모든 번역 기록을 다시 저장하는 부담을 줄이기 위한 변경입니다. 기존 번역은 별도 보관본을 만들고 새 파일의 내용을 검증한 후 이전합니다.
 
@@ -343,13 +380,20 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 ## 7. 원작에서 달라진 부분
 
-| 영역 | 원작을 기반으로 이 포크에서 조정한 부분 |
-|---|---|
-| 화면 | 기존 통합 편집기 외에 기본 화면·독립 서재를 선택하여 사용 |
-| 번역 저장 | `settings.json`에 함께 저장하던 번역 기록을 서버의 별도 사용자 파일 저장소에 로어북별 JSON으로 분리 |
-| 번역 작업 | 여러 책을 선택하는 일괄 번역, 조건에 맞는 AI 항목 묶음 처리 |
-| 페이지·렌더링 | 최근 방문 페이지 최대 2개 재사용 및 반복 레이아웃·조회 작업 일부 감소 |
-| 읽기 | 네 가지 보기 방식, 네 가지 테마, 목차·검색·태그·표지·참고 이미지 |
+**화면**  
+기존 통합 편집기 외에 기본 화면·독립 서재를 선택하여 사용
+
+**번역 저장**  
+`settings.json`에 함께 저장하던 번역 기록을 서버의 별도 사용자 파일 저장소에 로어북별 JSON으로 분리
+
+**번역 작업**  
+여러 책을 선택하는 일괄 번역, 조건에 맞는 AI 항목 묶음 처리
+
+**페이지·렌더링**  
+최근 방문 페이지 최대 2개 재사용 및 반복 레이아웃·조회 작업 일부 감소
+
+**읽기**  
+네 가지 보기 방식, 네 가지 테마, 목차·검색·태그·표지·참고 이미지
 
 저사양 환경에서 제가 필요한 화면만 열어 사용하는 방식에 맞춘 변경입니다. 서버 성능뿐 아니라 브라우저 작업량도 영향을 미치므로 모든 환경에서 더 빠르다는 의미는 아닙니다. 격리된 Chromium 환경에서 PC·모바일 폭을 검증했지만 모든 실제 기기 및 확장 조합의 호환성을 보장하지는 않습니다.
 
