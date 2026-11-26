@@ -8,36 +8,17 @@ The original extension provides the foundation for lorebook editing, translation
 
 [한국어 안내 ↓](#-로어북-매니저) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="Independent lore library and memory reader; example lorebooks" width="860"></p>
 
 **One extension, two ways to use it.** Keep SillyTavern's native editor if you only want the independent library. Use the integrated editor if you also want the original batch-editing and translation tools.
 
+## Installation
 
-## Start here — Lorebook Manager in five minutes
+1. Back up your SillyTavern data, settings and translations, particularly when switching from the original.
+2. Open SillyTavern's extension installer and enter:
+   <code>https://github.com/AmbasaS2/lore-manager</code>
+3. Reload SillyTavern. Open **Extensions → 로어북 매니저** to configure the extension or use the **로어북 매니저** item in the extension menu to open the library.
 
-**Current version: 1.4.85-ambasa.80.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
-
-<p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="860"></p>
-
-**Set up once**
-
-1. Install the fork without resetting your data, then reload. In Extensions settings → 로어북 매니저 select the native display mode if you only want the independent reader.
-**Everyday reading (no AI setup needed)**
-
-2. Open the library from the Extensions menu. Choose a book, one of four reading formats and your preferred theme.
-3. Tap the shelf magnifier, type a search term, then press Enter or the same magnifier. In-book search only searches that book. Saved translations are searchable; no AI request.
-4. Read the original or saved translation. Use the entry … menu to edit, translate or jump to the native editor. Set a translation provider only if you need new translations.
-
-### Works alone, better together
-
-> [!TIP]
-Memory opens in Timeline by default. In the library settings (gear icon), choose the memory reading mode: Timeline, continuous full text, or the original page reader. Timeline shows the saved Result when available, otherwise a labeled excerpt. In Timeline and continuous views, the count and sort controls sit beside the TOC; load more in 5/10/20-record batches. Opening a full record from Timeline and returning to the original view does not change the saved preference. The TOC and search still jump to specific records. No new AI request is made.
-
-> The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
-
-[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
-
-The detailed sections below explain optional settings. Compatibility is version-dependent; it does not guarantee every third-party extension or device.
+Do not run the original and this fork together. When replacing an existing installation, preserve your data and replace only the extension code; do not use data reset or uninstall as a migration method. Based on SillyTavern 1.18; other versions and combinations of third-party extensions may behave differently. The interface currently uses Korean labels.
 
 ## Who is this for?
 
@@ -51,39 +32,31 @@ The detailed sections below explain optional settings. Compatibility is version-
 
 The original editing, translation, token and backup tools are still available. If upstream works well for you, you do not have to switch.
 
-## Installation
+## ⚡ Quick start
 
-1. Back up your SillyTavern data, settings and translations, particularly when switching from the original.
-2. Open SillyTavern's extension installer and enter:
-   <code>https://github.com/AmbasaS2/lore-manager</code>
-3. Reload SillyTavern. Open **Extensions → 로어북 매니저** to configure the extension or use the **로어북 매니저** item in the extension menu to open the library.
+**Current version: 1.4.85-ambasa.80.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
 
-Do not run the original and this fork together. When replacing an existing installation, preserve your data and replace only the extension code; do not use data reset or uninstall as a migration method. Based on SillyTavern 1.18; other versions and combinations of third-party extensions may behave differently. The interface currently uses Korean labels.
+<details>
+<summary>View the illustrated workflow</summary>
 
-## First setup: Extension settings
+<p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="860"></p>
+
+</details>
+
+**Set up once**
+
+1. Install the fork without resetting your data, then reload. In Extensions settings → 로어북 매니저 select the native display mode if you only want the independent reader.
+**Everyday reading (no AI setup needed)**
+
+2. Open the library from the Extensions menu. Choose a book, one of four reading formats and your preferred theme.
+3. Tap the shelf magnifier, type a search term, then press Enter or the same magnifier. In-book search only searches that book. Saved translations are searchable; no AI request.
+4. Read the original or saved translation. Use the entry … menu to edit, translate or jump to the native editor. Set a translation provider only if you need new translations.
+
+## 📖 How to use
 
 Open **Extensions → 로어북 매니저**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
 
-**번역 설정 (Translation)**  
-AI connection profile or Google translation, AI output tokens, connection test, body/title/keyword translation, translation-first display, optional AI instructions, automatic translation and automatic application to the original.
-
-**화면 · 고급 설정 (Display / advanced)**  
-Native editor, integrated editor or optional Foldy mode; open the independent library and filter books by the selected character.
-
-**통합 화면 표시 옵션 (Integrated editor display)**  
-Show activation icons, token statistics, entry filters and bulk-edit toolbar.
-
-**로어북 백업 (Backup)**  
-Automatic/manual browser backups, import/export backups, selected/all original JSONs as ZIP.
-
-**데이터 관리 (Data management)**  
-Reset translations, backups or extension data. Do not use reset to migrate from upstream. Back up first.
-
-**Just want to read your books?** Choose the native World Info screen and open the library from the extension menu. If you read translated lore, choose your translation provider and body translation; leave automatic reflection of edited translations into original text off unless you actually want that change.
-
-During RP, open the library → select a book and entry → read the original or translation → edit only if needed. In the library's own settings, choose the theme, shelf rows, memory reading mode and linked-character filter; set each book's category inside that book.
-
-## 1. Choose a display mode
+### 1. Choose a display mode
 
 Under **화면·고급 설정**, select the display mode that suits your setup.
 
@@ -98,9 +71,11 @@ Use the optional Foldy integration when Foldy is installed.
 
 The independent library is separate from these choices.
 
-## 2. The Lore Library
+### 2. The Lore Library
 
 Open the library from the extension menu or the settings panel. Search and filter books by tags or show books linked to the current character. If no linked books are found, the linked-only view falls back to all books.
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="Independent lore library and memory reader; example lorebooks" width="860"></p>
 
 Use the book tag panel to mark favorites; favorited books appear first in the shelf. Open the shelf magnifier to reveal a field on its left, enter a term, then press the same magnifier or Enter. Click outside the search controls or press Escape to dismiss the field. Typing alone does not search; submit with Enter or the same magnifier. Shelf search includes book names and original/saved translated titles, keywords and content (up to 100 entry results, no AI calls). The same submit-only search inside a book searches that book. Resume Reading is available in the shelf settings menu. Native-editor entry jumps respect the current search/filter and sort; clear filters if the entry is hidden. Foldy retains its own page navigation.
 
@@ -122,17 +97,7 @@ Character profiles and relationships
 
 These are presentation formats for existing lorebook entries, not new lorebook types in SillyTavern. Changing a format, tag or cover does not change World Info injection settings or generate new memories.
 
-## 3. Themes and window settings
-
-<p align="center"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="MacBook, BlackBerry, E-book Library and Classic Archive themes" width="860"></p>
-
-Choose from **MacBook, BlackBerry, E-book Library and Classic Archive**. Each theme has layouts for the four reading formats.
-
-<p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="Library settings, window controls and book filters" width="860"></p>
-
-Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3), memory reading mode and character-linked filtering. The existing settings screenshot predates the addition of the memory reading mode in .79. Window dimensions and the last dragged window position are remembered separately for wide and narrow screens (760 px layout-width threshold for position). Reopening the library restores its saved position within the visible screen; automatic viewport or keyboard adjustments do not overwrite it.
-
-## 4. Read and edit records
+### 3. Read and edit records
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-reader-guide-mobile.webp" alt="Record reading, original and translated text, table of contents and editing controls" width="860"></p>
 
@@ -144,7 +109,44 @@ Use the window header to move the library, resize it from the corner, minimize i
 
 The fork also exposes a book/entry UID bridge for compatible WorldInfo Info integrations. That integration is optional.
 
-## 5. Translation and integrated editing
+> [!TIP]
+> Memory opens in Timeline by default. In the library settings (gear icon), choose the memory reading mode: Timeline, continuous full text, or the original page reader. Timeline shows the saved Result when available, otherwise a labeled excerpt. In Timeline and continuous views, the count and sort controls sit beside the TOC; load more in 5/10/20-record batches. Opening a full record from Timeline and returning to the original view does not change the saved preference. The TOC and search still jump to specific records. No new AI request is made.
+
+### 4. Themes and window settings
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="MacBook, BlackBerry, E-book Library and Classic Archive themes" width="860"></p>
+
+Choose from **MacBook, BlackBerry, E-book Library and Classic Archive**. Each theme has layouts for the four reading formats.
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="Library settings, window controls and book filters" width="860"></p>
+
+Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3), memory reading mode and character-linked filtering. The existing settings screenshot predates the addition of the memory reading mode in .79. Window dimensions and the last dragged window position are remembered separately for wide and narrow screens (760 px layout-width threshold for position). Reopening the library restores its saved position within the visible screen; automatic viewport or keyboard adjustments do not overwrite it.
+
+<details>
+<summary>Optional extension settings</summary>
+
+**번역 설정 (Translation)**  
+AI connection profile or Google translation, AI output tokens, connection test, body/title/keyword translation, translation-first display, optional AI instructions, automatic translation and automatic application to the original.
+
+**화면 · 고급 설정 (Display / advanced)**  
+Native editor, integrated editor or optional Foldy mode; open the independent library and filter books by the selected character.
+
+**통합 화면 표시 옵션 (Integrated editor display)**  
+Show activation icons, token statistics, entry filters and bulk-edit toolbar.
+
+**로어북 백업 (Backup)**  
+Automatic/manual browser backups, import/export backups, selected/all original JSONs as ZIP.
+
+**데이터 관리 (Data management)**  
+Reset translations, backups or extension data. Do not use reset to migrate from upstream. Back up first.
+
+**Just want to read your books?** Choose the native World Info screen and open the library from the extension menu. If you read translated lore, choose your translation provider and body translation; leave automatic reflection of edited translations into original text off unless you actually want that change.
+
+During RP, open the library → select a book and entry → read the original or translation → edit only if needed. In the library's own settings, choose the theme, shelf rows, memory reading mode and linked-character filter; set each book's category inside that book.
+
+</details>
+
+### 5. Translation and integrated editing
 
 The original translation editor remains available in the integrated view. Select a separate AI connection profile or Google translation in **번역 설정**. AI revision and keyword recommendations require an AI profile even when Google is the translation provider.
 
@@ -160,7 +162,7 @@ Open Extensions → 로어북 매니저 → 화면·고급 설정 → 통합 화
 
 Open 로어북 백업 in extension settings. Use manual backup or optional automatic backups on open/edit. Import/export browser backup JSON, restore a selected backup into the current book (with a pre-restore safety backup), restore into a new book, export an individual snapshot, or delete a stored backup. Export selected/all original books as ZIP separately. Data reset can remove saved translations, local backups or all extension settings/cache without deleting original lorebooks; do not reset to migrate.
 
-## 6. Storage, backup and performance
+### 6. Storage, backup and performance
 
 - Original lorebooks remain in SillyTavern. Library categories, tags and image associations are display metadata.
 - **Separate translation storage:** translation text and per-entry language settings have been moved out of `settings.json` into per-lorebook JSON files in SillyTavern's server-side user file storage (`/user/files/`). Only preferences and storage references remain in the extension settings. This avoids repeatedly serializing the entire translation collection whenever settings are saved. Existing records are archived and verified before migration.
@@ -174,6 +176,14 @@ These choices address my own usage pattern; they do not guarantee better perform
 ## Troubleshooting
 
 If search seems to do nothing, press Enter or the same magnifier after typing. If an entry jump cannot find its row, clear the native editor's search/filter. For reading only, choose the native display mode and the independent library. Do not reset data to switch versions; back up original books and separate translation JSON files.
+
+## 🧩 Works well with
+
+> The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
+
+[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
+
+The detailed sections below explain optional settings. Compatibility is version-dependent; it does not guarantee every third-party extension or device.
 
 ## Credits and license
 
@@ -193,12 +203,30 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 **현재 버전:** 1.4.85-ambasa.80 (원작 1.4.85 기반)
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
 **서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
 
+## 설치
 
-## 먼저 읽어 보세요 · 처음 사용하는 분을 위한 5분 안내
+1. 기존 로어북과 번역 기록, SillyTavern 설정을 백업합니다.
+2. 확장 설치 메뉴에 <code>https://github.com/AmbasaS2/lore-manager</code> 를 입력합니다.
+3. 새로고침한 뒤 확장 탭의 **로어북 매니저**에서 설정하거나, 확장 메뉴에서 **로어북 매니저**를 눌러 독립 서재를 엽니다.
+
+원작과 이 포크를 동시에 실행하지 마세요. 기존 설치에서 전환할 때는 데이터를 유지하고 확장 코드만 교체하세요. 삭제·전체 초기화를 전환 방법으로 사용하지 마세요. SillyTavern 1.18 기반이며 다른 버전 및 확장 조합에서는 동작이 다를 수 있습니다.
+
+## 💗 이 확장 누가 쓰지?
+
+- 복잡한 월드 인포 편집기 대신 독립 서재에서 로어를 읽거나 기존 통합 화면·Foldy를 함께 쓰고 싶은 분
+- 캐릭터·태그·즐겨찾기·표지·참고 이미지·이어 읽기로 방대한 로어를 정리하고, 원문과 저장 번역의 제목·키워드·본문을 검색하고 싶은 분
+- 카드파일·메모리·백과사전·인물록과 네 가지 서재 테마를 독립적으로 조합하고 창의 크기·위치를 조절하고 싶은 분
+- 본문·제목·호출 키워드를 번역하거나 원문과 번역을 따로 수정하고 여러 책을 일괄 번역·편집하고 싶은 분
+- 전체·상시 주입·선택 주입·벡터화 토큰과 항목 수를 확인하고 발동 방식에 따라 필터링하고 싶은 분
+- 자동·수동 백업, 현재 책 또는 새 책으로 복원, 원본 ZIP 내보내기를 사용하고 싶은 분
+- 저사양 서버·기기에서 통합 편집 화면 대신 기본 화면과 독립 서재를 사용하고 싶은 분
+
+원작의 통합 편집, 번역, 토큰 계산, 백업 기능은 유지합니다. 원작을 잘 사용하고 있다면 꼭 포크로 바꿀 필요는 없습니다.
+
+## ⚡ 간단 사용 설명
 
 **현재 버전: 1.4.85-ambasa.80.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
 
@@ -211,40 +239,89 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 3. 서가 돋보기 → 검색어 입력 → Enter 또는 같은 돋보기로 실행. 책 안 검색은 해당 책만 검색하며 저장 번역 검색에도 AI 요청은 없습니다.
 4. 원문 또는 번역문을 읽고 … 메뉴에서 수정·번역·기본 월드 인포 이동을 합니다. 새 번역이 필요할 때만 제공자를 설정하세요.
 
-### 단독으로도 충분하고, 함께 쓰면 더 편리합니다
-
-> [!TIP]
-메모리는 기본 타임라인에서 시작하며 서재 톱니바퀴 설정의 메모리 보기 방식에서 타임라인·연속 기록장(전문)·페이지 넘김 중 선택할 수 있습니다. 타임라인은 저장된 Result(결과), 없으면 표시된 본문 미리보기를 사용합니다. 타임라인과 연속 기록장에서는 목차 옆 표시 개수·정렬을 사용하고, 더 보기로 5/10/20개씩 이어 읽습니다. 타임라인에서 전문을 읽고 원래 보기로 돌아와도 저장된 보기 설정은 바뀌지 않습니다. 목차와 검색으로 원하는 기록에 바로 이동하며, 새 AI 호출은 발생하지 않습니다.
-
-> AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
-
-[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
-
-아래에서 필요한 설정만 자세히 읽으세요. 지원 버전 기준이며 모든 기기·다른 확장 조합을 보장하는 것은 아닙니다.
-
-## 이런 분들께 추천합니다!
-
-- 복잡한 월드 인포 편집기 대신 독립 서재에서 로어를 읽거나 기존 통합 화면·Foldy를 함께 쓰고 싶은 분
-- 캐릭터·태그·즐겨찾기·표지·참고 이미지·이어 읽기로 방대한 로어를 정리하고, 원문과 저장 번역의 제목·키워드·본문을 검색하고 싶은 분
-- 카드파일·메모리·백과사전·인물록과 네 가지 서재 테마를 독립적으로 조합하고 창의 크기·위치를 조절하고 싶은 분
-- 본문·제목·호출 키워드를 번역하거나 원문과 번역을 따로 수정하고 여러 책을 일괄 번역·편집하고 싶은 분
-- 전체·상시 주입·선택 주입·벡터화 토큰과 항목 수를 확인하고 발동 방식에 따라 필터링하고 싶은 분
-- 자동·수동 백업, 현재 책 또는 새 책으로 복원, 원본 ZIP 내보내기를 사용하고 싶은 분
-- 저사양 서버·기기에서 통합 편집 화면 대신 기본 화면과 독립 서재를 사용하고 싶은 분
-
-원작의 통합 편집, 번역, 토큰 계산, 백업 기능은 유지합니다. 원작을 잘 사용하고 있다면 꼭 포크로 바꿀 필요는 없습니다.
-
-## 설치
-
-1. 기존 로어북과 번역 기록, SillyTavern 설정을 백업합니다.
-2. 확장 설치 메뉴에 <code>https://github.com/AmbasaS2/lore-manager</code> 를 입력합니다.
-3. 새로고침한 뒤 확장 탭의 **로어북 매니저**에서 설정하거나, 확장 메뉴에서 **로어북 매니저**를 눌러 독립 서재를 엽니다.
-
-원작과 이 포크를 동시에 실행하지 마세요. 기존 설치에서 전환할 때는 데이터를 유지하고 확장 코드만 교체하세요. 삭제·전체 초기화를 전환 방법으로 사용하지 마세요. SillyTavern 1.18 기반이며 다른 버전 및 확장 조합에서는 동작이 다를 수 있습니다.
-
-## 처음 한 번: 확장 관리에서 설정하기
+## 📖 사용 설명서
 
 확장 관리 → **로어북 매니저**를 펼쳐 주세요. 서재만 쓰실 분은 화면 · 고급 설정에서 기본 화면을 선택하고 서재를 열면 됩니다. 새 번역·통합 편집·백업 설정은 필요할 때 살펴보세요.
+
+### 1. 화면 표시 방식
+
+확장 탭 → 로어북 매니저 → **화면·고급 설정**에서 선택합니다.
+
+**실리태번 기본 화면**  
+기본 월드 인포 화면을 유지하고 필요할 때 독립 서재를 사용합니다.
+
+**로어북 매니저 통합 화면**  
+원작의 통합 편집 화면을 기반으로 로어를 관리합니다.
+
+**Foldy 연동 화면**  
+Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
+
+독립 서재는 위 표시 방식과 별도로 열 수 있습니다.
+
+### 2. 독립 서재
+
+확장 메뉴 또는 설정의 **독립 서재 열기**에서 실행합니다. 책을 검색하거나 태그로 필터링할 수 있습니다. 현재 캐릭터에 연결된 로어북만 볼 수도 있으며 연결된 책이 없다면 전체 목록을 표시합니다.
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
+
+책 태그 패널에서 즐겨찾기를 설정하면 서재 상단에 우선 표시됩니다.  
+서가 돋보기를 누르면 왼쪽에 같은 줄로 입력창이 나타납니다.  
+검색어를 입력한 뒤 같은 돋보기 또는 엔터로 검색하며, 바깥을 누르거나 Esc를 누르면 입력창이 닫힙니다.  
+입력하는 동안 검색하지 않고 엔터 또는 같은 돋보기로 제출할 때만 검색합니다.  
+서가는 책 이름과 전체 책의 원문·저장된 번역 제목·키워드·본문을 검색하고(항목 결과 최대 100개, AI 호출 없음), 책 내부에서는 같은 방식으로 해당 책만 검색합니다.  
+이어 읽기는 서가 설정 메뉴에서 사용할 수 있습니다.  
+원본 편집기 이동은 현재 정렬과 검색·필터를 따르며, 항목이 숨겨져 있다면 필터를 해제해야 합니다.  
+Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="카드파일·메모리·백과사전·인물록 · 예시 데이터" width="860"></p>
+
+**카드파일**  
+일반 설정, 규칙, 개별 사건
+
+**메모리**  
+시간순 기억, RP 기록: 타임라인·연속 기록장·페이지 넘김
+
+**백과사전**  
+세계관, 장소, 배경 정보
+
+**인물록**  
+캐릭터 소개, 인물 관계
+
+기존 로어북을 목적에 맞게 보여 주는 기능입니다. 보기 방식이나 태그를 바꿔도 실제 로어북의 주입 조건은 변경되지 않으며, 기억을 자동 생성하는 기능은 아닙니다.
+
+### 3. 로어 읽기와 수정
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-reader-guide-mobile.webp" alt="목차 탐색·원문과 번역 전환·로어 수정 메뉴" width="860"></p>
+
+- 책과 항목을 선택하고 원문 또는 저장된 번역문을 읽습니다.
+- 항목 목록을 5개·10개·20개씩 보고, 페이지 번호를 눌러 원하는 페이지로 이동할 수 있습니다.
+- **Order↑ / Order↓**(로어북 항목의 순서값 오름차순·내림차순), **제목↑ / 제목↓**(가나다·ABC·자연수 정렬)를 선택합니다. Order는 표시 순서(displayIndex)가 아닌 로어북의 실제 순서값 기준이며, 서재 표시만 바꾸므로 원본 및 AI 주입 설정은 변경하지 않습니다. Order가 없는 항목은 오름차순에서 뒤에 배치합니다.
+- 메모리·백과사전·인물록 열람 화면에서는 목차를 접을 수 있습니다.
+- **…** 메뉴에서 수정, 번역, 월드 인포의 해당 로어 열기, 참고 이미지 추가를 할 수 있습니다.
+- 책의 표지와 태그로 서재를 정리할 수 있습니다.
+
+호환되는 WorldInfo Info의 로어북 서가 연동 기능으로도 정확한 책과 항목을 열 수 있습니다. 별도 확장 설치는 독립 서재의 필수 조건이 아닙니다.
+
+> [!TIP]
+> 메모리는 기본 타임라인에서 시작하며 서재 톱니바퀴 설정의 메모리 보기 방식에서 타임라인·연속 기록장(전문)·페이지 넘김 중 선택할 수 있습니다. 타임라인은 저장된 Result(결과), 없으면 표시된 본문 미리보기를 사용합니다. 타임라인과 연속 기록장에서는 목차 옆 표시 개수·정렬을 사용하고, 더 보기로 5/10/20개씩 이어 읽습니다. 타임라인에서 전문을 읽고 원래 보기로 돌아와도 저장된 보기 설정은 바뀌지 않습니다. 목차와 검색으로 원하는 기록에 바로 이동하며, 새 AI 호출은 발생하지 않습니다.
+
+### 4. 테마와 서재 설정
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="맥북·블랙베리·E북 서재·클래식 아카이브" width="860"></p>
+
+맥북, 블랙베리, E북 서재, 클래식 아카이브의 네 가지 테마를 선택할 수 있습니다. 각 테마에는 네 가지 보기 방식에 맞춘 화면이 있습니다.
+
+<p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="서재 테마·표시 줄 수·캐릭터 연결 필터 설정" width="860"></p>
+
+상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다.  
+최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다.  
+설정에서 테마, 서가 표시 줄 수(1–3줄), 메모리 보기 방식, 연결된 로어북 필터를 조절합니다.  
+기존 설정 캡처에는 .79에서 추가된 메모리 보기 방식 항목이 아직 표시되지 않습니다.  
+좁은 화면과 넓은 화면의 창 크기와 마지막으로 드래그한 위치를 각각 기억합니다(위치 구분 기준: 레이아웃 화면 너비 760px).  
+서재를 다시 열면 저장된 위치를 화면 안에서 복원하며 화면 크기나 모바일 키보드에 따른 자동 위치 조정은 저장하지 않습니다.
+
+<details>
+<summary>선택 기능: 확장 관리의 세부 설정</summary>
 
 **번역 설정**  
 AI 전용 연결 프로필 또는 구글 번역(무료), AI 출력 토큰, 연결 테스트, 번역 대상(본문·제목·호출 키워드), 번역본 우선 표시, AI 번역 추가 지시, 자동 번역과 원문 자동 반영을 정합니다.
@@ -269,67 +346,9 @@ RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원
 
 서재 톱니바퀴에서 테마·표시 줄 수·메모리 보기 방식·캐릭터 연결 필터를 정하고, 책 안에서는 메모리·인물록·백과사전·카드파일 중 책의 분류를 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
 
-## 1. 화면 표시 방식
+</details>
 
-확장 탭 → 로어북 매니저 → **화면·고급 설정**에서 선택합니다.
-
-**실리태번 기본 화면**  
-기본 월드 인포 화면을 유지하고 필요할 때 독립 서재를 사용합니다.
-
-**로어북 매니저 통합 화면**  
-원작의 통합 편집 화면을 기반으로 로어를 관리합니다.
-
-**Foldy 연동 화면**  
-Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
-
-독립 서재는 위 표시 방식과 별도로 열 수 있습니다.
-
-## 2. 독립 서재
-
-확장 메뉴 또는 설정의 **독립 서재 열기**에서 실행합니다. 책을 검색하거나 태그로 필터링할 수 있습니다. 현재 캐릭터에 연결된 로어북만 볼 수도 있으며 연결된 책이 없다면 전체 목록을 표시합니다.
-
-책 태그 패널에서 즐겨찾기를 설정하면 서재 상단에 우선 표시됩니다. 서가 돋보기를 누르면 왼쪽에 같은 줄로 입력창이 나타납니다. 검색어를 입력한 뒤 같은 돋보기 또는 엔터로 검색하며, 바깥을 누르거나 Esc를 누르면 입력창이 닫힙니다. 입력하는 동안 검색하지 않고 엔터 또는 같은 돋보기로 제출할 때만 검색합니다. 서가는 책 이름과 전체 책의 원문·저장된 번역 제목·키워드·본문을 검색하고(항목 결과 최대 100개, AI 호출 없음), 책 내부에서는 같은 방식으로 해당 책만 검색합니다. 이어 읽기는 서가 설정 메뉴에서 사용할 수 있습니다. 원본 편집기 이동은 현재 정렬과 검색·필터를 따르며, 항목이 숨겨져 있다면 필터를 해제해야 합니다. Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
-
-<p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="카드파일·메모리·백과사전·인물록 · 예시 데이터" width="860"></p>
-
-**카드파일**  
-일반 설정, 규칙, 개별 사건
-
-**메모리**  
-시간순 기억, RP 기록: 타임라인·연속 기록장·페이지 넘김
-
-**백과사전**  
-세계관, 장소, 배경 정보
-
-**인물록**  
-캐릭터 소개, 인물 관계
-
-기존 로어북을 목적에 맞게 보여 주는 기능입니다. 보기 방식이나 태그를 바꿔도 실제 로어북의 주입 조건은 변경되지 않으며, 기억을 자동 생성하는 기능은 아닙니다.
-
-## 3. 테마와 서재 설정
-
-<p align="center"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="맥북·블랙베리·E북 서재·클래식 아카이브" width="860"></p>
-
-맥북, 블랙베리, E북 서재, 클래식 아카이브의 네 가지 테마를 선택할 수 있습니다. 각 테마에는 네 가지 보기 방식에 맞춘 화면이 있습니다.
-
-<p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="서재 테마·표시 줄 수·캐릭터 연결 필터 설정" width="860"></p>
-
-상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다. 최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다. 설정에서 테마, 서가 표시 줄 수(1–3줄), 메모리 보기 방식, 연결된 로어북 필터를 조절합니다. 기존 설정 캡처에는 .79에서 추가된 메모리 보기 방식 항목이 아직 표시되지 않습니다. 좁은 화면과 넓은 화면의 창 크기와 마지막으로 드래그한 위치를 각각 기억합니다(위치 구분 기준: 레이아웃 화면 너비 760px). 서재를 다시 열면 저장된 위치를 화면 안에서 복원하며 화면 크기나 모바일 키보드에 따른 자동 위치 조정은 저장하지 않습니다.
-
-## 4. 로어 읽기와 수정
-
-<p align="center"><img src="assets/readme/mobile/lore-manager-reader-guide-mobile.webp" alt="목차 탐색·원문과 번역 전환·로어 수정 메뉴" width="860"></p>
-
-- 책과 항목을 선택하고 원문 또는 저장된 번역문을 읽습니다.
-- 항목 목록을 5개·10개·20개씩 보고, 페이지 번호를 눌러 원하는 페이지로 이동할 수 있습니다.
-- **Order↑ / Order↓**(로어북 항목의 순서값 오름차순·내림차순), **제목↑ / 제목↓**(가나다·ABC·자연수 정렬)를 선택합니다. Order는 표시 순서(displayIndex)가 아닌 로어북의 실제 순서값 기준이며, 서재 표시만 바꾸므로 원본 및 AI 주입 설정은 변경하지 않습니다. Order가 없는 항목은 오름차순에서 뒤에 배치합니다.
-- 메모리·백과사전·인물록 열람 화면에서는 목차를 접을 수 있습니다.
-- **…** 메뉴에서 수정, 번역, 월드 인포의 해당 로어 열기, 참고 이미지 추가를 할 수 있습니다.
-- 책의 표지와 태그로 서재를 정리할 수 있습니다.
-
-호환되는 WorldInfo Info의 로어북 서가 연동 기능으로도 정확한 책과 항목을 열 수 있습니다. 별도 확장 설치는 독립 서재의 필수 조건이 아닙니다.
-
-## 5. 번역과 통합 편집
+### 5. 번역과 통합 편집
 
 원작의 통합 번역 편집 기능을 사용할 수 있습니다.
 
@@ -349,7 +368,7 @@ Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
 
 로어북 백업 메뉴에서 수동 또는 선택적 자동 백업, JSON 가져오기·내보내기, 개별 백업의 현재 책 복원 또는 새 책 복원, 개별 내보내기와 삭제를 사용합니다. 현재 책 복원 직전에 안전 백업을 만들며 원본 JSON ZIP 내보내기는 별개입니다. 데이터 초기화는 원본 로어북을 지우지 않지만 저장한 번역·브라우저 백업·확장 설정과 캐시 등을 삭제할 수 있으므로 버전 교체에는 사용하지 마세요.
 
-## 6. 저장과 백업
+### 6. 저장과 백업
 
 **원본 로어북**  
 기존 SillyTavern 로어북
@@ -396,6 +415,14 @@ Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
 네 가지 보기 방식, 네 가지 테마, 목차·검색·태그·표지·참고 이미지
 
 저사양 환경에서 제가 필요한 화면만 열어 사용하는 방식에 맞춘 변경입니다. 서버 성능뿐 아니라 브라우저 작업량도 영향을 미치므로 모든 환경에서 더 빠르다는 의미는 아닙니다. 격리된 Chromium 환경에서 PC·모바일 폭을 검증했지만 모든 실제 기기 및 확장 조합의 호환성을 보장하지는 않습니다.
+
+## 🧩 함께 쓰면 좋은 확장
+
+> AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
+
+[STLO](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Memory Books / 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info / 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
+
+아래에서 필요한 설정만 자세히 읽으세요. 지원 버전 기준이며 모든 기기·다른 확장 조합을 보장하는 것은 아닙니다.
 
 ## 원작자 및 라이선스
 
