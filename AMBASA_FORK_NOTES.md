@@ -1,5 +1,8 @@
 # 로어북 매니저 · AmbasaS2 베타 변경 기록
 
+## Branding update (2026-11-26)
+- Display name: Sloth the Lorebook Manager (로어북 매니저 나무늘보씨). Only product branding and its settings header change; existing library menu, storage, identifiers and controls remain unchanged.
+
 ## v1.4.85-ambasa.80 · 2026-11-26 · PC/모바일 서재 창 위치 기억
 
 - **정본/원인:** .79 main `6aec68c75b2b31ccf1ebbbae960dc0f2e0a59dbc`. 창 크기는 wide/narrow별로 저장하던 반면 독립 서재를 다시 열 때 위치는 중앙으로 초기화됨.
