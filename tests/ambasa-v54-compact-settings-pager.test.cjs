@@ -65,7 +65,7 @@ async function fixture({ theme = 'antique', type = 'world', size = 5, records = 
     return { dom, win, q, all, click, change, load, state, stats };
 }
 
-test('settings retains theme and linked-book controls plus compact shelf row preference', async () => {
+test('settings retains theme and linked-book controls plus compact shelf row and memory view preferences', async () => {
     const f = await fixture();
     try {
         const panel = f.q('.slb-library-settings-panel');
@@ -78,7 +78,8 @@ test('settings retains theme and linked-book controls plus compact shelf row pre
             '연결된 로어북이 없으면 모든 책이 표시됩니다.');
         assert.equal(panel.querySelector('#slb-library-page-size'), null);
         assert.equal(panel.querySelector('.slb-library-page-size-select'), null);
-        assert.equal(panel.querySelectorAll('select').length, 2);
+        assert.equal(panel.querySelectorAll('select').length, 3);
+        assert.deepEqual([...panel.querySelector('#slb-library-memory-view').options].map(x=>x.value), ['continuous','timeline','page']);
         assert.deepEqual([...panel.querySelector('#slb-library-shelf-rows').options].map(x=>x.value), ['1','2','3']);
         assert.equal(panel.querySelector('#slb-library-theme-mode').value, 'antique');
         assert.equal(f.stats.settingWrites, 0);

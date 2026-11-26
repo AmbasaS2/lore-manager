@@ -780,6 +780,19 @@ export function createStandaloneLibrary({
         }
         shelfRowsSelect.value = String([1, 2, 3].includes(Number(getShelfRows())) ? getShelfRows() : 3);
         shelfRowsLabel.append(shelfRowsSelect);
+        const memoryViewLabel = element(doc, 'label', 'slb-library-memory-view-setting');
+        memoryViewLabel.htmlFor = 'slb-library-memory-view';
+        memoryViewLabel.append(element(doc, 'span', '', '메모리 보기 방식'));
+        const memoryViewSelect = element(doc, 'select', 'slb-library-memory-view-select');
+        memoryViewSelect.id = 'slb-library-memory-view';
+        memoryViewSelect.setAttribute('aria-label', '메모리 보기 방식');
+        for (const [value, label] of [['continuous', '연속 기록장'], ['timeline', '타임라인'], ['page', '페이지 넘김']]) {
+            const option = element(doc, 'option', '', label);
+            option.value = value;
+            memoryViewSelect.append(option);
+        }
+        memoryViewSelect.value = preferredMemoryView();
+        memoryViewLabel.append(memoryViewSelect);
         const linkedLabel = element(doc, 'label', 'slb-library-linked-setting');
         const linkedCheck = element(doc, 'input');
         linkedCheck.type = 'checkbox';
@@ -790,7 +803,7 @@ export function createStandaloneLibrary({
             '연결된 로어북이 없으면 모든 책이 표시됩니다.');
         const resume = button(doc, 'slb-library-resume-search-action', '이어 읽기', 'resume-reading');
         resume.hidden = true;
-        settingsPanel.append(settingsHeading, appearance, shelfRowsLabel, linkedLabel, linkedHint, resume);
+        settingsPanel.append(settingsHeading, appearance, shelfRowsLabel, memoryViewLabel, linkedLabel, linkedHint, resume);
         navigation.append(navTop, navTools);
         const body = element(doc, 'main', 'slb-library-body');
         // Keep the structural footer hook for existing layouts without
@@ -847,6 +860,8 @@ export function createStandaloneLibrary({
         const panel = overlay.querySelector('#slb-library-settings-panel');
         if (panel) {
             panel.hidden = !settingsOpen;
+            const memoryPicker = panel.querySelector('#slb-library-memory-view');
+            if (memoryPicker && !appearanceSaving) memoryPicker.value = preferredMemoryView();
             const resume = panel.querySelector('[data-action="resume-reading"]');
             if (resume) {
                 resume.hidden = Boolean(currentBook || !recent || !bookNames.includes(recent.book));
@@ -2065,7 +2080,6 @@ export function createStandaloneLibrary({
             return;
         }
         if (type === 'memory') {
-            renderMemoryViewControls(inner);
             renderDiary(inner, found);
         }
         else if (type === 'world') renderIndex(inner, found, 'world');
@@ -2165,19 +2179,6 @@ export function createStandaloneLibrary({
             || doc.defaultView.innerWidth || 1024;
         return getTheme() === 'antique' && readerWidth > 710 ? 2 : 1;
     }
-    function renderMemoryViewControls(body) {
-        const bar = element(doc, 'div', 'slb-library-memory-views');
-        bar.setAttribute('role', 'group');
-        bar.setAttribute('aria-label', '메모리 열람 방식');
-        for (const [mode, label] of [['continuous', '연속 기록장'], ['timeline', '타임라인'], ['page', '페이지 넘김']]) {
-            const control = button(doc, '', label, 'memory-view');
-            control.dataset.mode = mode;
-            control.setAttribute('aria-pressed', String(memoryView === mode));
-            bar.append(control);
-        }
-        if (memoryView !== 'page') bar.append(pageOptions());
-        body.append(bar);
-    }
     function memoryRecord(entry, index) {
         const uid = String(entry.uid);
         const record = element(doc, 'section', 'slb-library-memory-record');
@@ -2244,8 +2245,7 @@ export function createStandaloneLibrary({
         if (memoryView === 'page') return diaryIndex;
         const scroller = overlay?.querySelector('.slb-library-body');
         if (!scroller) return diaryIndex;
-        const top = Math.max(scroller.getBoundingClientRect().top,
-            scroller.querySelector('.slb-library-memory-views')?.getBoundingClientRect().bottom || 0);
+        const top = scroller.getBoundingClientRect().top;
         // Measure only on an explicit view switch, not on scrolling or chat events.
         const records = [...scroller.querySelectorAll('.slb-library-memory-record')];
         const visible = records.find(record => record.getBoundingClientRect().bottom > top);
@@ -2262,26 +2262,10 @@ export function createStandaloneLibrary({
             .find(node => node.dataset.uid === uid);
         record?.scrollIntoView?.({ block: 'start', behavior: 'auto' });
     }
-    async function changeMemoryView(mode, index = null, persist = true) {
-        if (!memoryViews.includes(mode) || (memoryView === mode && index === null)
-            || !discardOrStay({ allowTags: true })) return;
-        const found = filtered();
-        if (!found.length) return;
-        const targetIndex = index ?? memoryAnchorIndex();
-        if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= found.length) return;
-        const previous = memoryView;
-        const book = currentBook;
-        if (persist) {
-            appearanceSaving = true;
-            try { await setMemoryView(mode); }
-            catch (error) {
-                notifyStatus('메모리 보기 저장 실패: ' + (error?.message || error), 'error');
-                return;
-            } finally { appearanceSaving = false; }
-            if (!isOpen() || currentBook !== book || memoryView !== previous) return;
-        }
+    function applyMemoryView(mode, targetIndex) {
         closeReaderTools();
         resetEdit();
+        const previous = memoryView;
         memoryView = mode;
         if (mode !== 'page' && previous === 'page') memoryTocCollapsed = true;
         diaryIndex = targetIndex;
@@ -2290,13 +2274,68 @@ export function createStandaloneLibrary({
         renderBook();
         scrollMemoryAnchor();
     }
+    function changeMemoryView(mode, index = null) {
+        if (!memoryViews.includes(mode) || (memoryView === mode && index === null)
+            || !discardOrStay({ allowTags: true })) return;
+        const found = filtered();
+        const targetIndex = index ?? memoryAnchorIndex();
+        if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= found.length) return;
+        applyMemoryView(mode, targetIndex);
+    }
+    async function updateMemoryViewPreference(mode) {
+        const picker = overlay?.querySelector('#slb-library-memory-view');
+        if (!picker) return;
+        const preferred = preferredMemoryView();
+        if (!isOpen() || appearanceSaving || !memoryViews.includes(mode)) {
+            picker.value = preferred;
+            return;
+        }
+        if (mode === preferred) return;
+        const activeMemory = currentData && getType(currentBook) === 'memory';
+        const needsViewChange = activeMemory && mode !== memoryView;
+        if (needsViewChange && !discardOrStay({ allowTags: true })) {
+            picker.value = preferred;
+            return;
+        }
+        // A saved preference also works on the shelf and on non-memory books.
+        // Only an open memory reader with a different view needs a rerender.
+        const targetIndex = needsViewChange && filtered().length ? memoryAnchorIndex() : null;
+        const book = currentBook;
+        const previous = memoryView;
+        appearanceSaving = true;
+        picker.disabled = true;
+        try {
+            await setMemoryView(mode);
+            if (!isOpen() || currentBook !== book || memoryView !== previous) return;
+            if (targetIndex !== null) applyMemoryView(mode, targetIndex);
+            else if (!activeMemory || needsViewChange) memoryView = mode;
+            // If a temporary page becomes the saved preference, remove its
+            // now-unnecessary return link without replacing an edited entry.
+            else overlay.querySelector('[data-action="memory-return"]')?.remove();
+        } catch (error) {
+            notifyStatus('메모리 보기 저장 실패: ' + (error?.message || error), 'error');
+        } finally {
+            appearanceSaving = false;
+            picker.disabled = false;
+            picker.value = preferredMemoryView();
+        }
+    }
     function renderDiary(body, found) {
         diaryIndex = Math.min(Math.max(0, diaryIndex), found.length - 1);
         const info = pageData(found.length, diaryTocPage);
         diaryTocPage = info.page;
         const frame = element(doc, 'div', 'slb-library-paged-contents slb-library-diary-toc');
         frame.id = 'slb-library-memory-toc';
-        frame.append(inlineTocHeading('memory', memoryTocCollapsed));
+        const heading = inlineTocHeading('memory', memoryTocCollapsed);
+        heading.classList.add('slb-library-memory-heading');
+        if (memoryView !== 'page') heading.append(pageOptions());
+        else if (preferredMemoryView() !== 'page') {
+            const back = button(doc, 'slb-library-memory-return', '‹ 타임라인', 'memory-return');
+            back.textContent = preferredMemoryView() === 'continuous' ? '‹ 연속 기록장' : '‹ 타임라인';
+            back.setAttribute('aria-label', back.textContent.slice(2) + '으로 돌아가기');
+            heading.append(back);
+        }
+        frame.append(heading);
         const contents = element(doc, 'div', 'slb-library-paged-list');
         contents.id = 'slb-library-memory-contents';
         contents.hidden = memoryTocCollapsed;
@@ -2952,10 +2991,10 @@ export function createStandaloneLibrary({
                 diaryTocPage = Math.max(0, Math.min(jumpTo(diaryTocPage), lastPage));
             }
             renderBook();
-        } else if (action === 'memory-view') {
-            void changeMemoryView(target.dataset.mode);
+        } else if (action === 'memory-return') {
+            changeMemoryView(preferredMemoryView());
         } else if (action === 'memory-open-page') {
-            void changeMemoryView('page', Number(target.dataset.index), false);
+            changeMemoryView('page', Number(target.dataset.index));
         } else if (action === 'memory-more' || action === 'memory-more-prev') {
             extendMemoryStream(action === 'memory-more-prev');
         } else if (action === 'diary-entry') {
@@ -3041,6 +3080,10 @@ export function createStandaloneLibrary({
                 shelfRows = [1, 2, 3].includes(Number(getShelfRows())) ? Number(getShelfRows()) : 3;
                 bookList();
             }
+            return;
+        }
+        if (event.target?.id === 'slb-library-memory-view') {
+            void updateMemoryViewPreference(event.target.value);
             return;
         }
         if (event.target?.id === 'slb-library-shelf-rows') {

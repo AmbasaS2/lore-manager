@@ -204,5 +204,5 @@ test('only explicit resize paths save size; CSS, data and watcher contracts rema
     assert.doesNotMatch(js, /new MutationObserver|new ResizeObserver/);
     assert.match(index, /libraryWindowSizes: \{\}/);
     assert.match(index, /saveSettingsDebounced\(\);/);
-    assert.equal(manifest.version, '1.4.85-ambasa.78');
+    assert.equal(manifest.version, '1.4.85-ambasa.79');
 });

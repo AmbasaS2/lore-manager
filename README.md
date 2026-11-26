@@ -4,7 +4,7 @@ A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverh
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.78 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.79 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -15,7 +15,7 @@ The original extension provides the foundation for lorebook editing, translation
 
 ## Start here — Lorebook Manager in five minutes
 
-**Current version: 1.4.85-ambasa.78.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
+**Current version: 1.4.85-ambasa.79.** A library for the lorebooks you already have. Open the independent library to find, read and organize entries without changing activation rules. The original integrated editor remains available for translation, batch editing and backups.
 
 <p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="860"></p>
 
@@ -31,7 +31,7 @@ The original extension provides the foundation for lorebook editing, translation
 ### Works alone, better together
 
 > [!TIP]
-Memory opens in Timeline by default; use the three view buttons to switch to continuous full text or the original page reader. Timeline shows the saved Result when available, otherwise a labeled excerpt. Load more in 5/10/20-record batches; the TOC and search still jump to specific records. No new AI request is made.
+Memory opens in Timeline by default; choose continuous full text or the original page reader in the library settings (gear icon). Timeline shows the saved Result when available, otherwise a labeled excerpt. Load more in 5/10/20-record batches; the TOC and search still jump to specific records. No new AI request is made.
 
 > The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
 
@@ -176,7 +176,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.78 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.79 (원작 1.4.85 기반)
 
 <p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="860"></p>
 
@@ -185,7 +185,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ## 먼저 읽어 보세요 · 처음 사용하는 분을 위한 5분 안내
 
-**현재 버전: 1.4.85-ambasa.78.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
+**현재 버전: 1.4.85-ambasa.79.** 지금 가진 로어북을 그대로 읽는 나만의 서재입니다. 독립 서재에서 로어를 찾고 읽고 정리하며 주입 설정을 바꿀 필요가 없습니다. 번역·일괄 편집·백업에는 기존 통합 편집기도 사용할 수 있습니다.
 
 **처음 한 번만 설정하기**
 
@@ -199,7 +199,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 ### 단독으로도 충분하고, 함께 쓰면 더 편리합니다
 
 > [!TIP]
-메모리는 기본 타임라인에서 시작하며 연속 기록장(전문) 또는 페이지 넘김으로 바꿀 수 있습니다. 타임라인은 저장된 Result(결과), 없으면 표시된 본문 미리보기를 사용합니다. 더 보기로 5/10/20개씩 이어 읽고, 목차와 검색으로 원하는 기록에 바로 이동합니다. 새 AI 호출은 발생하지 않습니다.
+메모리는 기본 타임라인에서 시작하며 서재 톱니바퀴 설정의 메모리 보기 방식에서 연속 기록장(전문) 또는 페이지 넘김으로 바꿀 수 있습니다. 타임라인은 저장된 Result(결과), 없으면 표시된 본문 미리보기를 사용합니다. 더 보기로 5/10/20개씩 이어 읽고, 목차와 검색으로 원하는 기록에 바로 이동합니다. 새 AI 호출은 발생하지 않습니다.
 
 > AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
 
@@ -245,7 +245,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 RP 중 확장 메뉴 → 로어북 매니저 → 원하는 책과 항목 → 원문 또는 번역 읽기 → 필요할 때 수정.
 
-서재 톱니바퀴에서 테마·표시 줄 수·캐릭터 연결 필터를 정하고, 책 안에서 메모리·인물록·백과사전·카드파일 중 보기 방식을 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
+서재 톱니바퀴에서 테마·표시 줄 수·메모리 보기 방식·캐릭터 연결 필터를 정하고, 책 안에서 메모리·인물록·백과사전·카드파일 중 보기 방식을 선택합니다. 호출 키워드와 주입 조건을 관리할 때는 실리태번 상단 월드 인포 화면 또는 통합 화면을 이용하세요.
 
 ## 1. 화면 표시 방식
 
