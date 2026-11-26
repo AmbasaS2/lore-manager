@@ -136,6 +136,8 @@ export function createStandaloneLibrary({
     setTheme = async () => {},
     getWindowSize = () => null,
     setWindowSize = () => {},
+    getWindowPosition = () => null,
+    setWindowPosition = () => {},
     getShelfRows = () => 3,
     setShelfRows = async () => {},
     getListPageSize = () => 5,
@@ -938,6 +940,38 @@ export function createStandaloneLibrary({
         floatingSize = { width, height };
         return { width, height, left, top };
     }
+    // Classify by the layout viewport, not the visual viewport: zoom and
+    // the mobile keyboard must not switch the saved position profile.
+    function narrowWindowPositionProfile() {
+        return (doc.defaultView.innerWidth || doc.documentElement.clientWidth
+            || visibleLibraryViewport().width) <= 760;
+    }
+    function rememberWindowPosition(shell, narrow) {
+        const left = Number.parseFloat(shell.style.left);
+        const top = Number.parseFloat(shell.style.top);
+        if (!floatingSize || !Number.isFinite(left) || !Number.isFinite(top)) return;
+        try {
+            setWindowPosition({
+                centerX: left + floatingSize.width / 2,
+                centerY: top + floatingSize.height / 2,
+            }, narrow);
+        } catch {
+            notifyStatus('서재 창 위치를 저장하지 못했습니다.', 'warning');
+        }
+    }
+    function restoreFloatingShell(shell) {
+        const vp = visibleLibraryViewport();
+        const rect = shell.getBoundingClientRect();
+        const preferred = getWindowSize(vp.width <= 760);
+        const position = getWindowPosition(narrowWindowPositionProfile());
+        const hasPosition = Number.isFinite(position?.centerX) && Number.isFinite(position?.centerY);
+        movedByUser = hasPosition;
+        placeFloatingShell(shell,
+            preferred?.width ?? Math.min(460, vp.width - 20),
+            preferred?.height ?? (rect.height || Math.min(785, vp.height - 32)),
+            hasPosition ? position.centerX : vp.left + vp.width / 2,
+            hasPosition ? position.centerY : vp.top + vp.height / 2);
+    }
     function beginHeaderDrag(event) {
         if (!isOpen() || event.button !== 0 && event.pointerType !== 'touch') return;
         if (event.target.closest('button, input, select, textarea, a, [contenteditable="true"], [data-no-drag]')) return;
@@ -948,6 +982,7 @@ export function createStandaloneLibrary({
         const deltaX = event.clientX - rect.left, deltaY = event.clientY - rect.top;
         const startX=event.clientX, startY=event.clientY;
         const win=doc.defaultView;
+        const narrow = narrowWindowPositionProfile();
         dragCleanup?.();
         event.preventDefault();
         let shifted=false;
@@ -967,6 +1002,9 @@ export function createStandaloneLibrary({
         };
         const end = e => {
             if (e?.pointerId !== event.pointerId) return;
+            if (shifted && e.type === 'pointerup' && narrow === narrowWindowPositionProfile()) {
+                rememberWindowPosition(shell, narrow);
+            }
             dragCleanup?.();
             dragCleanup = null;
         };
@@ -3284,13 +3322,7 @@ export function createStandaloneLibrary({
         doc.body.append(overlay);
         // Convert the flex/grid centered initial rectangle to viewport-fixed
         // pixels *before* any drag, avoiding a positioning-mode jump.
-        const vp = visibleLibraryViewport();
-        const rect = shell.getBoundingClientRect();
-        const preferred = getWindowSize(vp.width <= 760);
-        placeFloatingShell(shell,
-            preferred?.width ?? Math.min(460, vp.width - 20),
-            preferred?.height ?? (rect.height || Math.min(785, vp.height - 32)),
-            vp.left + vp.width / 2, vp.top + vp.height / 2);
+        restoreFloatingShell(shell);
         bindLibraryViewport();
         syncAppearanceControls();
         setSettingsOpen(false);

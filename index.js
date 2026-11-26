@@ -29,7 +29,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.78';
+const VERSION = '1.4.85-ambasa.80';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -131,6 +131,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     libraryListOrder: 'normal',
     libraryMemoryView: 'timeline',
     libraryWindowSizes: {},
+    libraryWindowPositions: {},
     libraryFavorites: [],
     libraryRecent: null,
     autoBackupEnabled: false,
@@ -389,6 +390,8 @@ function getSettings() {
         settings.libraryMemoryView = 'timeline';
     if (!settings.libraryWindowSizes || typeof settings.libraryWindowSizes !== 'object'
         || Array.isArray(settings.libraryWindowSizes)) settings.libraryWindowSizes = {};
+    if (!settings.libraryWindowPositions || typeof settings.libraryWindowPositions !== 'object'
+        || Array.isArray(settings.libraryWindowPositions)) settings.libraryWindowPositions = {};
     if (!Array.isArray(settings.libraryFavorites)) settings.libraryFavorites = [];
     if (settings.libraryRecent && (typeof settings.libraryRecent.book !== 'string'
         || !/^\d+$/.test(String(settings.libraryRecent.uid)))) settings.libraryRecent = null;
@@ -9752,6 +9755,19 @@ function initStandaloneLibrary() {
             const settings = getSettings();
             settings.libraryWindowSizes[narrow ? 'narrow' : 'wide'] = {
                 width: Math.round(size.width), height: Math.round(size.height),
+            };
+            saveSettingsDebounced();
+        },
+        getWindowPosition: narrow => {
+            const value = getSettings().libraryWindowPositions[narrow ? 'narrow' : 'wide'];
+            return value && Number.isFinite(value.centerX) && Number.isFinite(value.centerY)
+                ? { centerX: value.centerX, centerY: value.centerY } : null;
+        },
+        setWindowPosition: (position, narrow) => {
+            if (!position || !Number.isFinite(position.centerX) || !Number.isFinite(position.centerY)) return;
+            const settings = getSettings();
+            settings.libraryWindowPositions[narrow ? 'narrow' : 'wide'] = {
+                centerX: Math.round(position.centerX), centerY: Math.round(position.centerY),
             };
             saveSettingsDebounced();
         },
