@@ -39,7 +39,6 @@ The original editing, translation, token and backup tools are still available. I
 <details>
 <summary>View the workflow</summary>
 
-<p align="center"><img src="assets/readme/mobile/quickstart-and-integration-mobile.svg" alt="Bilingual mobile quick-start and optional integrations" width="520"></p>
 
 </details>
 
@@ -53,6 +52,8 @@ The original editing, translation, token and backup tools are still available. I
 4. Read the original or saved translation. Use the entry … menu to edit, translate or jump to the native editor. Set a translation provider only if you need new translations.
 
 ## 📖 How to use
+
+> Screenshots show the installed extension in an isolated SillyTavern 1.19.1 test instance with sample lorebooks. No external AI request or personal chat data was used.
 
 Open **Extensions → 로어북 매니저 리딩 누크**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
 
@@ -75,13 +76,13 @@ The independent library is separate from these choices.
 
 Open the library from the extension menu or the settings panel. Search and filter books by tags or show books linked to the current character. If no linked books are found, the linked-only view falls back to all books.
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="Independent lore library and memory reader; example lorebooks" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/actual-library.jpg" alt="Actual independent lore library, example books" width="380" /></p>
 
 Use the book tag panel to mark favorites; favorited books appear first in the shelf. Open the shelf magnifier to reveal a field on its left, enter a term, then press the same magnifier or Enter. Click outside the search controls or press Escape to dismiss the field. Typing alone does not search; submit with Enter or the same magnifier. Shelf search includes book names and original/saved translated titles, keywords and content (up to 100 entry results, no AI calls). The same submit-only search inside a book searches that book. Resume Reading is available in the shelf settings menu. Native-editor entry jumps respect the current search/filter and sort; clear filters if the entry is hidden. Foldy retains its own page navigation.
 
 Choose a reading format for each book:
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="Four reading formats rendered with sample records" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="Reading formats — existing UI screenshots with example records" width="380" /></p>
 
 **Card file (카드파일)**  
 General settings, rules and individual records
@@ -99,7 +100,7 @@ These are presentation formats for existing lorebook entries, not new lorebook t
 
 ### 3. Read and edit records
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-reader-guide-mobile.webp" alt="Record reading, original and translated text, table of contents and editing controls" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/actual-reader.jpg" alt="Actual lore reader, example entry" width="380" /></p>
 
 - Select a book and entry. Switch between the original text and an available translation.
 - Browse 5, 10 or 20 entries per list page. Use the navigation buttons or click the page number to jump; sort by numerical World Info Order ascending/descending (**Order↑ / Order↓**) or by title. This is a reading order only; it does not change the lorebook or its injection settings. Missing/non-numeric Order values follow numeric ones in ascending order; descending reverses the list.
@@ -114,11 +115,11 @@ The fork also exposes a book/entry UID bridge for compatible WorldInfo Info inte
 
 ### 4. Themes and window settings
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="MacBook, BlackBerry, E-book Library and Classic Archive themes" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="Four themes — existing UI screenshots" width="380" /></p>
 
 Choose from **MacBook, BlackBerry, E-book Library and Classic Archive**. Each theme has layouts for the four reading formats.
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="Library settings, window controls and book filters" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/actual-library-settings.jpg" alt="Actual library settings" width="380" /></p>
 
 Use the window header to move the library, resize it from the corner, minimize it to a small launcher, or close it. The settings button changes the theme, number of visible shelf rows (1–3), memory reading mode and character-linked filtering. The existing settings screenshot predates the addition of the memory reading mode in .79. Window dimensions and the last dragged window position are remembered separately for wide and narrow screens (760 px layout-width threshold for position). Reopening the library restores its saved position within the visible screen; automatic viewport or keyboard adjustments do not overwrite it.
 
@@ -243,6 +244,8 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 ## 📖 사용 설명서
 
+> 아래 화면은 실리태번 1.19.1 테스트 환경에서 실제 확장을 열어 예시 로어북으로 캡처했습니다. 외부 AI 호출이나 개인 대화 데이터는 사용하지 않았습니다.
+
 확장 관리 → **로어북 매니저**를 펼쳐 주세요. 서재만 쓰실 분은 화면 · 고급 설정에서 기본 화면을 선택하고 서재를 열면 됩니다. 새 번역·통합 편집·백업 설정은 필요할 때 살펴보세요.
 
 ### 1. 화면 표시 방식
@@ -264,7 +267,7 @@ Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
 
 확장 메뉴 또는 설정의 **독립 서재 열기**에서 실행합니다. 책을 검색하거나 태그로 필터링할 수 있습니다. 현재 캐릭터에 연결된 로어북만 볼 수도 있으며 연결된 책이 없다면 전체 목록을 표시합니다.
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-preview-mobile.webp" alt="독립 서재와 메모리 열람 화면 · 예시 로어북" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/actual-library.jpg" alt="Actual independent lore library, example books" width="380" /></p>
 
 책 태그 패널에서 즐겨찾기를 설정하면 서재 상단에 우선 표시됩니다.  
 서가 돋보기를 누르면 왼쪽에 같은 줄로 입력창이 나타납니다.  
@@ -275,7 +278,7 @@ Foldy 설치 환경에서 선택할 수 있는 연동 모드입니다.
 원본 편집기 이동은 현재 정렬과 검색·필터를 따르며, 항목이 숨겨져 있다면 필터를 해제해야 합니다.  
 Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="카드파일·메모리·백과사전·인물록 · 예시 데이터" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/lore-manager-book-types-mobile.webp" alt="Reading formats — existing UI screenshots with example records" width="380" /></p>
 
 **카드파일**  
 일반 설정, 규칙, 개별 사건
@@ -293,7 +296,7 @@ Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
 
 ### 3. 로어 읽기와 수정
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-reader-guide-mobile.webp" alt="목차 탐색·원문과 번역 전환·로어 수정 메뉴" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/actual-reader.jpg" alt="Actual lore reader, example entry" width="380" /></p>
 
 - 책과 항목을 선택하고 원문 또는 저장된 번역문을 읽습니다.
 - 항목 목록을 5개·10개·20개씩 보고, 페이지 번호를 눌러 원하는 페이지로 이동할 수 있습니다.
@@ -309,11 +312,11 @@ Foldy의 페이지 이동은 Foldy 자체 동작을 유지합니다.
 
 ### 4. 테마와 서재 설정
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="맥북·블랙베리·E북 서재·클래식 아카이브" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/lore-manager-themes-mobile.webp" alt="Four themes — existing UI screenshots" width="380" /></p>
 
 맥북, 블랙베리, E북 서재, 클래식 아카이브의 네 가지 테마를 선택할 수 있습니다. 각 테마에는 네 가지 보기 방식에 맞춘 화면이 있습니다.
 
-<p align="center"><img src="assets/readme/mobile/lore-manager-settings-guide-mobile.webp" alt="서재 테마·표시 줄 수·캐릭터 연결 필터 설정" width="520"></p>
+<p align="left"><img src="assets/readme/mobile/actual-library-settings.jpg" alt="Actual library settings" width="380" /></p>
 
 상단을 드래그해 창을 이동하거나 모서리로 크기를 조절할 수 있습니다.  
 최소화하면 작은 실행 버튼으로 돌아가고, 닫기 버튼으로 종료합니다.  
