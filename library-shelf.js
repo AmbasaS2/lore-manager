@@ -231,6 +231,7 @@ export function createStandaloneLibrary({
     let appearanceSaving = false;
     let minimized = false;
     let pendingExternalWorldUpdate = null;
+    let pendingExternalWorldFlush = false;
     let minimizedLauncherPosition = null;
     let minimizedDragCleanup = null;
     let ignoreMinimizedClick = false;
@@ -425,7 +426,25 @@ export function createStandaloneLibrary({
         }
         return !hasPendingEdit({ allowTags }) || doc.defaultView.confirm(uiText("저장하지 않은 수정 사항이 있습니다. 변경 내용을 버리고 이동하시겠습니까?"));
     }
-    function resetEdit() { edit = null; }
+    function flushPendingExternalWorldUpdate() {
+        if (!isOpen() || minimized || edit || saving) return;
+        const pending = pendingExternalWorldUpdate;
+        pendingExternalWorldUpdate = null;
+        if (pending?.book === currentBook) onExternalWorldUpdate(pending.book, pending.data);
+    }
+    function queuePendingExternalWorldUpdate() {
+        if (!pendingExternalWorldUpdate || pendingExternalWorldFlush) return;
+        pendingExternalWorldFlush = true;
+        queueMicrotask(() => {
+            pendingExternalWorldFlush = false;
+            flushPendingExternalWorldUpdate();
+        });
+    }
+    function resetEdit() {
+        edit = null;
+        // Navigation and rendering finish before a deferred save can redraw.
+        queuePendingExternalWorldUpdate();
+    }
     function placeMinimizedLauncher(left, top) {
         const launcher = overlay?.querySelector('.slb-library-minimized-launcher');
         if (!launcher) return;
@@ -484,9 +503,7 @@ export function createStandaloneLibrary({
             }
             // Coalesce saves while hidden and update the reader once when restored.
             // Match replacement scroll containers by their original selector order.
-            const pending = pendingExternalWorldUpdate;
-            pendingExternalWorldUpdate = null;
-            if (pending) onExternalWorldUpdate(pending.book, pending.data);
+            flushPendingExternalWorldUpdate();
             const restoredScrollNodes = [...shell.querySelectorAll(
                 '.slb-library-body, .slb-library-books-scroll, ' +
                 '.slb-library-app-reading-screen, .slb-library-index, ' +
@@ -2696,6 +2713,7 @@ export function createStandaloneLibrary({
             notifyStatus(uiText("이미지 저장 실패: ") + (error?.message || error), 'error');
         } finally {
             saving = false;
+            queuePendingExternalWorldUpdate();
         }
     }
     async function clearEntryImage(uid) {
@@ -2714,6 +2732,7 @@ export function createStandaloneLibrary({
             notifyStatus(uiText("이미지 연결 해제 실패: ") + (error?.message || error), 'error');
         } finally {
             saving = false;
+            queuePendingExternalWorldUpdate();
         }
     }
     function showEntry(uid) {
@@ -2786,6 +2805,7 @@ export function createStandaloneLibrary({
             notifyStatus(uiText("저장 실패: ") + (error.message || error), 'error');
         } finally {
             saving = false;
+            queuePendingExternalWorldUpdate();
         }
     }
     async function runTranslate(uid) {
@@ -2813,6 +2833,7 @@ export function createStandaloneLibrary({
             notifyStatus(uiText("AI 번역 실패: ") + (error.message || error), 'error');
         } finally {
             saving = false;
+            queuePendingExternalWorldUpdate();
         }
     }
     function toggleView(uid) {
@@ -2936,7 +2957,7 @@ export function createStandaloneLibrary({
                 if (favorites.has(book) && !mark) summary?.append(element(doc, 'span', 'slb-library-favorite-mark', '★'));
                 else if (!favorites.has(book)) mark?.remove();
             } catch (error) { notifyStatus(uiText("즐겨찾기 저장 실패: ") + (error?.message || error), 'error'); }
-            finally { saving = false; }
+            finally { saving = false; queuePendingExternalWorldUpdate(); }
         }
         else if (['memory-toc-toggle', 'world-toc-toggle', 'people-toc-toggle'].includes(action)) {
             const isMemory = action === 'memory-toc-toggle';
@@ -3330,6 +3351,7 @@ export function createStandaloneLibrary({
         selectedUid = null;
         query = '';
         saving = false;
+        queuePendingExternalWorldUpdate();
         edit = null;
         ++loadVersion;
         const shell = createShell();
@@ -3353,15 +3375,14 @@ export function createStandaloneLibrary({
     }
     function onExternalWorldUpdate(book, data) {
         if (!isOpen() || book !== currentBook || !data?.entries) return;
-        if (minimized && !edit && !saving) {
-            // Keep only the latest authoritative save; no hidden indexing or DOM work.
+        if (minimized || edit || saving) {
+            // Coalesce to the newest authoritative update, even during an edit.
+            // Never replace the active draft or redraw the minimized reader.
             pendingExternalWorldUpdate = { book, data };
+            if (edit || saving) notifyStatus(uiText("다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요."), 'warning');
             return;
         }
-        if (edit || saving) {
-            notifyStatus(uiText("다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요."), 'warning');
-            return;
-        }
+        pendingExternalWorldUpdate = null;
         const next = Object.values(data.entries).filter(entry => entry && typeof entry.content === 'string');
         // Compare the fields the reader actually uses, not full lore JSON.
         // ST may mutate the same entry object, so retain immutable field snapshots.
