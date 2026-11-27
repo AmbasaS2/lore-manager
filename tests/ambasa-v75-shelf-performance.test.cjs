@@ -127,3 +127,31 @@ test('native jump ignores old-book rows sharing a UID and navigates to the corre
         assert.equal(old.dataset.open,undefined);assert.deepEqual(notifications,[]);assert.equal(w.state.libraryAdvancedCancel,null);
     }finally{w.state.libraryAdvancedCancel?.();w.close();}
 });
+
+test('external saves are coalesced during editing and applied after cancel without losing the draft',async()=>{
+    const f=await fixture(25,'mac','memory');
+    try {
+        f.lib.open();
+        assert.equal(await f.lib.openEntry('B','4'),true);
+        const detail=f.q('.slb-library-detail');
+        const uid=detail.dataset.uid;
+        f.click('[data-action="toggle-view"]');
+        f.click('[data-action="edit"]');
+        const draft=f.q('.slb-library-detail textarea');
+        assert.ok(draft);
+        const initial=draft.value;
+        const first=structuredClone(f.data.B);
+        first.entries[uid].content='external save one';
+        f.lib.onExternalWorldUpdate('B',first);
+        const second=structuredClone(first);
+        second.entries[uid].content='external save two';
+        f.lib.onExternalWorldUpdate('B',second);
+        assert.equal(f.q('.slb-library-detail textarea'),draft);
+        assert.equal(draft.value,initial);
+        f.click('[data-action="cancel-edit"]');
+        await tick();
+        assert.equal(f.q('.slb-library-detail textarea'),null);
+        assert.match(f.q('.slb-library-detail').textContent,/external save two/);
+        assert.doesNotMatch(f.q('.slb-library-detail').textContent,/external save one/);
+    } finally { f.close(); }
+});
