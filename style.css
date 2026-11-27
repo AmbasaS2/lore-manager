@@ -231,7 +231,7 @@
     order: 0;
 }
 
-#slb-ai-tools {
+#slb-ai-tools > .inline-drawer > .inline-drawer-content {
     font-size: max(13px, 0.95em);
     line-height: 1.35;
 }
@@ -3978,15 +3978,6 @@
 }
 
 /* AmbasaS2: theme-native controls, not per-entry JS color snapshots. */
-#slb-ai-tools .inline-drawer-toggle .slb-extension-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    min-width: 0;
-}
-#slb-ai-tools .inline-drawer-toggle .slb-extension-title > i {
-    flex: 0 0 auto;
-}
 #slb-ai-tools .slb-settings-card > summary:hover {
     background: color-mix(in srgb, var(--SmartThemeQuoteColor, currentColor) 8%, transparent);
 }

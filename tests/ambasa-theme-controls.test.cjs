@@ -14,10 +14,11 @@ const extract = name => {
 
 test('settings header has readable spacing and no redundant introduction', () => {
     assert.match(source, /class="slb-extension-title"/);
-    assert.match(source, /class="slb-extension-title"><i class="fa-solid fa-otter" aria-hidden="true"><\/i><span>\$\{uiHtml\("로어북 매니저"\)\}/);
+    assert.match(source, /class="slb-extension-title"><i class="fa-solid fa-otter" aria-hidden="true"><\/i>&nbsp;&nbsp;\$\{uiHtml\("로어북 매니저"\)\}<\/b>/);
     assert.match(source, /fa-solid fa-otter extensionsMenuExtensionButton/);
-    assert.doesNotMatch(css, /#slb-ai-tools \.inline-drawer-toggle \.slb-extension-title(?: > i)?\s*\{[^}]*(?:font-size|line-height)\s*:/s);
-    assert.match(css, /#slb-ai-tools \.inline-drawer-toggle \.slb-extension-title\s*\{[^}]*gap: 7px/s);
+    assert.doesNotMatch(css, /#slb-ai-tools\s*\{[^}]*(?:font-size|line-height)\s*:/s);
+    assert.doesNotMatch(css, /\.slb-extension-title(?:\s|>)*[^{}]*\{/);
+    assert.match(css, /#slb-ai-tools > \.inline-drawer > \.inline-drawer-content\s*\{[^}]*font-size:\s*max\(13px, 0\.95em\);[^}]*line-height:\s*1\.35;/s);
     assert.ok(!source.includes('필요한 설정만 펼쳐서 변경할 수 있습니다.'));
     assert.ok(!css.includes('slb-settings-intro'));
 });

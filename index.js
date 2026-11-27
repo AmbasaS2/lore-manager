@@ -3388,7 +3388,7 @@ function createAIBar() {
     bar.innerHTML = `
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b class="slb-extension-title"><i class="fa-solid fa-otter" aria-hidden="true"></i><span>${uiHtml("로어북 매니저")}</span></b>
+                <b class="slb-extension-title"><i class="fa-solid fa-otter" aria-hidden="true"></i>&nbsp;&nbsp;${uiHtml("로어북 매니저")}</b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content" style="display: none;">
