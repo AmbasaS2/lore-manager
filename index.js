@@ -265,6 +265,7 @@ const state = {
     tokenRenderTimer: null,
     tokenRunId: 0,
     tokenRefreshRunId: 0,
+    tokenRefreshAfterRun: 0,
     pendingBookSwitch: '',
     sorting: false,
     navDragging: false,
@@ -8346,6 +8347,7 @@ async function refreshTokenSummary(forcedData = null) {
     }
 
     state.tokenRefreshRunId = runId;
+    state.tokenRefreshAfterRun = 0;
     const scope = getTokenCacheScope();
     const isCurrent = () => !state.editorUiSuspended
         && runId === state.tokenRunId && currentBookName() === book && scope === getTokenCacheScope();
@@ -8402,7 +8404,21 @@ async function refreshTokenSummary(forcedData = null) {
             }
         }
     } finally {
-        if (state.tokenRefreshRunId === runId) state.tokenRefreshRunId = 0;
+        if (state.tokenRefreshRunId === runId) {
+            state.tokenRefreshRunId = 0;
+            const updatedDuringRun = state.tokenRefreshAfterRun === runId;
+            state.tokenRefreshAfterRun = 0;
+            // A save can introduce a new/edited entry after this pass took its
+            // snapshot. Reuse the existing queue once, for remaining stale
+            // entries only; unchanged metadata causes no second token count.
+            if (updatedDuringRun && isCurrent()) {
+                const cache = getBookTokenCache(book);
+                if (lorebookEntries(state.currentBookData).some(entry =>
+                    cache.get(String(entry.uid))?.hash !== hashEntryContent(entry))) {
+                    scheduleTokenSummary(null, 80);
+                }
+            }
+        }
         if (isCurrent()) state.pendingBookSwitch = '';
     }
 }
@@ -9617,7 +9633,10 @@ function bindEvents() {
             const cache = getBookTokenCache(name);
             const contentChanged = lorebookEntries(data)
                 .some(entry => cache.get(String(entry.uid))?.hash !== hashEntryContent(entry));
-            if (contentChanged && !state.tokenRefreshRunId) scheduleTokenSummary(data, 80);
+            if (contentChanged) {
+                if (state.tokenRefreshRunId) state.tokenRefreshAfterRun = state.tokenRefreshRunId;
+                else scheduleTokenSummary(null, 80);
+            }
             // 일부 ST/확장 조합이 저장 뒤 같은 editor 노드의 내용만 교체해도
             // stale marker 때문에 탭 재구성을 건너뛰지 않도록 제한적으로 확인한다.
             const brokenOpenEditor = renderedEntries().some(entry => {
