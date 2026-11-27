@@ -4,7 +4,7 @@ A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverh
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.84 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.90 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저-나무늘보씨) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -38,7 +38,7 @@ The original editing, translation, token and backup tools are still available. I
 
 ## ⚡ Quick start
 
-**Current version: 1.4.85-ambasa.84.**
+**Current version: 1.4.85-ambasa.90.**
 
 > **Open your library → choose a book → read.**
 >
@@ -321,7 +321,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.84 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.90 (원작 1.4.85 기반)
 
 
 **서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
@@ -351,7 +351,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 ## ⚡ 간단 사용 설명
 
-**현재 버전: 1.4.85-ambasa.84.**
+**현재 버전: 1.4.85-ambasa.90.**
 
 > **확장 메뉴 → 서재 → 원하는 책 → 읽기!**
 >
