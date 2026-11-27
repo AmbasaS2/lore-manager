@@ -1471,6 +1471,13 @@ async function requestWithProfile(prompt, maxTokens = null, signal = null) {
     }
 
     throwIfTranslationCancelled(signal);
+    // Some profile adapters expose a finish reason; others return text only.
+    // Do not save a known token-limited response as a completed translation.
+    const finishReason = String(response?.finishReason ?? response?.finish_reason ?? response?.stop_reason
+        ?? response?.choices?.[0]?.finish_reason ?? response?.candidates?.[0]?.finishReason ?? '').toLowerCase();
+    if (['length', 'max_tokens', 'max_output_tokens', 'model_length'].includes(finishReason)) {
+        throw new Error('AI 응답이 출력 토큰 한도에서 잘렸습니다. AI 출력 토큰을 늘려 다시 시도해주세요.');
+    }
     const text = getResponseText(response);
     if (!text) throw new Error('AI 응답이 비어 있습니다.');
     return text;
@@ -1946,7 +1953,7 @@ async function translateText(source, targetLanguage, onProgress = null, options 
         protectedRules: '',
         // Only substantial lorebook bodies are divided, on paragraph
         // boundaries; normal short entries remain one literary request.
-        maxChars: Math.max(5000, Math.min(12500, Math.floor((settings.aiOutputTokens || 8192) * 1.3))),
+        maxChars: Math.max(256, Math.min(12500, Math.floor((settings.aiOutputTokens || 8192) * (language === 'ko' ? 0.9 : 1.2)))),
         request: prompt => requestWithProfile(prompt, null, options.signal),
         onProgress,
         onWarning: ({ field, issues }) => {
@@ -1996,7 +2003,7 @@ async function translateLoreFieldsForEntry(sources, fields, targetLanguage, opti
         targetLanguage: normalizeEntryLanguage(targetLanguage) || ENTRY_LANGUAGE_KOREAN,
         instructions: settings.translationPrompt || '',
         signal,
-        maxCombinedChars: Math.max(2800, Math.min(9500, Math.floor((settings.aiOutputTokens || 8192) * 1.1))),
+        maxCombinedChars: Math.max(200, Math.min(9500, Math.floor((settings.aiOutputTokens || 8192) * 0.85))),
         request: prompt => requestWithProfile(prompt, null, signal),
         fallback,
         onWarning: warning => {
@@ -4558,7 +4565,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         // preserves its macro masking and independently queued chunks.
         if (mode !== 'selected' && getSettings().translationProvider === 'profile') {
             const settings = getSettings();
-            const maxCombinedChars = Math.max(550, Math.min(6000,
+            const maxCombinedChars = Math.max(200, Math.min(6000,
                 Math.floor((settings.aiOutputTokens || 8192) * 0.70)));
             const planned = entries.map(entry => {
                 const uid = String(entry.uid);

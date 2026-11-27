@@ -37,3 +37,16 @@ test('creating a previously empty original does not create an unnecessary backup
  const f=fixture({source:''});await f.ctx.reflectEntryTranslation(f.ui,{manual:true});
  assert.deepEqual(f.events,['write','synced']);
 });
+
+test('profile transport rejects explicit token-limit finish reasons without further requests',async()=>{
+ const request=src.match(/^async function requestWithProfile\([^]*?^}/m)[0];
+ let calls=0;
+ const ctx=vm.createContext({getSettings:()=>({profileId:'test',aiOutputTokens:512}),
+  throwIfTranslationCancelled:()=>{},getResponseText:v=>v.content,console,
+  ConnectionManagerRequestService:{sendRequest:async()=>{calls++;return {content:'unfinished',finish_reason:'length'}}}});
+ vm.runInContext(request,ctx);
+ await assert.rejects(ctx.requestWithProfile('prompt'),/토큰 한도/);
+ assert.equal(calls,1);
+ ctx.ConnectionManagerRequestService.sendRequest=async()=>({content:'complete',finish_reason:'stop'});
+ assert.equal(await ctx.requestWithProfile('prompt'),'complete');
+});

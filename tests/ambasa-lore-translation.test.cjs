@@ -108,7 +108,7 @@ test('empty source needs no AI request',async()=>{
 
 test('long body chunks are each checked and assembled in the source order',async()=>{
  const {translateLoreWithValidation}=await importer;
- const paragraphs=['First paragraph '.repeat(220),'Second paragraph '.repeat(230)];
+ const paragraphs=['First paragraph '.repeat(130),'Second paragraph '.repeat(130)];
  const source=paragraphs.join('\n\n');
  let calls=0;const progress=[];
  const output=await translateLoreWithValidation({
@@ -152,4 +152,21 @@ test('prefatory model chatter is detected and repaired without silently acceptin
  });
  assert.equal(count,2);
  assert.equal(translated,'리무스는 담배를 거의 피우지 않는다.');
+});
+
+test('oversized single paragraphs and mixed CJK/emoji respect the configured budget',async()=>{
+ const {splitLongLoreSource}=await importer;
+ const source='First sentence. '.repeat(100)+'{{char}} '+ '한국어🙂'.repeat(120);
+ const chunks=splitLongLoreSource(source,300);
+ assert.equal(chunks.join(''),source);
+ assert.ok(chunks.length>2 && chunks.every(chunk=>chunk.length<=300));
+ assert.equal(chunks.filter(chunk=>chunk.includes('{{char}}')).length,1);
+ assert.ok(chunks.every(chunk=>!/[\uD800-\uDBFF]$/.test(chunk) && !/^[\uDC00-\uDFFF]/.test(chunk)));
+});
+test('an indivisible protected block larger than budget fails before any paid request',async()=>{
+ const {translateLoreWithValidation}=await importer;
+ const fence=String.fromCharCode(96).repeat(3);
+ let calls=0;
+ await assert.rejects(translateLoreWithValidation({source:fence+'js\n'+'x'.repeat(600)+'\n'+fence,maxChars:300,request:async()=>{calls++;return 'unused'}}),/한도/);
+ assert.equal(calls,0);
 });

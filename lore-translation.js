@@ -100,24 +100,74 @@ export function restoreLoreBoundaryWhitespace(source,response){
 }
 
 export function splitLongLoreSource(value,limit=10000){
-    const source=String(value??''),max=Math.max(2600,Math.floor(Number(limit)||10000));
+    const source=String(value??''),max=Math.max(256,Math.floor(Number(limit)||10000));
     if(source.length<=max)return [source];
-    const pieces=source.split(/(\r?\n[ \t]*\r?\n+)/u);
-    const blocks=[];
-    for(let i=0;i<pieces.length;i+=2)blocks.push((pieces[i]||'')+(pieces[i+1]||''));
-    const result=[];let current='',insideFence=false;
-    for(const block of blocks){
-        // A fenced code block may contain blank lines. Keep the entire fence
-        // in the same request rather than cutting between its delimiters.
-        if(current && current.length+block.length>max && !insideFence){
-            result.push(current);current='';
+
+    // Only long bodies pay for scanning protected spans. Keep whole fenced
+    // blocks (including blank lines), macros, tags, URLs and inline code.
+    const protectedRanges=[];
+    let fence=null;
+    for(const match of source.matchAll(/^[ \t]*(\x60{3,}|~{3,})([^\r\n]*)(?:\r\n|\n|\r|$)/gm)){
+        const marker=match[1];
+        if(!fence)fence={start:match.index,marker};
+        else if(marker[0]===fence.marker[0] && marker.length>=fence.marker.length && !match[2].trim()){
+            protectedRanges.push([fence.start,match.index+match[0].length]);fence=null;
         }
-        current+=block;
-        const fences=block.split(/\r?\n/u).filter(line=>/^\s*(?:\x60{3,}|~{3,})/u.test(line));
-        if(fences.length%2)insideFence=!insideFence;
     }
-    if(current)result.push(current);
-    return result.length && result.join('')===source ? result:[source];
+    if(fence)protectedRanges.push([fence.start,source.length]);
+    for(const match of source.matchAll(/\{\{[^{}\r\n]*\}\}|<\/?[A-Za-z][^>\r\n]*>|https?:\/\/[^\s<>"'\x60]+|\x60[^\x60\r\n]+\x60/gu)){
+        protectedRanges.push([match.index,match.index+match[0].length]);
+    }
+    protectedRanges.sort((a,b)=>a[0]-b[0] || b[1]-a[1]);
+    const ranges=[];
+    for(const range of protectedRanges){
+        const last=ranges.at(-1);
+        if(last && range[0]<last[1])last[1]=Math.max(last[1],range[1]);
+        else ranges.push(range);
+    }
+    if(ranges.some(([start,end])=>end-start>max)){
+        throw new Error('보호된 코드 블록·매크로·태그가 번역 길이 한도를 초과합니다. AI 출력 토큰을 늘려 다시 시도해주세요.');
+    }
+    function containingRange(position){
+        let lo=0,hi=ranges.length-1;
+        while(lo<=hi){
+            const mid=(lo+hi)>>1,[start,end]=ranges[mid];
+            if(position<=start)hi=mid-1;
+            else if(position>=end)lo=mid+1;
+            else return ranges[mid];
+        }
+        return null;
+    }
+    function safe(position){
+        return !containingRange(position)
+            && !(source[position-1]==='\r' && source[position]==='\n')
+            && !(/[\uD800-\uDBFF]/u.test(source[position-1]||'') && /[\uDC00-\uDFFF]/u.test(source[position]||''));
+    }
+    const chunks=[];
+    for(let start=0;start<source.length;){
+        let end=Math.min(source.length,start+max);
+        if(end===source.length){chunks.push(source.slice(start));break;}
+        const protectedRange=containingRange(end);
+        if(protectedRange)end=protectedRange[0];
+        while(end>start && !safe(end))end--;
+        if(end<=start)throw new Error('안전한 번역 분할 지점을 찾을 수 없습니다. AI 출력 토큰을 늘려주세요.');
+        const window=source.slice(start,end);
+        // Prefer paragraph, then line, sentence and word boundaries. A
+        // single oversized unbroken ordinary string is split at a safe code
+        // point; protected spans are never cut.
+        const minimum=start+Math.floor((end-start)*0.5);
+        let cut=end;
+        for(const pattern of [/(?:\r\n|\n|\r)[ \t]*(?:\r\n|\n|\r)+/g,/\r\n|\n|\r/g,/[.!?。！？](?:[ \t]+|$)/gu,/[ \t]+/g]){
+            let best=0;
+            for(const match of window.matchAll(pattern)){
+                const candidate=start+match.index+match[0].length;
+                if(candidate>=minimum && candidate>start && safe(candidate))best=candidate;
+            }
+            if(best){cut=best;break;}
+        }
+        chunks.push(source.slice(start,cut));start=cut;
+    }
+    return chunks;
 }
 
 export function buildLoreRepairPrompt({source,candidate,targetLanguage='ko',issues=[]}={}){
