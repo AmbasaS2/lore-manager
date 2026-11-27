@@ -94,17 +94,32 @@ test('all four skins: 240 entries use bounded initial batches and append without
         } finally {f.dom.window.close();}
     }
 });
-test('timeline full record, TOC jump, reverse and page size retain real UID and no extra data loads', async () => {
+test('timeline expands only the selected record, and page/view navigation folds records without extra loads', async () => {
     const f=await fixture();
     try {
         f.click('[data-action="memory-more"]');
-        f.click('[data-action="memory-open-page"][data-uid="7"]');
-        await tick();
-        assert.equal(f.q('.slb-library-diary-page').dataset.uid,'7');
-        assert.equal(f.state.mode,'timeline'); // temporary full-text open does not overwrite preference
+        const oldRecords = f.records();
+        const target = oldRecords[7];
+        const toggle = target.querySelector('[data-action="memory-toggle-full"]');
+        assert.equal(toggle.getAttribute('aria-expanded'),'false');
+        toggle.click();
+        assert.equal(toggle.getAttribute('aria-expanded'),'true');
+        assert.equal(f.q('.slb-library-diary-page'),null);
+        assert.equal(f.q('.slb-library-detail').dataset.uid,'7');
+        assert.match(f.q('.slb-library-detail').textContent,/Full scene 7/);
+        assert.equal(target.querySelector('.slb-library-memory-summary').hidden,true);
+        assert.deepEqual(f.records(),oldRecords);
+        assert.equal(f.all('.slb-library-detail').length,1);
+        assert.equal(f.state.mode,'timeline');
         assert.equal(f.q('#slb-library-memory-view').value,'timeline');
-        f.click('[data-action="memory-return"]');
-        assert.equal(f.records()[0].dataset.uid,'5');
+        toggle.click();
+        assert.equal(toggle.getAttribute('aria-expanded'),'false');
+        assert.equal(target.querySelector('.slb-library-memory-summary').hidden,false);
+        assert.equal(f.all('.slb-library-detail').length,0);
+        assert.deepEqual(f.records(),oldRecords);
+        toggle.click();
+        f.click('[data-action="memory-list-next"]');
+        assert.equal(f.all('.slb-library-detail').length,0);
         assert.equal(f.state.viewWrites,0);
         await f.mode('continuous');
         assert.equal(f.records()[0].dataset.uid,'5');
@@ -120,6 +135,9 @@ test('timeline full record, TOC jump, reverse and page size retain real UID and 
         await f.mode('timeline');
         await f.lib.openEntry('Book',123); await tick();
         assert.equal(f.q('.slb-library-detail').dataset.uid,'123');
+        assert.ok(f.q('.slb-library-memory-timeline'));
+        assert.equal(f.q('.slb-library-diary-page'),null);
+        assert.equal(f.state.reads,1);
         assert.equal(f.state.writes,0);
         assert.equal(JSON.stringify(f.entries),f.original);
     } finally {f.dom.window.close();}
@@ -165,16 +183,39 @@ test('settings can persist a reader preference on the shelf, reopen it, and reco
         assert.equal(f.state.writes,0);
     } finally {f.dom.window.close();}
 });
-test('saving temporary full-text page as the preferred mode keeps the exact page and editor DOM', async () => {
+test('timeline expands lazily with actual translated/source content, preserves other records, and protects unsaved edits', async () => {
     const f=await fixture();
     try {
-        f.click('[data-action="memory-open-page"][data-uid="2"]');
-        const detail=f.q('.slb-library-detail[data-uid="2"]');
-        assert.ok(detail);
+        const first=f.records()[0],second=f.records()[1];
+        f.click('[data-action="memory-toggle-full"][data-uid="1"]');
+        assert.match(second.querySelector('.slb-library-prose').textContent,/번역 본문/);
+        assert.equal(f.records()[0],first);
+        f.click('[data-action="toggle-view"][data-uid="1"]');
+        assert.match(second.querySelector('.slb-library-prose').textContent,/Full scene 1/);
+        f.click('[data-action="memory-toggle-full"][data-uid="0"]');
+        const firstDetail=first.querySelector('.slb-library-detail');
+        f.click('[data-action="memory-more"]');
+        assert.equal(first.querySelector('.slb-library-detail'),firstDetail);
+        assert.equal(f.records().length,10);
+        f.click('[data-action="more-tools"][data-uid="1"]');
+        f.click('[data-action="edit"][data-uid="1"]');
+        f.q('.slb-library-editor-text').value='unsaved';
+        f.win.confirm=()=>false;
+        f.click('[data-action="memory-toggle-full"][data-uid="1"]');
+        assert.equal(f.q('.slb-library-editor-text').value,'unsaved');
+        f.win.confirm=()=>true;
+        f.click('[data-action="memory-toggle-full"][data-uid="1"]');
+        assert.equal(second.querySelector('.slb-library-detail'),null);
+        assert.equal(second.querySelector('.slb-library-memory-preview').textContent,'Outcome 1');
+        assert.equal(first.querySelector('.slb-library-detail'),firstDetail);
+        assert.equal(f.state.reads,1);
+        assert.equal(f.state.writes,0);
+        assert.equal(JSON.stringify(f.entries),f.original);
         await f.mode('page');
         assert.equal(f.state.mode,'page');
-        assert.equal(f.q('.slb-library-detail[data-uid="2"]'),detail);
-        assert.equal(f.q('[data-action="memory-return"]'),null);
-        assert.equal(f.state.writes,0);
+        assert.ok(f.q('.slb-library-diary-page'));
+        assert.equal(f.q('.slb-library-memory-expanded'),null);
+        await f.mode('timeline');
+        assert.equal(f.all('.slb-library-detail').length,0);
     } finally {f.dom.window.close();}
 });

@@ -51,14 +51,34 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                             const buttons=[...document.querySelectorAll('.slb-library-memory-heading > *, .slb-library-memory-heading select')].filter(b=>!b.classList.contains('slb-library-page-options'));
                             const start=body.scrollWidth-body.clientWidth;
                             const frameOverflow=frame.scrollWidth-frame.clientWidth;
-                            let count, preserved=true;
+                            let count, preserved=true, inline=null;
+                            if(mode==='timeline'){
+                                const first=q('.slb-library-memory-record');
+                                const other=document.querySelectorAll('.slb-library-memory-record')[1];
+                                const toggle=first.querySelector('[data-action="memory-toggle-full"]');
+                                const previewSize=getComputedStyle(first.querySelector('.slb-library-memory-preview')).fontSize;
+                                const beforeTop=body.scrollTop;
+                                toggle.click();
+                                const prose=first.querySelector('.slb-library-prose');
+                                inline={previewSize,fullSize:getComputedStyle(prose).fontSize,
+                                    full:prose.textContent.includes('Full source text with long content.'),
+                                    sameOther:other===document.querySelectorAll('.slb-library-memory-record')[1],
+                                    sameFirst:first===q('.slb-library-memory-record'),
+                                    noPage:!q('.slb-library-diary-page'),
+                                    expanded:toggle.getAttribute('aria-expanded')==='true',
+                                    detailCount:document.querySelectorAll('.slb-library-detail').length,
+                                    overflow:body.scrollWidth-body.clientWidth,
+                                    stableScroll:Math.abs(body.scrollTop-beforeTop)<=1};
+                                toggle.click();
+                                inline.folded=!first.querySelector('.slb-library-detail')&&!first.querySelector('.slb-library-memory-summary').hidden;
+                            }
                             if(mode!=='page'){
                                 const first=q('.slb-library-memory-record');
                                 q('[data-action="memory-more"]').click();
                                 preserved=first===q('.slb-library-memory-record');
                                 count=document.querySelectorAll('.slb-library-memory-record').length;
                             }else count=document.querySelectorAll('.slb-library-diary-page').length;
-                            return {start,frameOverflow,count,preserved,
+                            return {start,frameOverflow,count,preserved,inline,
                                 modeButtons:document.querySelectorAll('[data-action="memory-view"], .slb-library-memory-views').length,
                                 ink:getComputedStyle(frame).getPropertyValue('--memory-ink').trim(),
                                 timelineRule:mode==='timeline'?getComputedStyle(q('.slb-library-memory-record')).borderInlineStartColor:null,
@@ -72,7 +92,14 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                         assert.equal(result.buttonOverlap,false,JSON.stringify({theme,width,mode,result}));
                         assert.equal(result.modeButtons,0);
                         assert.ok(result.ink);
-                        if(mode==='timeline') assert.notEqual(result.timelineRule, 'rgb(0, 0, 0)');
+                        if(mode==='timeline') {
+                            assert.notEqual(result.timelineRule, 'rgb(0, 0, 0)');
+                            const x=result.inline;
+                            assert.equal(x.previewSize,x.fullSize,JSON.stringify({theme,width,x}));
+                            assert.ok(x.full&&x.sameOther&&x.sameFirst&&x.noPage&&x.expanded&&x.folded&&x.stableScroll,JSON.stringify({theme,width,x}));
+                            assert.equal(x.detailCount,1);
+                            assert.ok(x.overflow<=1,JSON.stringify({theme,width,x}));
+                        }
                         assert.ok(result.preserved);
                         assert.equal(result.count,mode==='page'?(theme==='antique'&&width===900?2:1):10);
                         checked++;

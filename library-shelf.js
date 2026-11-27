@@ -2138,6 +2138,8 @@ export function createStandaloneLibrary({
         const tagSlot = overlay.querySelector('.slb-library-nav-tags');
         const previous = overlay.querySelector('.slb-library-book-meta');
         if (previous && tagSlot && previous.parentElement !== tagSlot) tagSlot.append(previous);
+        // Replacing a timeline page folds all inline records and their menus.
+        if (type === 'memory' && memoryView === 'timeline') activeToolsUid = null;
         body.replaceChildren();
         const found = filtered();
         const inner = readerContainer(body, type);
@@ -2248,13 +2250,26 @@ export function createStandaloneLibrary({
             || doc.defaultView.innerWidth || 1024;
         return getTheme() === 'antique' && readerWidth > 710 ? 2 : 1;
     }
+    function memoryRecordPreview(entry) {
+        const uid = String(entry.uid);
+        const translated = translationFor(currentBook, entry) || {};
+        const view = entryReadViews.get(uid) || (translated.text ? 'translated' : 'source');
+        return memoryTimelinePreview(view === 'translated' && translated.text ? translated.text : entry.content, entry.comment);
+    }
+    function fillTimelineSummary(record, entry, preview = memoryRecordPreview(entry)) {
+        record.querySelector('.slb-library-memory-date').textContent =
+            uiText("기록 ") + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '');
+        record.querySelector('.slb-library-memory-record-heading h3').textContent = titleOf(entry);
+        const summary = record.querySelector('.slb-library-memory-summary');
+        summary.replaceChildren();
+        if (!preview.isResult) summary.append(element(doc, 'small', 'slb-library-memory-excerpt-label', uiText("본문 미리보기")));
+        summary.append(element(doc, 'p', 'slb-library-memory-preview', preview.text || uiText("본문이 비어 있습니다.")));
+    }
     function memoryRecord(entry, index) {
         const uid = String(entry.uid);
         const record = element(doc, 'section', 'slb-library-memory-record');
         record.dataset.uid = uid;
-        const translated = translationFor(currentBook, entry) || {};
-        const view = entryReadViews.get(uid) || (translated.text ? 'translated' : 'source');
-        const preview = memoryTimelinePreview(view === 'translated' && translated.text ? translated.text : entry.content, entry.comment);
+        const preview = memoryRecordPreview(entry);
         const head = element(doc, 'header', 'slb-library-memory-record-heading');
         head.append(element(doc, 'small', 'slb-library-memory-date',
             uiText("기록 ") + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '')));
@@ -2263,14 +2278,55 @@ export function createStandaloneLibrary({
         if (memoryView === 'continuous') {
             record.append(renderDetail(entry, 'memory'));
         } else {
-            const text = element(doc, 'p', 'slb-library-memory-preview', preview.text || uiText("본문이 비어 있습니다."));
-            if (!preview.isResult) record.append(element(doc, 'small', 'slb-library-memory-excerpt-label', uiText("본문 미리보기")));
-            record.append(text);
-            const open = button(doc, 'slb-library-memory-open', uiText("전문 읽기 ›"), 'memory-open-page', uid);
+            const summary = element(doc, 'div', 'slb-library-memory-summary');
+            const open = button(doc, 'slb-library-memory-open', uiText("전문 읽기 ▾"), 'memory-toggle-full', uid);
             open.dataset.index = String(index);
-            record.append(open);
+            const full = element(doc, 'div', 'slb-library-memory-expanded');
+            full.id = 'slb-library-memory-full-' + uid;
+            full.hidden = true;
+            open.setAttribute('aria-controls', full.id);
+            open.setAttribute('aria-expanded', 'false');
+            record.append(summary, open, full);
+            fillTimelineSummary(record, entry, preview);
         }
         return record;
+    }
+    function toggleTimelineRecord(target) {
+        if (memoryView !== 'timeline' || getType(currentBook) !== 'memory') return false;
+        const record = target?.closest('.slb-library-memory-record');
+        if (!record || !overlay?.contains(record)) return false;
+        const uid = record.dataset.uid;
+        const entry = entries.find(item => String(item.uid) === uid);
+        const summary = record.querySelector('.slb-library-memory-summary');
+        const full = record.querySelector('.slb-library-memory-expanded');
+        if (!entry || !summary || !full) return false;
+        if (!full.hidden) {
+            if (saving || (edit?.uid === uid && !discardOrStay({ allowTags: true }))) return false;
+            if (edit?.uid === uid) resetEdit();
+            if (activeToolsUid === uid) closeReaderTools();
+            // Read the current translation/source selection when folding.
+            fillTimelineSummary(record, entry);
+            full.replaceChildren();
+            full.hidden = true;
+            summary.hidden = false;
+            target.textContent = uiText("전문 읽기 ▾");
+            target.setAttribute('aria-expanded', 'false');
+            return true;
+        }
+        // Mount only the requested record. The existing delegated click
+        // handler and detail reader retain translation/edit/image functionality.
+        // No page navigation, layout measurement, or reload is needed.
+        full.append(renderDetail(entry, 'memory'));
+        summary.hidden = true;
+        full.hidden = false;
+        target.textContent = uiText("전문 접기 ▴");
+        target.setAttribute('aria-expanded', 'true');
+        diaryIndex = Number(target.dataset.index);
+        if (!suppressRecent && (recent?.book !== currentBook || recent.uid !== uid)) {
+            recent = { book: currentBook, uid };
+            setRecent(recent);
+        }
+        return true;
     }
     function renderMemoryStream(body, found) {
         const size = libraryPageSize();
@@ -3066,8 +3122,8 @@ export function createStandaloneLibrary({
             renderBook();
         } else if (action === 'memory-return') {
             changeMemoryView(preferredMemoryView());
-        } else if (action === 'memory-open-page') {
-            changeMemoryView('page', Number(target.dataset.index));
+        } else if (action === 'memory-toggle-full') {
+            toggleTimelineRecord(target);
         } else if (action === 'memory-more' || action === 'memory-more-prev') {
             extendMemoryStream(action === 'memory-more-prev');
         } else if (action === 'diary-entry') {
@@ -3293,8 +3349,11 @@ export function createStandaloneLibrary({
         catalogPage = diaryTocPage = worldTocPage = peoplePage = page;
         diaryIndex = index;
         resetMemoryStream();
-        if (getType(currentBook) === 'memory' && memoryView === 'timeline') memoryView = 'page';
         renderBook();
+        if (getType(currentBook) === 'memory' && memoryView === 'timeline') {
+            const toggle = overlay.querySelector('[data-action="memory-toggle-full"][data-uid="' + entryUid + '"]');
+            if (!toggleTimelineRecord(toggle)) return false;
+        }
         overlay.querySelector('.slb-library-detail[data-uid="' + entryUid + '"]')
             ?.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
         return true;

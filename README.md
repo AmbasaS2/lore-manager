@@ -152,7 +152,7 @@ Open the library gear icon → **Memory reading mode**.
 | **Original page reader** | Page-by-page reading |
 
 - Timeline and continuous modes place count and sort controls beside the TOC. Load more in batches of 5 / 10 / 20.
-- Opening a full record from Timeline and returning does not change your saved preference.
+- Expand or collapse a full record directly in Timeline without changing your saved preference or text size. Changing pages or reading modes folds the records.
 - TOC and search still jump to individual records.
 - No new AI request is made.
 
@@ -466,7 +466,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 | 페이지 넘김 | 한 페이지씩 읽기 |
 
 - 타임라인·연속 기록장: 목차 옆 표시 개수·정렬, 5/10/20개씩 더 보기.
-- 전문 읽기 후 돌아와도 저장된 보기 설정은 유지됩니다.
+- 타임라인에서는 전문을 같은 위치에서 펼치고 접습니다. 글자 크기와 저장된 보기 설정은 유지되고, 페이지나 보기 방식을 바꾸면 다시 접힙니다.
 - 목차·검색으로 원하는 기록에 바로 이동할 수 있어요.
 - 새 AI 호출은 없습니다.
 

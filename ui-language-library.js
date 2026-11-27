@@ -615,12 +615,19 @@ export const LIBRARY_UI = Object.freeze({
     "正文預覽",
     "Vista previa"
   ],
-  "전문 읽기 ›": [
-    "Read full entry ›",
-    "全文を読む ›",
-    "阅读全文 ›",
-    "閱讀全文 ›",
-    "Leer entrada completa ›"
+  "전문 읽기 ▾": [
+    "Read full entry ▾",
+    "全文を読む ▾",
+    "阅读全文 ▾",
+    "閱讀全文 ▾",
+    "Leer entrada completa ▾"
+  ],
+  "전문 접기 ▴": [
+    "Collapse full entry ▴",
+    "全文を閉じる ▴",
+    "收起全文 ▴",
+    "收合全文 ▴",
+    "Contraer entrada ▴"
   ],
   "이전 기록 더 보기": [
     "Show earlier records",
