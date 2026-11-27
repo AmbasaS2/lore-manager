@@ -41,7 +41,7 @@ function slothToastTitle(detail = '') {
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.89';
+const VERSION = '1.4.85-ambasa.90';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,

@@ -213,3 +213,28 @@ test('minimization styles are scoped and no polling/observer was added', () => {
     assert.doesNotMatch(code, /setInterval\(/);
     assert.doesNotMatch(code, /new MutationObserver\(/);
 });
+
+
+test('minimized library coalesces external saves and renders only the latest snapshot on restore', async () => {
+    const f = await fixture({ type: 'world', count: 1 });
+    try {
+        await f.load();
+        const oldDetail = f.q('.slb-library-detail-world');
+        const body = f.q('.slb-library-body');
+        body.scrollTop = 43;
+        f.click('[data-action="minimize"]');
+        const snapshot = title => ({ entries: {
+            0: { uid: 0, displayIndex: 0, comment: title, content: title },
+            1: { uid: 1, displayIndex: 1, comment: 'Added', content: 'Added' },
+        } });
+        f.lib.onExternalWorldUpdate('My Lorebook', snapshot('First update'));
+        f.lib.onExternalWorldUpdate('My Lorebook', snapshot('Latest update'));
+        assert.equal(f.q('.slb-library-detail-world'), oldDetail);
+        assert.doesNotMatch(body.textContent, /First update|Latest update/);
+        f.click('[data-action="restore"]');
+        assert.match(body.textContent, /Latest update/);
+        assert.doesNotMatch(body.textContent, /First update/);
+        assert.equal(body.scrollTop, 43);
+        assert.deepEqual(f.stats, expected);
+    } finally { f.dom.window.close(); }
+});
