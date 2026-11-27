@@ -30,9 +30,14 @@ import { attachNativePageCache } from './native-page-cache.js';
 import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames } from './library-shelf.js';
 
 configureUiLocale(getCurrentLocale);
+function slothToastTitle(detail = '') {
+    const name = uiText("로어북 매니저");
+    return '🦥 ' + name + (detail && detail !== name ? ' · ' + detail : '');
+}
+
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.85';
+const VERSION = '1.4.85-ambasa.86';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -57,7 +62,7 @@ const entryBulkEditor = createLorebookBulkEditor({
     onLayout: scheduleResponsiveEntryLayouts,
     onDelete: deleteSelectedEntries,
     onError(error) {
-        console.error('[로어북 매니저] 선택 항목 변경 실패', error);
+        console.error('🦥 Lorebook Manager', '[로어북 매니저] 선택 항목 변경 실패', error);
         notify(uiText("선택 항목 변경에 실패했습니다. 설정을 확인하고 다시 시도해주세요."), 'error');
     },
 });
@@ -166,7 +171,7 @@ const translationFiles = createLoreTranslationStorage({
         standaloneLibrary?.refreshTranslations(book);
     },
     onError(error) {
-        console.warn('[로어북 매니저] 번역 서버 파일 저장/이전 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 번역 서버 파일 저장/이전 실패', error);
         notify(error?.message || uiText("번역 저장소에 접근할 수 없습니다. 번역 기록은 메모리에 유지됩니다."), 'error');
     },
 });
@@ -204,7 +209,7 @@ function refreshTranslationFromLoadedBook(book, schedule = true) {
 function loadTranslationBook(book) {
     if (!book) return;
     void translationFiles.ensureBook(book).catch(error => {
-        console.warn('[로어북 매니저] 번역 로어북 파일을 불러오지 못했습니다', book, error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 번역 로어북 파일을 불러오지 못했습니다', book, error);
     });
 }
 function saveBookTranslations(book) {
@@ -700,9 +705,9 @@ function notify(message, type = 'info', skipInlineStatus = false) {
     const status = document.getElementById('slb-ai-status');
     if (status && !skipInlineStatus) status.textContent = message;
 
-    if (type === 'error') toastr.error(message, uiText("로어북 매니저"));
-    if (type === 'success') toastr.success(message, uiText("로어북 매니저"), { timeOut: 2200 });
-    if (type === 'warning') toastr.warning(message, uiText("로어북 매니저"), { timeOut: 5000 });
+    if (type === 'error') toastr.error(message, slothToastTitle());
+    if (type === 'success') toastr.success(message, slothToastTitle(), { timeOut: 2200 });
+    if (type === 'warning') toastr.warning(message, slothToastTitle(), { timeOut: 5000 });
 }
 
 function currentBookName() {
@@ -1330,7 +1335,7 @@ function findTranslationRecord(book, uid, source, translationLanguage) {
         pendingTranslationFallbackBooks.add(hintedBook);
         void translationFiles.ensureBook(hintedBook).then(() => {
             if (currentBookName() === book) refreshTranslationFromLoadedBook(book);
-        }).catch(error => console.warn('[로어북 매니저] 이전 로어북 번역 조회 실패', error))
+        }).catch(error => console.warn('🦥 Lorebook Manager', '[로어북 매니저] 이전 로어북 번역 조회 실패', error))
             .finally(() => pendingTranslationFallbackBooks.delete(hintedBook));
     }
     // A missing exact key used to scan every stored translation on each
@@ -1466,7 +1471,7 @@ async function requestWithProfile(prompt, maxTokens = null, signal = null) {
         );
     } catch (error) {
         throwIfTranslationCancelled(signal);
-        console.error('[로어북 매니저] AI 전용 연결 프로필 요청 실패:', error);
+        console.error('🦥 Lorebook Manager', '[로어북 매니저] AI 전용 연결 프로필 요청 실패:', error);
         throw new Error(getAIRequestErrorMessage(error), { cause: error });
     }
 
@@ -1958,7 +1963,7 @@ async function translateText(source, targetLanguage, onProgress = null, options 
         onProgress,
         onWarning: ({ field, issues }) => {
             if (options.signal?.aborted) return;
-            console.warn('[로어북 매니저] AI 번역 구조 점검 필요', field, issues);
+            console.warn('🦥 Lorebook Manager', '[로어북 매니저] AI 번역 구조 점검 필요', field, issues);
             notify(uiText("AI 번역 결과는 표시하지만 일부 원문 형식·숫자를 확인해야 합니다. 원문에 반영하기 전 비교해주세요."), 'warning');
         },
     });
@@ -1991,7 +1996,7 @@ async function translateLoreFieldsForEntry(sources, fields, targetLanguage, opti
             } catch (error) {
                 throwIfTranslationCancelled(signal);
                 firstError ??= error;
-                console.warn('[로어북 매니저] 번역 필드 실패', field, error);
+                console.warn('🦥 Lorebook Manager', '[로어북 매니저] 번역 필드 실패', field, error);
             }
         }
         if (!Object.keys(results).length && firstError) throw firstError;
@@ -2008,7 +2013,7 @@ async function translateLoreFieldsForEntry(sources, fields, targetLanguage, opti
         fallback,
         onWarning: warning => {
             if (signal?.aborted) return;
-            console.warn('[로어북 매니저] 묶음 번역 형식 복구', warning.field || '', warning.reason || warning.message || '');
+            console.warn('🦥 Lorebook Manager', '[로어북 매니저] 묶음 번역 형식 복구', warning.field || '', warning.reason || warning.message || '');
         },
     });
 }
@@ -2673,14 +2678,14 @@ async function resetExtensionStorage({ refreshUI = false } = {}) {
     try {
         await clearAllLorebookBackups();
     } catch (error) {
-        console.warn('[로어북 매니저] 로컬 백업 정리 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 로컬 백업 정리 실패', error);
     }
     state.tokenCache.clear();
     state.tokenCacheTouched.clear();
     try {
         localStorage.removeItem(TOKEN_CACHE_STORAGE_KEY);
     } catch (error) {
-        console.warn('[로어북 매니저] 토큰 캐시 정리 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 토큰 캐시 정리 실패', error);
     }
     // 확장을 삭제한 뒤에는 네이티브 정렬로 돌아간다. Foldy 원본 파일과
     // 저장된 폴더 구조는 삭제하거나 수정하지 않는다.
@@ -2827,7 +2832,7 @@ async function runScheduledAutomaticBackup(book, expectedSchedule) {
     try {
         await createLorebookBackup(book, { reason: 'auto' });
     } catch (error) {
-        console.warn('[로어북 매니저] 자동 백업 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 자동 백업 실패', error);
     }
 }
 
@@ -2866,7 +2871,7 @@ async function backupLorebookOnOpen(book) {
         // createLorebookBackup의 해시 비교에서 걸러지므로 중복 사본은 생기지 않는다.
         await task;
     } catch (error) {
-        console.warn('[로어북 매니저] 열기 기준 백업 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 열기 기준 백업 실패', error);
     } finally {
         if (state.backupOpenPromises.get(book) === task) state.backupOpenPromises.delete(book);
     }
@@ -3017,26 +3022,26 @@ function setBulkExportButtonBusy(button, busy) {
 function reportBulkExportResult(result) {
     if (result.failures.length) {
         const failedNames = result.failures.map(item => item.book).join(', ');
-        toastr.warning(`${result.exported}개는 내보냈지만 ${result.failures.length}개는 실패했습니다: ${failedNames}`, '로어북 내보내기');
+        toastr.warning(`${result.exported}개는 내보냈지만 ${result.failures.length}개는 실패했습니다: ${failedNames}`, slothToastTitle(uiText("로어북 내보내기")));
         return;
     }
-    toastr.success(`${result.exported}개 로어북을 ZIP으로 내보냈습니다.`, '로어북 내보내기');
+    toastr.success(`${result.exported}개 로어북을 ZIP으로 내보냈습니다.`, slothToastTitle(uiText("로어북 내보내기")));
 }
 
 async function exportAllLorebooks(button) {
     if (button?.dataset.slbBusy === 'true') return;
     const names = availableLorebookNames();
     if (!names.length) {
-        toastr.warning('내보낼 로어북이 없습니다.', '로어북 내보내기');
+        toastr.warning('내보낼 로어북이 없습니다.', slothToastTitle(uiText("로어북 내보내기")));
         return;
     }
     setBulkExportButtonBusy(button, true);
-    toastr.info(`${names.length}개 로어북을 준비하고 있습니다.`, '전체 로어북 내보내기');
+    toastr.info(`${names.length}개 로어북을 준비하고 있습니다.`, slothToastTitle(uiText("전체 로어북 내보내기")));
     try {
         const result = await exportLorebooksAsZip(names);
         reportBulkExportResult(result);
     } catch (error) {
-        toastr.error(error.message || '전체 로어북 내보내기에 실패했습니다.', '로어북 내보내기');
+        toastr.error(error.message || '전체 로어북 내보내기에 실패했습니다.', slothToastTitle(uiText("로어북 내보내기")));
     } finally {
         setBulkExportButtonBusy(button, false);
     }
@@ -3046,7 +3051,7 @@ function showLorebookExportSelection() {
     document.getElementById('slb-lorebook-export-modal')?.remove();
     const names = availableLorebookNames();
     if (!names.length) {
-        toastr.warning('선택할 로어북이 없습니다.', '로어북 내보내기');
+        toastr.warning('선택할 로어북이 없습니다.', slothToastTitle(uiText("로어북 내보내기")));
         return;
     }
 
@@ -3141,7 +3146,7 @@ function showLorebookExportSelection() {
             close();
         } catch (error) {
             status.textContent = error.message || uiText("선택한 로어북 내보내기에 실패했습니다.");
-            toastr.error(status.textContent, '로어북 내보내기');
+            toastr.error(status.textContent, slothToastTitle(uiText("로어북 내보내기")));
             setBulkExportButtonBusy(exportButton, false);
             closeButton.disabled = false;
             cancelButton.disabled = false;
@@ -3674,7 +3679,7 @@ function createAIBar() {
     autoBackupEnabled.addEventListener('change', () => {
         settings.autoBackupEnabled = autoBackupEnabled.checked;
         // OFF must persist immediately, even if the user closes the page.
-        void saveSettings().catch(error => console.warn('[로어북 매니저] 자동 백업 설정 저장 실패', error));
+        void saveSettings().catch(error => console.warn('🦥 Lorebook Manager', '[로어북 매니저] 자동 백업 설정 저장 실패', error));
         if (autoBackupEnabled.checked && currentBookName()) {
             backupLorebookOnOpen(currentBookName());
         } else {
@@ -3777,7 +3782,7 @@ function createAIBar() {
         button.disabled = true;
         try {
             await resetExtensionStorage({ refreshUI: true });
-            toastr.success('로어북 매니저 데이터를 모두 초기화했습니다. 화면을 새로고침합니다.', uiText("로어북 매니저"));
+            toastr.success('로어북 매니저 데이터를 모두 초기화했습니다. 화면을 새로고침합니다.', slothToastTitle());
             setTimeout(() => location.reload(), 450);
         } catch (error) {
             state.extensionDataCleaning = false;
@@ -3877,7 +3882,7 @@ function cancelBulkTranslation({ silent = false } = {}) {
     const status = document.getElementById('slb-bulk-status');
     if (status) status.textContent = '';
     updateBulkTranslationStatus();
-    if (!silent) toastr.info(uiText("번역이 취소되었습니다."), uiText("로어북 매니저"), { timeOut: 2500 });
+    if (!silent) toastr.info(uiText("번역이 취소되었습니다."), slothToastTitle(), { timeOut: 2500 });
     return true;
 }
 
@@ -4555,7 +4560,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
             } catch (error) {
                 if (job.cancelled || state.bulkTranslation !== job) return;
                 failed += 1;
-                console.warn('[로어북 매니저] 전체 번역 항목 실패', uid, error);
+                console.warn('🦥 Lorebook Manager', '[로어북 매니저] 전체 번역 항목 실패', uid, error);
             } finally {
                 showProgress();
             }
@@ -4615,14 +4620,14 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                                 { signal: job.abortController.signal }),
                             onWarning: warning => {
                                 if (!job.abortController.signal.aborted) {
-                                    console.warn('[로어북 매니저] 여러 항목 묶음 번역 복구', warning);
+                                    console.warn('🦥 Lorebook Manager', '[로어북 매니저] 여러 항목 묶음 번역 복구', warning);
                                 }
                             },
                         }), job.abortController.signal,
                     );
                 } catch (error) {
                     if (job.cancelled || state.bulkTranslation !== job) return;
-                    console.warn('[로어북 매니저] 묶음 번역 요청 실패 · 항목별 복구', error);
+                    console.warn('🦥 Lorebook Manager', '[로어북 매니저] 묶음 번역 요청 실패 · 항목별 복구', error);
                     // An unparseable or failed group must never discard a
                     // previously paid translation or write to a wrong UID.
                     for (const item of group) {
@@ -5576,7 +5581,7 @@ function enhanceEntryHeader(entry, options = {}) {
         ].filter(Boolean).join(',');
         if (entry.dataset.slbHeaderWarning !== missing) {
             entry.dataset.slbHeaderWarning = missing;
-            console.warn(`[로어북 매니저] 항목 헤더 호환성 복구 대기 · UID ${getUid(entry) || '?'} · 누락: ${missing}`);
+            console.warn('🦥 Lorebook Manager', `[로어북 매니저] 항목 헤더 호환성 복구 대기 · UID ${getUid(entry) || '?'} · 누락: ${missing}`);
         }
         return;
     }
@@ -5822,7 +5827,7 @@ function enqueueBulkEditorHydration(task) {
         while (state.bulkEditorHydrationHead < state.bulkEditorHydrationQueue.length && done < 3) {
             const next = state.bulkEditorHydrationQueue[state.bulkEditorHydrationHead++];
             try { next(); }
-            catch (error) { console.error('[로어북 매니저] 전체 열기 편집기 구성 오류', error); }
+            catch (error) { console.error('🦥 Lorebook Manager', '[로어북 매니저] 전체 열기 편집기 구성 오류', error); }
             done++;
             if (performance.now() >= deadline) break;
         }
@@ -6050,7 +6055,7 @@ function scheduleNativeHeaderRecovery(entry) {
             return;
         }
         state.headerRecoveryAttempts.delete(entry);
-        console.warn(`[로어북 매니저] UID ${getUid(entry) || '?'} 호출 조건 필드의 네이티브 렌더를 기다립니다.`);
+        console.warn('🦥 Lorebook Manager', `[로어북 매니저] UID ${getUid(entry) || '?'} 호출 조건 필드의 네이티브 렌더를 기다립니다.`);
     }, delay);
     state.headerRecoveryTimers.set(entry, timer);
 }
@@ -6247,7 +6252,7 @@ async function commitNavigatorOrder() {
         await saveWorldInfo(book, data);
         notify(uiText("항목 순서를 저장했습니다."), 'success');
     } catch (error) {
-        console.warn('[로어북 매니저] Failed to save entry order', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to save entry order', error);
         notify(uiText("항목 순서 저장에 실패했습니다."), 'error');
     }
 }
@@ -7971,7 +7976,7 @@ function loadPersistedTokenCache() {
             }
         }
     } catch (error) {
-        console.warn('[로어북 매니저] Failed to load token cache', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to load token cache', error);
     }
 }
 
@@ -7990,7 +7995,7 @@ function schedulePersistTokenCache() {
             }
             localStorage.setItem(TOKEN_CACHE_STORAGE_KEY, JSON.stringify({ books }));
         } catch (error) {
-            console.warn('[로어북 매니저] Failed to persist token cache', error);
+            console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to persist token cache', error);
         }
     }, 800);
 }
@@ -8153,7 +8158,7 @@ function scheduleEntryTokenCount(book, uid, content) {
             schedulePersistTokenCache();
             queueTokenSummaryRender(book, state.currentBookData);
         } catch (error) {
-            console.warn('[로어북 매니저] Failed to count entry tokens', error);
+            console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to count entry tokens', error);
         } finally {
             if (state.entryTokenTimers.get(timerKey) === timer) state.entryTokenTimers.delete(timerKey);
         }
@@ -8358,7 +8363,7 @@ async function refreshTokenSummary(forcedData = null) {
         renderTokenSummary(book, state.currentBookData);
     } catch (error) {
         if (!isCurrent()) return;
-        console.warn('[로어북 매니저] Failed to count tokens', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to count tokens', error);
         for (const element of [totalElement, selectiveElement, constantElement, vectorizedElement]) {
             element.textContent = '!';
             const wrapper = element.closest('.slb-token-stat');
@@ -8622,7 +8627,7 @@ function hydrateCurrentBookDataAfterReveal(book) {
             // without polling or rebuilding any row.
             if (!state.enhancing && hasCompleteVisibleEntryHeaders()) syncNativePageCache();
         })
-        .catch(error => console.warn('[로어북 매니저] 로어북 데이터 동기화 실패', error))
+        .catch(error => console.warn('🦥 Lorebook Manager', '[로어북 매니저] 로어북 데이터 동기화 실패', error))
         .finally(() => {
             // 데이터 동기화가 실패해도 다음 기본 동기화 주기가 다시 시도할 수
             // 있도록 전환 표식을 영구히 붙잡아 두지 않는다.
@@ -9045,7 +9050,7 @@ function enhanceAll() {
                     incomplete.forEach(entry => { entry.dataset.slbRenderFailed = 'true'; });
                     finishWorldDrawerOpenLoading();
                     if (!state.bookSwitch) setBookSwitchLoading(false);
-                    console.warn('[로어북 매니저] 항목 헤더 변환 실패', incomplete.map(getUid));
+                    console.warn('🦥 Lorebook Manager', '[로어북 매니저] 항목 헤더 변환 실패', incomplete.map(getUid));
                     notify(uiText("일부 로어북 항목의 화면 구성을 완료하지 못했습니다. 원본 편집 화면으로 표시합니다."), 'warning');
                 }
             }
@@ -9073,7 +9078,7 @@ function enhanceAll() {
             try {
                 if (isEntryEditorRendered(entry)) enhanceEntry(entry);
             } catch (error) {
-                console.error('[로어북 매니저] 항목 편집기 렌더 오류', getUid(entry), error);
+                console.error('🦥 Lorebook Manager', '[로어북 매니저] 항목 편집기 렌더 오류', getUid(entry), error);
             } finally {
                 delete entry.dataset.slbEditorPending;
             }
@@ -9118,7 +9123,7 @@ function enhanceAll() {
                     if (recheckDeferredRows) syncMemoryBooksRegenerationButton(entry);
                 } catch (error) {
                     freshHeadersVerified = false;
-                    console.error('[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
+                    console.error('🦥 Lorebook Manager', '[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
                 }
                 if (isEntryHeaderReadyForReveal(entry)) {
                     if (entry.dataset.slbDisplayReady !== 'true') entry.dataset.slbDisplayReady = 'true';
@@ -9145,7 +9150,7 @@ function enhanceAll() {
                 }
             } catch (error) {
                 freshHeadersVerified = false;
-                console.error('[로어북 매니저] 열린 편집기 발견 오류', getUid(entry), error);
+                console.error('🦥 Lorebook Manager', '[로어북 매니저] 열린 편집기 발견 오류', getUid(entry), error);
             }
             if (index > start && performance.now() >= deadline) {
                 index += 1;
@@ -9205,7 +9210,7 @@ function currentCharacterLinkedBooks() {
     if (!character) return null;
     let fileName = '';
     try { fileName = getCharaFilename(this_chid); } catch (error) {
-        console.warn('[로어북 매니저] 캐릭터 로어북 연결명 확인 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 캐릭터 로어북 연결명 확인 실패', error);
     }
     return linkedBooksForCharacter(character, world_info, fileName);
 }
@@ -9782,7 +9787,7 @@ function openLibraryAdvanced(book, uid) {
             requestedPage = true;
             if (page !== Number(plugin.model.pageNumber)) pager.pagination('go', page);
         } catch (error) {
-            console.warn('[로어북 매니저] 원본 항목 페이지 이동 실패', error);
+            console.warn('🦥 Lorebook Manager', '[로어북 매니저] 원본 항목 페이지 이동 실패', error);
         }
     };
     state.libraryAdvancedCancel = stop;
@@ -9952,7 +9957,7 @@ function initStandaloneLibrary() {
             } catch (error) {
                 // Failed translated-file reads must not prevent the user from
                 // reading the original lorebook in the independent modal.
-                console.warn('[로어북 매니저] 독립 서재 번역 기록 불러오기 실패', error);
+                console.warn('🦥 Lorebook Manager', '[로어북 매니저] 독립 서재 번역 기록 불러오기 실패', error);
                 return false;
             }
         },
@@ -10135,7 +10140,7 @@ async function openStandaloneLibraryEntry({ book, uid } = {}) {
         await ensureLibraryStyles();
         return await initStandaloneLibrary().openEntry(book, uid);
     } catch (error) {
-        console.warn('[로어북 매니저] 로어북 서가 외부 이동 실패', error);
+        console.warn('🦥 Lorebook Manager', '[로어북 매니저] 로어북 서가 외부 이동 실패', error);
         return false;
     }
 }
@@ -10178,7 +10183,7 @@ function init() {
     void translationFiles.start().then(() => {
         loadTranslationBook(currentBookName());
         scheduleEnhance();
-    }).catch(error => console.warn('[로어북 매니저] 번역 저장소 초기화 실패', error));
+    }).catch(error => console.warn('🦥 Lorebook Manager', '[로어북 매니저] 번역 저장소 초기화 실패', error));
     // 1.4.51의 매니저 자체 폴더 UI 잔재만 일회 정리한다. Foldy 원본
     // 요소·설정·이벤트에는 손대지 않는다.
     removeObsoleteManagerFoldyUi();
@@ -10259,7 +10264,7 @@ function init() {
     enhanceAll();
     if (!isNativeLorebookMode()) scheduleInitialTokenSummary();
     syncEditorActivity();
-    console.info(`[로어북 매니저] v${VERSION} initialized`);
+    console.info('🦥 Lorebook Manager', `[로어북 매니저] v${VERSION} initialized`);
 }
 
 jQuery(() => {
@@ -10267,9 +10272,9 @@ jQuery(() => {
     // 두 인스턴스가 서로의 개조 마커를 부정하며 헤더를 이중 개조해
     // 네이티브 필드가 실종된다. 두 번째 인스턴스는 기동 자체를 막는다.
     if (window.__slbLoreManagerActive) {
-        console.warn(`[로어북 매니저] v${VERSION} 로드가 무시되었습니다: 이미 다른 사본(v${window.__slbLoreManagerActive})이 실행 중입니다. extensions 폴더에 로어북 매니저 폴더가 두 개 이상 있는지 확인하고 하나만 남겨주세요.`);
+        console.warn('🦥 Lorebook Manager', `[로어북 매니저] v${VERSION} 로드가 무시되었습니다: 이미 다른 사본(v${window.__slbLoreManagerActive})이 실행 중입니다. extensions 폴더에 로어북 매니저 폴더가 두 개 이상 있는지 확인하고 하나만 남겨주세요.`);
         if (typeof toastr !== 'undefined') {
-            toastr.warning('로어북 매니저가 두 번 설치되어 있습니다. extensions 폴더에서 중복 폴더를 삭제하고 하나만 남겨주세요.', '로어북 매니저 중복 설치 감지', { timeOut: 12000 });
+            toastr.warning('로어북 매니저가 두 번 설치되어 있습니다. extensions 폴더에서 중복 폴더를 삭제하고 하나만 남겨주세요.', slothToastTitle(uiText("로어북 매니저 중복 설치 감지")), { timeOut: 12000 });
         }
         return;
     }
