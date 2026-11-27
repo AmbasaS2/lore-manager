@@ -7437,3 +7437,23 @@
 #slb-library-overlay .slb-library-reader-classic .slb-library-memory-timeline {
     padding-inline-start: 15px;
 }
+
+/* Timeline only: on-demand full text stays in the same record and at the
+   same reading size. The other memory formats retain their own styling. */
+#slb-library-overlay .slb-library-memory-timeline :is(.slb-library-memory-summary,.slb-library-memory-expanded)[hidden] {
+    display: none !important;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded {
+    min-width: 0; margin: 4px 0 0;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded :is(.slb-library-detail-memory,.slb-library-reading) {
+    min-width: 0; margin: 0; padding: 0; border: 0; box-shadow: none !important;
+    background: transparent !important; color: inherit;
+    font-size: inherit;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded .slb-library-prose {
+    line-height: 1.6; color: inherit !important;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded .slb-library-prose.is-markdown :is(h1,h2,h3,h4,h5,h6) {
+    font-size: 1em;
+}
