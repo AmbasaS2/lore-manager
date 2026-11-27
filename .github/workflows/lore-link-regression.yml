@@ -2,7 +2,7 @@ name: Lorebook Manager regression
 on:
   pull_request:
   push:
-    branches: ['feat/worldinfoinfo-entry-link-20261123']
+    branches: [main, 'feat/worldinfoinfo-entry-link-20261123', 'fix/ambasa-85-translation-safety']
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -11,8 +11,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-save --no-package-lock jsdom@26 jquery@3
-      - run: node --test tests/*.test.cjs
+      - run: npm install --no-save --no-package-lock jsdom@26 jquery@3 rrweb-cssom
+      - run: node --test tests/*.test.cjs tests/*.test.mjs
   visual:
     runs-on: ubuntu-24.04
     steps:

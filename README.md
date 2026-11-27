@@ -199,7 +199,7 @@ AI revision and keyword recommendations require an AI profile even with Google t
 
 **Automatic translation and original-text reflection are separate options.**
 
-Only enable automatic reflection if you really want edited translations to change the original text.
+Only enable automatic reflection if you really want edited translations to change the original text. It is off by default for new installations; existing preferences are preserved. Before an existing nonempty original is fully replaced by reverse translation, a browser-local safety backup is required even if routine automatic backup is off.
 
 #### Translate multiple books
 
@@ -208,7 +208,7 @@ Only enable automatic reflection if you really want edited translations to chang
 - Translate missing entries or retranslate all selected entries.
 - Cancel a running job if necessary.
 
-Eligible short entries can be grouped for AI translation. Request counts, time and cost depend on provider and content.
+Eligible short entries can be grouped for AI translation. Successful fields are saved even if another field fails; failed fields keep their existing translations. Long bodies are split within a conservative character budget while protecting code and macros. Request counts, time and cost depend on provider and content.
 
 ### Integrated editing: statistics and filters
 
@@ -520,13 +520,14 @@ AI 수정·키워드 추천에는 AI 프로필이 필요합니다. 읽기용 제
 - 번역 수정 시 원문 자동 반영
 
 > [!IMPORTANT]
-> 원문도 함께 바꾸고 싶을 때만 **번역 수정 시 원문 자동 반영**을 켜세요.
+> 원문도 함께 바꾸고 싶을 때만 **번역 수정 시 원문 자동 반영**을 켜세요. 신규 설치 기본값은 꺼짐이며 기존 설정은 유지됩니다. 기존 원문 전체를 역번역으로 교체할 때는 자동 백업 설정과 관계없이 브라우저 안전 백업이 먼저 필요합니다.
 
 #### 여러 권을 한꺼번에 번역하기
 
 - **로어북 일괄 번역** → 여러 책 선택.
 - 미번역 항목만 또는 전체 재번역 선택.
 - 진행 중 취소 가능.
+- 일부 필드만 성공하면 성공한 번역을 저장하고 실패한 필드의 기존 번역은 유지합니다. 긴 본문은 보호된 코드·매크로를 자르지 않는 범위에서 분할합니다.
 
 AI 번역은 조건에 맞는 짧은 항목을 묶어 처리할 수 있습니다. 시간·API 사용량은 모델과 본문 길이에 따라 달라집니다.
 
