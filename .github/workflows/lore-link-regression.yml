@@ -2,7 +2,7 @@ name: Lorebook Manager regression
 on:
   pull_request:
   push:
-    branches: [main, 'feat/worldinfoinfo-entry-link-20261123', 'fix/ambasa-85-translation-safety']
+    branches: [main, 'feat/worldinfoinfo-entry-link-20261123']
 jobs:
   test:
     runs-on: ubuntu-latest
