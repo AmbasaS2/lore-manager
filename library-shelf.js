@@ -230,6 +230,7 @@ export function createStandaloneLibrary({
     let activeToolsUid = null;
     let appearanceSaving = false;
     let minimized = false;
+    let pendingExternalWorldUpdate = null;
     let minimizedLauncherPosition = null;
     let minimizedDragCleanup = null;
     let ignoreMinimizedClick = false;
@@ -481,8 +482,18 @@ export function createStandaloneLibrary({
                     (Number.isFinite(x) ? x : vp.left) + floatingSize.width / 2,
                     (Number.isFinite(y) ? y : vp.top) + floatingSize.height / 2);
             }
-            for (const [node, position] of savedScrollPositions) {
-                if (node.isConnected) node.scrollTop = position;
+            // Coalesce saves while hidden and update the reader once when restored.
+            // Match replacement scroll containers by their original selector order.
+            const pending = pendingExternalWorldUpdate;
+            pendingExternalWorldUpdate = null;
+            if (pending) onExternalWorldUpdate(pending.book, pending.data);
+            const restoredScrollNodes = [...shell.querySelectorAll(
+                '.slb-library-body, .slb-library-books-scroll, ' +
+                '.slb-library-app-reading-screen, .slb-library-index, ' +
+                '.slb-library-app-device-screen')];
+            for (const [index, [node, position]] of savedScrollPositions.entries()) {
+                const target = node.isConnected ? node : restoredScrollNodes[index];
+                if (target && target.className === node.className) target.scrollTop = position;
             }
             savedScrollPositions = [];
             ignoreMinimizedClick = false;
@@ -543,6 +554,7 @@ export function createStandaloneLibrary({
         loadVersion += 1;
         ++externalOpenSerial;
         ++globalSearchSerial;
+        pendingExternalWorldUpdate = null;
         globalSearchOpen = false;
         resizeCleanup?.();
         resizeCleanup = null;
@@ -1878,6 +1890,7 @@ export function createStandaloneLibrary({
         resetEdit();
         closeReaderTools();
         const version = ++loadVersion;
+        pendingExternalWorldUpdate = null;
         currentBook = book;
         readerSearchOpen = false;
         pendingImages.clear();
@@ -3340,6 +3353,11 @@ export function createStandaloneLibrary({
     }
     function onExternalWorldUpdate(book, data) {
         if (!isOpen() || book !== currentBook || !data?.entries) return;
+        if (minimized && !edit && !saving) {
+            // Keep only the latest authoritative save; no hidden indexing or DOM work.
+            pendingExternalWorldUpdate = { book, data };
+            return;
+        }
         if (edit || saving) {
             notifyStatus(uiText("다른 화면에서 로어북이 수정되었습니다. 현재 편집 내용을 확인하세요."), 'warning');
             return;
