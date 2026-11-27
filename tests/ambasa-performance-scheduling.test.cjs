@@ -263,3 +263,14 @@ test('state selector repair targets only the changed row; watchdog retains whole
         source.indexOf("for (const eventName of ['CONNECTION_PROFILE_CREATED'",source.indexOf('if (event_types.WORLDINFO_UPDATED)')));
     assert.match(updated,/if \(!edit \|\| !isEntryEditorRendered\(entry\)\) return false/);
 });
+
+
+test('token cache invalidates on effective tokenizer changes without mixing old counts',()=>{
+ const ctx={main_api:'openai',getTokenizerModel:()=>ctx.model,model:'gpt-4',state:{tokenCache:new Map(),tokenCacheTouched:new Map()},power_user:{tokenizer:99},tokenizers:{BEST_MATCH:99,API_TEXTGENERATIONWEBUI:9,API_KOBOLD:10},getTokenizerBestMatch:()=>12,getTextGenModel:()=>'',online_status:''};
+ vm.runInNewContext(production('getTokenCacheScope')+'\n'+production('syncTokenCacheScope')+'\n'+production('getBookTokenCache')+'\nthis.getCache=getBookTokenCache;',ctx);
+ const old=ctx.getCache('Memory');old.set('0',{hash:'same',count:42});
+ assert.equal(ctx.getCache('Memory'),old);
+ ctx.model='claude';const fresh=ctx.getCache('Memory');
+ assert.notEqual(fresh,old);assert.equal(fresh.size,0);
+ assert.equal(ctx.getCache('Memory'),fresh);
+});

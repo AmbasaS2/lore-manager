@@ -170,3 +170,21 @@ test('an indivisible protected block larger than budget fails before any paid re
  await assert.rejects(translateLoreWithValidation({source:fence+'js\n'+'x'.repeat(600)+'\n'+fence,maxChars:300,request:async()=>{calls++;return 'unused'}}),/한도/);
  assert.equal(calls,0);
 });
+
+
+test('an interrupted long translation resumes paid chunks only for the same source and settings',async()=>{
+ const {translateLoreWithValidation}=await importer;
+ const source=['First paragraph '.repeat(130),'Second paragraph '.repeat(130)].join('\n\n');
+ let first=0, second=0;
+ const options={source,maxChars:2800,resumeScope:'test-profile'};
+ await assert.rejects(translateLoreWithValidation({...options,request:async prompt=>{
+  if(prompt.includes('First paragraph')){first++;return '첫째 문단';}
+  second++;throw Error('temporary connection failure');
+ }}),/1\/2/);
+ const result=await translateLoreWithValidation({...options,request:async prompt=>{
+  if(prompt.includes('First paragraph')){first++;return 'first again';}
+  second++;return '둘째 문단';
+ }});
+ assert.equal(first,1);assert.equal(second,2);
+ assert.equal(result,'첫째 문단 \n\n둘째 문단 ');
+});
