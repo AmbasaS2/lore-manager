@@ -140,7 +140,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     autoBackupEnabled: false,
     translateMissingOnOpen: true,
     autoTranslateSource: true,
-    autoSyncToSource: true,
+    autoSyncToSource: false,
 });
 
 function normalizeAIOutputTokens(value) {
@@ -3234,6 +3234,7 @@ async function restoreLorebookBackup(id, mode) {
 
 function backupReasonLabel(reason) {
     if (reason === 'before-restore') return '복원 전 안전 백업';
+    if (reason === 'before-source-replace') return '원문 전체 교체 전 안전 백업';
     if (reason === 'manual') return '수동 백업';
     if (reason === 'imported') return '가져온 백업';
     if (reason === 'opened') return '열 때 기준 백업';
@@ -6825,6 +6826,23 @@ async function reflectEntryTranslation(ui, { manual = false } = {}) {
             }
             assertProtectedStructurePreserved(translation, revisedSource);
             if (source.trim()) assertProtectedStructurePreserved(source, revisedSource);
+            if (source.trim() && revisedSource !== source) {
+                const before = await loadWorldInfo(ui.book);
+                const original = before?.entries?.[ui.uid];
+                if (!original || String(original.content ?? '') !== source) {
+                    throw new Error('최신 원문과 편집 내용이 달라 안전 백업을 만들지 않았습니다. 원문을 저장한 뒤 다시 시도해주세요.');
+                }
+                const backup = await createLorebookBackup(ui.book, { reason: 'before-source-replace', data: before });
+                if (backup?.status !== 'created' && backup?.status !== 'unchanged') {
+                    throw new Error('원문 교체 전 안전 백업을 완료하지 못해 원문을 유지했습니다.');
+                }
+                if (ui.flags.deleted || !ui.root.isConnected || currentBookName() !== ui.book
+                    || ui.translation.value !== translation || ui.source.value !== source
+                    || ui.sourceLanguage !== sourceLanguage || ui.translationLanguage !== translationLanguage) {
+                    ui.status.textContent = uiText("반영 중 내용이나 EN/KO 방향이 변경되어 이전 결과를 적용하지 않았습니다.");
+                    return;
+                }
+            }
             ui.flags.writingSource = true;
             try {
                 ui.source.value = revisedSource;
