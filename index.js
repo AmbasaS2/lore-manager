@@ -8194,7 +8194,7 @@ function enforceActivationOverviewIntegrity(targetEntries = null) {
     }
 }
 
-function syncLiveEditorTokens() {
+function syncLiveEditorTokens(targetEntries = null) {
     if (state.editorUiSuspended || state.sorting || state.navDragging) return;
     if (document.visibilityState === 'hidden') return;
     const book = currentBookName();
@@ -8223,7 +8223,7 @@ function syncLiveEditorTokens() {
 
     let activeChanged = false;
     const cache = getBookTokenCache(book);
-    for (const entryElement of renderedEntries()) {
+    for (const entryElement of targetEntries ?? renderedEntries()) {
         const uid = getUid(entryElement);
         const dataEntry = data.entries?.[uid] ?? data.entries?.[Number(uid)];
         if (!dataEntry) continue;
@@ -8479,8 +8479,13 @@ function syncLiveEditorTimer() {
         return;
     }
     state.liveSyncTimer ??= setInterval(() => {
-        enforceActivationOverviewIntegrity();
-        syncLiveEditorTokens();
+        // Keep the external-change fallback, but do not compete with a render,
+        // drag or book transition; both checks share one native row snapshot.
+        if (state.editorUiSuspended || state.sorting || state.navDragging || state.enhancing || state.bookSwitch
+            || document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen()) return;
+        const entries = renderedEntries();
+        enforceActivationOverviewIntegrity(entries);
+        syncLiveEditorTokens(entries);
         if (state.deferredTokenSummary) resumeDeferredTokenSummary();
     }, LIVE_SYNC_FALLBACK_INTERVAL_MS);
 }

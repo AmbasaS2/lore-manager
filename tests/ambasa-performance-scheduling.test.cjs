@@ -126,7 +126,8 @@ test('fallback interval only runs while the integrated editor is open',()=>{
     assert.match(source,/const LIVE_SYNC_FALLBACK_INTERVAL_MS = 4000;/);
     const init=source.slice(source.indexOf('function init()'),source.indexOf('jQuery(() => {'));
     let drawerOpen = false;
-    let checks = 0;
+    let checks = 0, scans = 0, tokenChecks = 0;
+    const rows = [{}];
     let active = null;
     const context = {
         document: { visibilityState: 'visible' },
@@ -135,8 +136,9 @@ test('fallback interval only runs while the integrated editor is open',()=>{
         isWorldInfoDrawerOpen: () => drawerOpen,
         clearInterval: () => { active = null; },
         setInterval: (fn, ms) => { assert.equal(ms, 4000); active = fn; return 1; },
-        enforceActivationOverviewIntegrity: () => { checks++; },
-        syncLiveEditorTokens: () => {},
+        renderedEntries: () => { scans++; return rows; },
+        enforceActivationOverviewIntegrity: entries => { assert.equal(entries, rows); checks++; },
+        syncLiveEditorTokens: entries => { assert.equal(entries, rows); tokenChecks++; },
         LIVE_SYNC_FALLBACK_INTERVAL_MS: 4000,
     };
     vm.runInNewContext(production('syncLiveEditorTimer')+'\nglobalThis.sync=syncLiveEditorTimer',context);
@@ -146,6 +148,21 @@ test('fallback interval only runs while the integrated editor is open',()=>{
     context.sync();
     active();
     assert.equal(checks, 1);
+    assert.equal(scans, 1);
+    assert.equal(tokenChecks, 1);
+    for (const key of ['editorUiSuspended', 'sorting', 'navDragging', 'enhancing', 'bookSwitch']) {
+        context.state[key] = true;
+        active();
+        context.state[key] = false;
+    }
+    context.document.visibilityState = 'hidden';
+    active();
+    context.document.visibilityState = 'visible';
+    assert.equal(scans, 1, 'busy and hidden ticks must not walk DOM rows');
+    active();
+    assert.equal(scans, 2);
+    assert.equal(checks, 2);
+    assert.equal(tokenChecks, 2);
     drawerOpen = false;
     context.sync();
     assert.equal(active, null);
