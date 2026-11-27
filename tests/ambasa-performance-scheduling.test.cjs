@@ -274,3 +274,33 @@ test('token cache invalidates on effective tokenizer changes without mixing old 
  assert.notEqual(fresh,old);assert.equal(fresh.size,0);
  assert.equal(ctx.getCache('Memory'),fresh);
 });
+
+test('an external lore save during token measurement schedules only one follow-up for stale entries',async()=>{
+ const initial={entries:{1:{uid:1,content:'old'}}};
+ const state={currentBook:'book',currentBookData:initial,editorUiSuspended:false,tokenRunId:0,tokenRefreshRunId:0,tokenRefreshAfterRun:0};
+ const cache=new Map(),scheduled=[],measurements=[];let release,handler;
+ const ctx={state,document:{getElementById:()=>({})},currentBookName:()=> 'book',getTokenCacheScope:()=> 'model',
+   lorebookEntries:data=>Object.values(data.entries),hashEntryContent:entry=>entry.content,getBookTokenCache:()=>cache,
+   loadCurrentBookDataOnce:async()=>state.currentBookData,renderTokenSummary(){},queueTokenSummaryRender(){},isNarrowEntryLayout:()=>true,
+   mapLimit:async(items,_limit,fn)=>{for(let i=0;i<items.length;i++)await fn(items[i],i);},
+   getTokenCountAsync:async content=>{measurements.push(content);if(content==='old')await new Promise(resolve=>{release=resolve;});return content.length;},
+   schedulePersistTokenCache(){},clearTimeout(){},setTimeout:fn=>{fn();},scheduleTokenSummary:(...args)=>scheduled.push(args),
+   event_types:{WORLDINFO_UPDATED:'updated'},eventSource:{on(_event,fn){handler=fn;}},
+   releaseNativePageCache(){},standaloneLibrary:null,isNativeLorebookMode:()=>false,scheduleAutomaticLorebookBackup(){},
+   entryBulkEditor:{prune(){}},renderedEntries:()=>[],console};
+ const start=source.indexOf('    if (event_types.WORLDINFO_UPDATED)');
+ const end=source.indexOf("    for (const eventName of ['CONNECTION_PROFILE_CREATED'",start);
+ const fn=source.match(/^async function refreshTokenSummary\([^]*?^}/m)[0];
+ vm.runInNewContext(fn+'\n'+source.slice(start,end)+'\nthis.refresh=refreshTokenSummary;',ctx);
+ const first=ctx.refresh(initial);await Promise.resolve();
+ assert.ok(release,'initial calculation in flight');
+ const updated={entries:{1:{uid:1,content:'edited'},2:{uid:2,content:'new'}}};
+ handler('book',updated);handler('book',updated);
+ assert.equal(scheduled.length,0,'no overlapping full pass');
+ release();await first;
+ assert.deepEqual(scheduled,[[null,80]]);
+ await ctx.refresh();
+ assert.deepEqual(measurements,['old','edited','new']);
+ assert.equal(cache.get('1').hash,'edited');assert.equal(cache.get('2').hash,'new');
+ handler('book',updated);assert.equal(scheduled.length,1,'metadata-only update does not count again');
+});
