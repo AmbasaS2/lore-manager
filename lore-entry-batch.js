@@ -13,8 +13,12 @@ function activeFields(item) {
         && typeof item?.sources?.[field] === 'string' && item.sources[field].trim());
 }
 
+function bodyReference(item, fields = activeFields(item)) {
+    return fields.includes('content') ? '' : String(item?.sources?.content ?? '').slice(0, 850);
+}
 function itemLength(item) {
-    return activeFields(item).reduce((total, field) => total + item.sources[field].length, 0);
+    const fields = activeFields(item);
+    return fields.reduce((total, field) => total + item.sources[field].length, 0) + bodyReference(item, fields).length;
 }
 
 // Entries are grouped in their original order, with separate requests per
@@ -72,12 +76,15 @@ export function buildLoreEntryGroupPrompt(items, { targetLanguage = 'Korean', in
         const fields = activeFields(item);
         const record = {};
         for (const field of fields) record[field] = item.sources[field];
-        sources[String(item.id)] = { sourceTag: sourceStamp(item), fields: record };
+        const reference = bodyReference(item, fields);
+        sources[String(item.id)] = { sourceTag: sourceStamp(item), fields: record,
+            ...(reference.trim() ? { bodyReference: reference } : {}) };
     }
     return [
         'Translate ' + items.length + ' DIFFERENT lorebook entries independently into fluent, native ' + target + '.',
         'Each entry is distinct. NEVER combine, merge, reorder, summarize or mix their text, chronology, relationships or facts.',
         'Keep exactly the same entry IDs and sourceTag values. Every field must remain attached to its original ID and field name.',
+        'An optional bodyReference belongs only to its own entry and is read-only context for names and referents. Translate only the requested fields; never return bodyReference.',
         'Translate every provided field in full. Preserve names, behaviors, humor, characterization, emotional intensity, negation, and exact chronology.',
         'Keep every protected {{macro}}, tag, Markdown marker, date, number, code token, line/paragraph break, list delimiter, and meaningful ellipsis.',
         'Keyword fields preserve the number and order of comma-separated terms. Title fields preserve dates and separators.',
