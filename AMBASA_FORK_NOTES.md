@@ -1,5 +1,9 @@
 # 로어북 매니저 · AmbasaS2 베타 변경 기록
 
+## v1.4.85-ambasa.84 · 2026-11-27 · 표시 이름 및 아이콘
+- 제품 한국어 이름: 로어북 매니저: 게으름뱅이. 확장 설정 제목과 입력창 확장 메뉴는 로어북 매니저로 유지하고 두 곳 모두 fa-otter 적용. 제목의 강제 줄 높이·아이콘 글자 크기 제거. 기존 식별자, 영문 manifest 이름, 저장·서재 동작 유지.
+- 수정: index.js, style.css, ui-language-settings.js, manifest.json, README 및 관련 SVG, 제목 회귀 테스트. 롤백: 4cc801034a632c4d302c7f5fd6329eb01fe23b8f 코드 복원 (사용자 데이터 유지).
+
 ## Branding update (2026-11-26)
 - Display name: Sloth the Lorebook Manager (로어북 매니저 나무늘보씨). Only product branding and its settings header change; existing library menu, storage, identifiers and controls remain unchanged.
 

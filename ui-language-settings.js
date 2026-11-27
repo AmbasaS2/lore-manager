@@ -1,12 +1,5 @@
 // Extension-authored UI only. Korean source strings map to en, ja, zh-CN, zh-TW and es. Missing variants fall back to English.
 export const SETTINGS_UI = Object.freeze({
-  "로어북 매니저 나무늘보씨": [
-    "Sloth the Lorebook Manager",
-    "Sloth the Lorebook Manager",
-    "Sloth the Lorebook Manager",
-    "Sloth the Lorebook Manager",
-    "Sloth the Lorebook Manager"
-  ],
   "로어북 매니저": [
     "Lorebook Manager",
     "ロアブックマネージャー",

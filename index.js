@@ -32,7 +32,7 @@ import { createStandaloneLibrary, LIBRARY_BOOK_TYPES, canonicalLibraryBookNames 
 configureUiLocale(getCurrentLocale);
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.83';
+const VERSION = '1.4.85-ambasa.84';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -3388,7 +3388,7 @@ function createAIBar() {
     bar.innerHTML = `
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b class="slb-extension-title"><i class="fa-solid fa-book" aria-hidden="true"></i><span>${uiHtml("로어북 매니저 나무늘보씨")}</span></b>
+                <b class="slb-extension-title"><i class="fa-solid fa-otter" aria-hidden="true"></i><span>${uiHtml("로어북 매니저")}</span></b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content" style="display: none;">
@@ -9880,7 +9880,7 @@ function bindStandaloneLibraryMenu() {
     action.setAttribute('role', 'button');
     action.tabIndex = 0;
     action.setAttribute('aria-label', uiText("독립 로어북 매니저 서재 열기"));
-    action.append(createElement('div', 'fa-solid fa-address-book extensionsMenuExtensionButton'));
+    action.append(createElement('div', 'fa-solid fa-otter extensionsMenuExtensionButton'));
     action.append(createElement('span', '', uiText("로어북 매니저")));
     const open = () => void openStandaloneLibrary();
     action.addEventListener('click', open);

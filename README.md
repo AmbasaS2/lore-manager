@@ -1,10 +1,10 @@
-# 📚 Sloth the Lorebook Manager
+# 🦦 Sloth the Lorebook Manager
 
 A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverharibo-boop/lore-manager)** for SillyTavern, made with the original author's permission.
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.83 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.84 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저-나무늘보씨) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -16,7 +16,7 @@ The original extension provides the foundation for lorebook editing, translation
 1. Back up your SillyTavern data, settings and translations, particularly when switching from the original.
 2. Open SillyTavern's extension installer and enter:
    <code>https://github.com/AmbasaS2/lore-manager</code>
-3. Reload SillyTavern. Open **Extensions → 로어북 매니저 나무늘보씨** to configure the extension or use the **로어북 매니저 (Lorebook Manager)** item in the extension menu to open the library.
+3. Reload SillyTavern. Open **Extensions → 로어북 매니저** to configure the extension or use the **로어북 매니저 (Lorebook Manager)** item in the extension menu to open the library.
 
 > [!IMPORTANT]
 > Do not run the original and this fork together. When switching versions, preserve your data and replace only the extension code. Do not use data reset or uninstall to migrate.
@@ -38,7 +38,7 @@ The original editing, translation, token and backup tools are still available. I
 
 ## ⚡ Quick start
 
-**Current version: 1.4.85-ambasa.83.**
+**Current version: 1.4.85-ambasa.84.**
 
 > **Open your library → choose a book → read.**
 >
@@ -62,7 +62,7 @@ Configure a translation provider only if you need new translations.
 
 > The bilingual illustrations are simplified UI mock-ups based on the extension controls in SillyTavern, not screenshots. Values and lorebooks are illustrative examples.
 
-Open **Extensions → 로어북 매니저 나무늘보씨**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
+Open **Extensions → 로어북 매니저**. If you only want to read, choose the native editor in Display / advanced and open the library. Configure translation only for new translations, and backup options as needed.
 
 ### 1. Choose a display mode
 
@@ -208,7 +208,7 @@ Eligible short entries can be grouped for AI translation. Request counts, time a
 
 ### Integrated editing: statistics and filters
 
-Extensions → 로어북 매니저 나무늘보씨 → 화면·고급 설정 → 통합 화면 표시 옵션.
+Extensions → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션.
 
 - **Activation icons:** show entry activation type.
 - **Token statistics:** total, constant, selective and vectorized tokens, plus entry count.
@@ -290,7 +290,7 @@ During RP: library → choose a book and entry → read original or translation 
 
 > The library works without AI, STLO, or Memory Books. Memory Books memories and other existing lorebooks can be displayed in any reading format. With compatible WorldInfo Info and its optional library link, the exact entry opens by book name and UID. STLO's injection order is independent of library reading order.
 
-[Lorebook Ordering for Sloths](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Sloth's Memory Books / 게으름뱅이의 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info of Sloth / 나무늘보의 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
+[Lorebook Ordering for Sloths](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Sloth's Memory Books / 게으름뱅이의 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info of Sloth / 게으름뱅이가 읽는 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
 
 The detailed sections below explain optional settings. Compatibility is version-dependent; it does not guarantee every third-party extension or device.
 
@@ -308,14 +308,14 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 <a id="-로어북-매니저"></a>
 
-# 📚 로어북 매니저 나무늘보씨
+# 🦦 로어북 매니저: 게으름뱅이
 
 **화면 언어:** 실리태번 화면 언어를 자동으로 따릅니다. 주요 설정·서재·편집 조작은 한국어·영어·일본어·중국어 간체/번체·스페인어로 표시되며 일부 안내는 영어로 대체됩니다. 원본 로어와 번역 기록은 변경하지 않습니다.
 
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.83 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.84 (원작 1.4.85 기반)
 
 
 **서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
@@ -324,7 +324,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 1. 기존 로어북과 번역 기록, SillyTavern 설정을 백업합니다.
 2. 확장 설치 메뉴에 <code>https://github.com/AmbasaS2/lore-manager</code> 를 입력합니다.
-3. 새로고침한 뒤 확장 탭의 **로어북 매니저 나무늘보씨**에서 설정하거나, 확장 메뉴에서 **로어북 매니저**를 눌러 독립 서재를 엽니다.
+3. 새로고침한 뒤 확장 탭의 **로어북 매니저**에서 설정하거나, 확장 메뉴에서 **로어북 매니저**를 눌러 독립 서재를 엽니다.
 
 > [!IMPORTANT]
 > 원작과 이 포크를 동시에 실행하지 마세요. 기존 설치에서 전환할 때는 데이터를 유지하고 확장 코드만 교체합니다. 삭제·전체 초기화를 전환 방법으로 사용하지 마세요.
@@ -345,7 +345,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 ## ⚡ 간단 사용 설명
 
-**현재 버전: 1.4.85-ambasa.83.**
+**현재 버전: 1.4.85-ambasa.84.**
 
 > **확장 메뉴 → 서재 → 원하는 책 → 읽기!**
 >
@@ -354,7 +354,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 **처음 한 번만 설정하기**
 
 1. 원본과 동시 실행하지 말고 데이터를 보존한 채 포크 설치 → 새로고침.
-2. 확장 관리 → 로어북 매니저 나무늘보씨 → 화면·고급 설정 → 기본 화면 선택 (독립 서재만 쓸 경우).
+2. 확장 관리 → 로어북 매니저 → 화면·고급 설정 → 기본 화면 선택 (독립 서재만 쓸 경우).
 
 **평소 서재 사용법 (AI 연결 불필요)**
 
@@ -373,7 +373,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 ### 1. 화면 표시 방식
 
-확장 탭 → 로어북 매니저 나무늘보씨 → **화면·고급 설정**에서 선택합니다.
+확장 탭 → 로어북 매니저 → **화면·고급 설정**에서 선택합니다.
 
 | 표시 방식 | 추천 상황 |
 | --- | --- |
@@ -522,7 +522,7 @@ AI 번역은 조건에 맞는 짧은 항목을 묶어 처리할 수 있습니다
 
 ### 통합 화면의 토큰 통계·필터
 
-확장 관리 → 로어북 매니저 나무늘보씨 → 화면·고급 설정 → 통합 화면 표시 옵션.
+확장 관리 → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션.
 
 | 표시 옵션 | 기능 |
 | --- | --- |
@@ -623,7 +623,7 @@ RP 중 확장 메뉴 → 로어북 매니저 → 책·항목 → 원문 또는 �
 
 > AI나 STLO·메모리북 없이도 서재는 작동합니다. 메모리북이 만든 기억도 다른 로어북처럼 읽습니다. 호환 월드인포인포에서 로어북 서가 연동을 켜면 책 이름과 UID로 정확한 항목을 열 수 있습니다. STLO의 주입 순서와 서재의 읽기 순서는 별개입니다.
 
-[Lorebook Ordering for Sloths](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Sloth's Memory Books / 게으름뱅이의 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info of Sloth / 나무늘보의 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
+[Lorebook Ordering for Sloths](https://github.com/AmbasaS2/SillyTavern-LorebookOrdering) · [Sloth's Memory Books / 게으름뱅이의 메모리북](https://github.com/AmbasaS2/SillyTavern-MemoryBooks) · [WorldInfo Info of Sloth / 게으름뱅이가 읽는 월드인포인포](https://github.com/AmbasaS2/SillyTavern-WorldInfoInfo)
 
 아래에서 필요한 설정만 자세히 읽으세요. 지원 버전 기준이며 모든 기기·다른 확장 조합을 보장하는 것은 아닙니다.
 
