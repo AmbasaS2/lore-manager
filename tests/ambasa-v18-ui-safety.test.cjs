@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
-const {JSDOM}=require('jsdom');
+const {JSDOM}=require('./fixture-ui-language.cjs');
 const source=readFileSync(join(__dirname,'../index.js'),'utf8');
 const css=readFileSync(join(__dirname,'../style.css'),'utf8');
 function production(name){
@@ -71,9 +71,9 @@ test('backup list is natural height with expandable book rows and action buttons
  assert.match(row[1],/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
  assert.doesNotMatch(row[1],/height:\s*\d+px|flex-wrap:\s*wrap/);
  assert.match(body[1],/flex-direction:\s*column/);
- assert.match(source,/const currentButton = createElement\('button', 'menu_button', '현재 로어북 복원'\)/);
- assert.match(source,/const copyButton = createElement\('button', 'menu_button', '새 로어북으로 복원'\)/);
- assert.match(source,/const exportButton = createElement\('button', 'menu_button', 'JSON 내보내기'\)/);
+ assert.match(source,/const currentButton = createElement\('button', 'menu_button', uiText\("현재 로어북 복원"\)\)/);
+ assert.match(source,/const copyButton = createElement\('button', 'menu_button', uiText\("새 로어북으로 복원"\)\)/);
+ assert.match(source,/const exportButton = createElement\('button', 'menu_button', uiText\("JSON 내보내기"\)\)/);
  assert.match(source,/deleteLorebookBackup\(record\.id\)/);
  assert.match(source,/restoreLorebookBackup\(record\.id, 'copy'\)/);
 });
@@ -83,7 +83,7 @@ test('compact bulk-edit control stays smaller than translation action without tr
  assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar \.slb-bulk-mode-label\s*\{[^}]*font-size:\s*0\.88em/s);
  assert.match(css,/#WorldInfo\.slb-active \.slb-bulk-selection-tools \.menu_button\s*\{[^}]*min-height:\s*24px/s);
  assert.match(css,/#slb-ai-tools \.slb-quick-options \.slb-translate-book\s*\{[^}]*min-width:\s*min\(180px,\s*100%\)/s);
- assert.match(source,/id="slb-translate-book"[\s\S]*?>[\s\S]*?<span>로어북 일괄 번역<\/span>/);
+ assert.match(source,/id="slb-translate-book"[\s\S]*?>[\s\S]*?<span>\$\{uiHtml\("로어북 일괄 번역"\)\}<\/span>/);
  assert.doesNotMatch(source,/로어북 일괄 번역…/);
  assert.match(source,/번역본이 있으면 원문 대신 번역본 표시/);
  assert.match(source,/hideSource\.checked = settings\.hideOriginalWhenTranslated/);

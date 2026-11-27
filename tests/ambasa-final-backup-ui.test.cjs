@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
-const { JSDOM } = require('jsdom');
+const { JSDOM } = require('./fixture-ui-language.cjs');
 const { runInNewContext } = require('node:vm');
 
 const source = readFileSync(path.join(__dirname, '../index.js'), 'utf8');

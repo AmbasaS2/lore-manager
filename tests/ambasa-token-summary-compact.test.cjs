@@ -2,7 +2,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {join} = require('node:path');
-const {JSDOM} = require('jsdom');
+const { JSDOM, uiText, uiHtml } = require('./fixture-ui-language.cjs');
 const vm = require('node:vm');
 
 const source = readFileSync(join(__dirname, '../index.js'), 'utf8');
@@ -16,6 +16,7 @@ function production(name) {
 test('compact token summary displays five Font Awesome icons with only numeric values', () => {
     const dom = new JSDOM('<main id="fixture"></main>', {runScripts:'outside-only'});
     const ctx = {
+        uiText, uiHtml,
         document: dom.window.document,
         state: {editorUiSuspended:false},
         WeakMap,

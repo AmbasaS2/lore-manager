@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
-const {JSDOM}=require('jsdom');
+const {JSDOM}=require('./fixture-ui-language.cjs');
 
 const source=readFileSync(join(__dirname,'../index.js'),'utf8');
 const css=readFileSync(join(__dirname,'../style.css'),'utf8');
@@ -50,7 +50,7 @@ test('three original stored visibility preferences apply across widths',()=>{
 });
 
 test('settings labels visibility as global without losing saved keys',()=>{
-    assert.match(source,/class="slb-mobile-display-title">통합 화면 표시 옵션</);
+    assert.match(source,/class="slb-mobile-display-title">\$\{uiHtml\("통합 화면 표시 옵션"\)\}</);
     assert.match(source,/PC·모바일 공통/);
     assert.doesNotMatch(source,/모바일 로어북 표시/);
     for(const key of ['showMobileEntryState','showMobileTokenSummary','showMobileEntryFilters','showBulkEditToolbar']){

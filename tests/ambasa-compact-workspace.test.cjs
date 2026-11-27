@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
-const {JSDOM}=require('jsdom');
+const {JSDOM}=require('./fixture-ui-language.cjs');
 const src=readFileSync(join(__dirname,'../index.js'),'utf8');
 const css=readFileSync(join(__dirname,'../style.css'),'utf8');
 const bulk=readFileSync(join(__dirname,'../bulk-edit.js'),'utf8');
@@ -88,8 +88,8 @@ test('original SillyTavern captions and documentation links stay untouched while
 });
 
 test('bulk-selection UI is named and shows single select-all/clear toggle, not a misleading menu',()=>{
-    assert.match(bulk,/class="slb-bulk-mode-text">일괄 편집/);
-    assert.match(bulk,/selected\.size \? '선택 비우기' : '전체 선택'/);
+    assert.match(bulk,/class="slb-bulk-mode-text">\$\{uiHtml\("일괄 편집"\)\}/);
+    assert.match(bulk,/selected\.size \? uiText\("선택 비우기"\) : uiText\("전체 선택"\)/);
     assert.doesNotMatch(bulk,/class="menu_button slb-bulk-clear"/);
     assert.match(bulk,/selected\.clear\(\);\s*syncRows\(\)/);
     assert.match(bulk,/class="slb-bulk-selection-count" aria-live="polite"/);

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join, resolve } = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { JSDOM } = require('jsdom');
+const { JSDOM } = require('./fixture-ui-language.cjs');
 
 const source=readFileSync(join(__dirname,'../index.js'),'utf8');
 const stylesheet=readFileSync(join(__dirname,'../style.css'),'utf8');
