@@ -168,13 +168,18 @@ test('original content save uses ST compatibility copy, preserves triggers, reje
         entries: { 2: { uid: 2, content:'before', constant:true, probability:73, excludeRecursion:true } },
         originalData: { entries: [{ uid: 2, content:'before', constant:true, probability:73, excludeRecursion:true }] }
     };
+    w.withSlothLorebookWriteLane = (await import('../slothWriteLane.js')).withSlothLorebookWriteLane;
     w.eval([
         'const original=' + JSON.stringify(original) + ';',
-        'let saves=0,refreshes=0;',
+        'let saves=0,refreshes=0; let disk=JSON.parse(JSON.stringify(original)); let failReadBack=false;',
         'document.getElementById("world_refresh").addEventListener("click",()=>refreshes++);',
         'const currentBookName=()=>"Example";',
         'const loadWorldInfo=async()=>original;',
-        'const saveWorldInfo=async(name,data,force)=>{if(name!=="Example"||!force)throw Error("wrong save");saves++};',
+        'const getRequestHeaders=()=>({}); const uiText=text=>text;',
+        'const fetch=async()=>({ok:true,json:async()=>JSON.parse(JSON.stringify(disk))});',
+        prod('readServerLorebookForSave'),
+        'const saveWorldInfo=async(name,data,force)=>{if(name!=="Example"||!force)throw Error("wrong save");saves++;Object.assign(original,data);if(!failReadBack)disk=JSON.parse(JSON.stringify(data));};',
+        'window.failReadBack=()=>{failReadBack=true;};',
         'const setWIOriginalDataValue=(data,uid,key,value)=>{const item=data.originalData.entries.find(x=>x.uid===uid);item[key]=value;};',
         prod('saveLibraryOriginal').replace('async function','async function'),
         'window.save=saveLibraryOriginal;',
@@ -190,5 +195,8 @@ test('original content save uses ST compatibility copy, preserves triggers, reje
         assert.equal(w.stats().original.originalData.entries[0].content,'edited content');
         assert.equal(w.stats().original.entries[2].excludeRecursion,true);
         assert.equal(w.stats().original.entries[2].probability,73);
+        w.failReadBack();
+        await assert.rejects(w.save('Example','2','edited content','unverified'),/저장 결과를 확인하지 못했습니다/);
+        assert.equal(w.stats().refreshes,1,'an unverified write must not refresh as success');
     } finally { w.close(); }
 });

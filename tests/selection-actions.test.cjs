@@ -4,6 +4,7 @@ const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const { JSDOM, uiText, uiHtml } = require('./fixture-ui-language.cjs');
 const makeJQuery = require('jquery');
+const { withSlothLorebookWriteLane } = require('../slothWriteLane.js');
 const code = readFileSync(require('node:path').join(__dirname, '../index.js'), 'utf8');
 const fn = name => code.match(new RegExp(`^(?:async )?function ${name}\\([^]*?^}`, 'm'))[0];
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -31,7 +32,7 @@ function fixture(groupModule = null) {
     let save = async () => { events.push('save'); };
     let debounceCalls = 0, backupCalls = 0;
     const context = vm.createContext({
-        uiText, uiHtml,
+        uiText, uiHtml, withSlothLorebookWriteLane,
         console: { warn() {} }, clearTimeout, document: dom.window.document, AbortController,
         toastr: { info: message => events.push(['toast',message]) },
         state: { sourceTimers: new Map(), translationTimers: new Map(), bulkTranslation: null },
