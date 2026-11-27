@@ -86,7 +86,7 @@ export function parseLoreFieldBatchResponse(answer, sources, fields) {
 // translated again, and there is no path to put content in another field.
 export async function translateLoreFieldsBatch({
     sources, fields,targetLanguage='ko',instructions='',request,fallback,
-    onWarning=null,maxCombinedChars=9500,
+    onWarning=null,maxCombinedChars=9500,signal=null,
 }={}) {
     if(typeof request!=='function'||typeof fallback!=='function'){
         throw new TypeError('AI batch requires request and field-specific fallback functions');
@@ -94,32 +94,50 @@ export async function translateLoreFieldsBatch({
     const active=cleanFields(fields,sources);
     const results={};
     if(active.length===0)return results;
+    const guard=()=>{if(signal?.aborted)throw signal.reason || new Error('Translation canceled');};
+    let firstError=null;
     const single=async field=>{
-        const value=await fallback(field,sources[field]);
-        if(typeof value==='string'&&value.trim())results[field]=value;
-        else throw new Error('빈 번역 응답: '+field);
+        guard();
+        try {
+            const value=await fallback(field,sources[field]);
+            guard();
+            if(typeof value!=='string'||!value.trim())throw new Error('빈 번역 응답: '+field);
+            results[field]=value;
+        } catch(error) {
+            guard();
+            firstError ??= error;
+            onWarning?.({kind:'field-failed',field,message:String(error?.message||error)});
+        }
     };
+    const finish=()=>{
+        guard();
+        if(!Object.keys(results).length && firstError)throw firstError;
+        return results;
+    };
+    guard();
     const totalChars=active.reduce((sum,field)=>sum+sources[field].length,0);
     // Long lorebook bodies already use paragraph-aware chunking; do not force
     // them into one huge JSON request that exceeds the model's output budget.
     if(active.length===1 || totalChars>maxCombinedChars){
         for(const field of active)await single(field);
-        return results;
+        return finish();
     }
     const batchPrompt=buildLoreFieldBatchPrompt({sources,fields:active,targetLanguage,instructions});
     let parsed={results:{},invalid:[...active],reason:'request-failed'};
     try {
         const answer=await request(batchPrompt);
+        guard();
         parsed=parseLoreFieldBatchResponse(answer,sources,active);
     } catch(error) {
+        guard();
         onWarning?.({kind:'batch-request',message:String(error?.message||error)});
     }
     Object.assign(results,parsed.results);
     for(const field of parsed.invalid){
         onWarning?.({kind:'batch-field',field,reason:parsed.reason});
-        // Preserve original source and any good earlier translation if the
-        // fallback fails. Save routines receive only valid associated fields.
+        // A failed fallback must not discard other paid translations.
+        // Save routines receive only the successful associated fields.
         await single(field);
     }
-    return results;
+    return finish();
 }

@@ -178,7 +178,8 @@ export async function translateLoreEntryGroup({
                 guard();
                 for (const field of invalid) {
                     if (typeof recovered?.[field] !== 'string' || !recovered[field].trim()) {
-                        throw new Error('Missing recovered translation: ' + field);
+                        error ??= new Error('Missing recovered translation: ' + field);
+                        continue;
                     }
                     result[field] = recovered[field];
                 }

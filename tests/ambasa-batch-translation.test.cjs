@@ -118,14 +118,35 @@ test('a malformed batch cannot erase a previously saved translation',async()=>{
  const {translateLoreFieldsBatch}=await modulePromise;
  const saved={content:'내가 수정한 번역'};
  let calls=0;
- await assert.rejects(translateLoreFieldsBatch({
+ const result=await translateLoreFieldsBatch({
   sources,fields:['content','key'],
   request:async()=>{calls++;return '{}'},
   fallback:async field=>{
    if(field==='content')throw Error('connection offline');
    return translation[field];
   },
- }),/offline/);
+ });
+ assert.deepEqual(result,{key:translation.key});
  assert.equal(saved.content,'내가 수정한 번역','module has no persistent mutation');
  assert.equal(calls,1);
+ await assert.rejects(translateLoreFieldsBatch({
+  sources,fields:['content','key'],request:async()=>'{}',
+  fallback:async()=>{throw Error('connection offline')},
+ }),/offline/);
+});
+
+test('paid valid fields survive failed fallback; cancellation still discards late result',async()=>{
+ const {translateLoreFieldsBatch}=await modulePromise;
+ const result=await translateLoreFieldsBatch({sources,fields:['content','comment','key'],
+  request:async()=>JSON.stringify({content:translation.content}),
+  fallback:async field=>{if(field==='comment')throw Error('offline');return translation[field];},
+ });
+ assert.deepEqual(result,{content:translation.content,key:translation.key});
+ const controller=new AbortController();
+ let calls=0;
+ await assert.rejects(translateLoreFieldsBatch({sources,fields:['content','key'],signal:controller.signal,
+  request:async()=>{controller.abort();return JSON.stringify(translation)},
+  fallback:async()=>{calls++;return 'unexpected'},
+ }));
+ assert.equal(calls,0);
 });

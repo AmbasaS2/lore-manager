@@ -160,3 +160,16 @@ test('unparseable output only retries requested fields; does not map by response
     assert.equal(out['0'].results.comment,items[0].sources.comment);
     assert.equal(out['1'].results.content,items[1].sources.content);
 });
+
+test('failed recovery of one field does not discard other valid and recovered fields of the same UID',async()=>{
+ const items=[example(0,{fields:['content','comment','key']}),example(1)];
+ const result=await translateLoreEntryGroup({items,
+  request:async prompt=>{const s=sampleAnswer(prompt);delete s.entries['0'].comment;delete s.entries['0'].key;return JSON.stringify(s)},
+  fallback:async()=>({key:'리무스, 캐서린'}),
+ });
+ assert.ok(result['0'].error);
+ assert.match(result['0'].results.content,/리무스와 캐서린/);
+ assert.equal(result['0'].results.key,'리무스, 캐서린');
+ assert.equal(result['0'].results.comment,undefined);
+ assert.equal(result['1'].error,null);
+});

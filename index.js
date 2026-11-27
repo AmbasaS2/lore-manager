@@ -1973,10 +1973,21 @@ async function translateLoreFieldsForEntry(sources, fields, targetLanguage, opti
     };
     if (getSettings().translationProvider !== 'profile' || active.length <= 1) {
         const results = {};
+        let firstError = null;
         for (const field of active) {
             throwIfTranslationCancelled(signal);
-            results[field] = await fallback(field, sources[field]);
+            try {
+                const value = await fallback(field, sources[field]);
+                throwIfTranslationCancelled(signal);
+                if (typeof value !== 'string' || !value.trim()) throw new Error('빈 번역 응답: ' + field);
+                results[field] = value;
+            } catch (error) {
+                throwIfTranslationCancelled(signal);
+                firstError ??= error;
+                console.warn('[로어북 매니저] 번역 필드 실패', field, error);
+            }
         }
+        if (!Object.keys(results).length && firstError) throw firstError;
         return results;
     }
     const settings = getSettings();
@@ -1984,6 +1995,7 @@ async function translateLoreFieldsForEntry(sources, fields, targetLanguage, opti
         sources, fields: active,
         targetLanguage: normalizeEntryLanguage(targetLanguage) || ENTRY_LANGUAGE_KOREAN,
         instructions: settings.translationPrompt || '',
+        signal,
         maxCombinedChars: Math.max(2800, Math.min(9500, Math.floor((settings.aiOutputTokens || 8192) * 1.1))),
         request: prompt => requestWithProfile(prompt, null, signal),
         fallback,
@@ -4017,7 +4029,7 @@ async function translateMultipleLorebooks(books, mode = 'missing') {
         abortController: new AbortController(),
     };
     state.bulkTranslation = job;
-    const sum = {succeeded: 0, failed: 0, skipped: 0, booksCompleted: 0};
+    const sum = {succeeded: 0, partial: 0, failed: 0, skipped: 0, booksCompleted: 0};
     try {
         for (const [index, book] of selectedBooks.entries()) {
             if (job.cancelled || state.bulkTranslation !== job) return;
@@ -4028,6 +4040,7 @@ async function translateMultipleLorebooks(books, mode = 'missing') {
             if (job.cancelled || state.bulkTranslation !== job) return;
             if (result) {
                 sum.succeeded += result.succeeded || 0;
+                sum.partial += result.partial || 0;
                 sum.failed += result.failed || 0;
                 sum.skipped += result.skipped || 0;
                 sum.booksCompleted++;
@@ -4037,9 +4050,9 @@ async function translateMultipleLorebooks(books, mode = 'missing') {
         }
         if (job.cancelled || state.bulkTranslation !== job) return;
         const summary = selectedBooks.length + '개 로어북 번역 완료 · 성공 '
-            + sum.succeeded + '개, 실패 ' + sum.failed + '개, 건너뜀 ' + sum.skipped + '개';
+            + sum.succeeded + '개, 부분 성공 ' + sum.partial + '개, 실패 ' + sum.failed + '개, 건너뜀 ' + sum.skipped + '개';
         updateBulkTranslationStatus(summary);
-        notify(summary, sum.failed ? 'warning' : 'success', true);
+        notify(summary, sum.failed || sum.partial ? 'warning' : 'success', true);
         return sum;
     } finally {
         if (state.bulkTranslation === job) {
@@ -4387,6 +4400,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
     if (!sharedJob) state.bulkTranslation = job;
     updateBulkTranslationStatus('로어북 항목을 불러오는 중…');
     let succeeded = 0;
+    let partial = 0;
     let failed = 0;
     let skipped = 0;
     try {
@@ -4402,7 +4416,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         const jobLabel = mode === 'selected' ? '선택 항목 번역' : mode === 'missing' ? '번역 안 된 항목만 번역' : '전체 번역';
         if (!entries.length) {
             updateBulkTranslationStatus(mode === 'missing' ? '번역할 미번역 항목이 없습니다.' : '번역할 항목이 없습니다.');
-            return {succeeded: 0, failed: 0, skipped: 0};
+            return {succeeded: 0, partial: 0, failed: 0, skipped: 0};
         }
         // Each worker keeps its own UID and content snapshot. A completed result
         // can be applied immediately even while earlier requests are still pending.
@@ -4410,7 +4424,7 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         const showProgress = () => {
             if (job.cancelled || state.bulkTranslation !== job) return;
             updateBulkTranslationStatus(
-                `${sharedJob ? '[' + job.multiIndex + '/' + job.multiTotal + '] ' : ''}${book} · ${jobLabel} ${succeeded + failed + skipped}/${entries.length} (완료 ${succeeded}, 실패 ${failed}, 건너뜀 ${skipped})`,
+                `${sharedJob ? '[' + job.multiIndex + '/' + job.multiTotal + '] ' : ''}${book} · ${jobLabel} ${succeeded + partial + failed + skipped}/${entries.length} (완료 ${succeeded}, 부분 성공 ${partial}, 실패 ${failed}, 건너뜀 ${skipped})`,
             );
         };
         let checkpoint = Promise.resolve();
@@ -4460,18 +4474,21 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                         skipped += 1;
                         return;
                     }
-                    if (preparedGroupResult.error) throw preparedGroupResult.error;
                 }
-                const results = preparedGroupResult
+                const returnedResults = preparedGroupResult
                     ? preparedGroupResult.results
                     : await awaitCancelableTranslation(
                         () => translateLoreFieldsForEntry(sources, fields, pair.translationLanguage,
                             { signal: job.abortController.signal }),
                         job.abortController.signal,
                     );
-                if (fields.some(field => !results[field]?.trim())) {
-                    throw new Error('선택한 번역 결과 중 비어 있는 항목이 있습니다.');
+                const completedFields = fields.filter(field => typeof returnedResults?.[field] === 'string'
+                    && returnedResults[field].trim());
+                if (!completedFields.length) {
+                    throw preparedGroupResult?.error || new Error('선택한 번역 결과가 모두 비어 있습니다.');
                 }
+                const results = Object.fromEntries(completedFields.map(field => [field, returnedResults[field]]));
+                const isPartial = completedFields.length !== fields.length;
                 const translated = results.content;
                 if (job.cancelled || state.bulkTranslation !== job) return;
                 const latest = getSettings().translations[translationKey(book, uid)];
@@ -4516,9 +4533,12 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
                 const liveEntry = currentBookName() === book && !state.bookSwitch
                     ? renderedEntries().find(row => getUid(row) === uid) : null;
                 if (liveEntry) syncMetadataTranslations(liveEntry);
-                if (liveUI) liveUI.status.textContent = `${jobLabel}으로 선택한 번역본을 저장했습니다.`;
-                succeeded += 1;
-                if (succeeded % 5 === 0 && !job.cancelled && state.bulkTranslation === job) {
+                if (liveUI) liveUI.status.textContent = isPartial
+                    ? `부분 성공 · ${completedFields.length}/${fields.length}개 필드 저장, 실패한 필드의 기존 번역 유지`
+                    : `${jobLabel}으로 선택한 번역본을 저장했습니다.`;
+                if (isPartial) partial += 1;
+                else succeeded += 1;
+                if ((succeeded + partial) % 5 === 0 && !job.cancelled && state.bulkTranslation === job) {
                     // Persist book-local translation checkpoints without
                     // serializing SillyTavern's entire settings.json.
                     checkpoint = checkpoint.catch(() => undefined).then(() => translationFiles.flushBook(book));
@@ -4614,16 +4634,16 @@ async function translateCurrentLorebook(mode = 'all', selection = null, selected
         if (job.cancelled || state.bulkTranslation !== job) return;
         await translationFiles.flushBook(book);
         if (job.cancelled || state.bulkTranslation !== job) return;
-        const summary = `${book} ${jobLabel} 완료 · 성공 ${succeeded}개, 실패 ${failed}개, 건너뜀 ${skipped}개`;
+        const summary = `${book} ${jobLabel} 완료 · 성공 ${succeeded}개, 부분 성공 ${partial}개, 실패 ${failed}개, 건너뜀 ${skipped}개`;
         updateBulkTranslationStatus(summary);
-        if (!sharedJob) notify(summary, failed ? 'warning' : 'success', true);
-        return {succeeded, failed, skipped};
+        if (!sharedJob) notify(summary, failed || partial ? 'warning' : 'success', true);
+        return {succeeded, partial, failed, skipped};
     } catch (error) {
         if (!job.cancelled && state.bulkTranslation === job) {
             updateBulkTranslationStatus(error.message || '로어북 전체 번역에 실패했습니다.');
             if (!sharedJob) notify(error.message || uiText("로어북 전체 번역에 실패했습니다."), 'error', true);
         }
-        return job.cancelled ? null : {succeeded, failed: failed + 1, skipped};
+        return job.cancelled ? null : {succeeded, partial, failed: failed + 1, skipped};
     } finally {
         // The multi-book coordinator owns the shared cancellation scope.
         // A completed old job must never reset a newer translation job.
@@ -6551,10 +6571,11 @@ async function translateEntryCombinedFields(ui, pair, sources, metadataFields, b
         setEntryBusy(ui, true, '본문과 제목·키워드를 함께 번역 중…');
     }
     try {
-        const results = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
-        if (fields.some(field => !results[field]?.trim())) {
-            throw new Error('번역이 누락된 항목이 있어 기존 번역본을 유지했습니다.');
-        }
+        const returnedResults = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
+        const completedFields = fields.filter(field => typeof returnedResults?.[field] === 'string'
+            && returnedResults[field].trim());
+        if (!completedFields.length) throw new Error('번역 결과가 없어 기존 번역본을 유지했습니다.');
+        const results = Object.fromEntries(completedFields.map(field => [field, returnedResults[field]]));
         const latestSources = getEntryTranslationSources(entryData(ui.uid), ui);
         if (ui.flags.deleted || !ui.root.isConnected || currentBookName() !== ui.book
             || ui.source.value !== source || ui.translation.value !== translationBefore
@@ -6564,13 +6585,17 @@ async function translateEntryCombinedFields(ui, pair, sources, metadataFields, b
             ui.status.textContent = uiText("번역 도중 원문 또는 설정이 바뀌어 이전 결과를 적용하지 않았습니다.");
             return;
         }
-        ui.flags.writingTranslation = true;
-        try { ui.translation.value = results.content; }
-        finally { ui.flags.writingTranslation = false; }
-        markTranslationSynced(ui, source, results.content);
+        if (results.content !== undefined) {
+            ui.flags.writingTranslation = true;
+            try { ui.translation.value = results.content; }
+            finally { ui.flags.writingTranslation = false; }
+            markTranslationSynced(ui, source, results.content);
+        }
         saveMetadataTranslations(ui.book, ui.uid, pair, sources, results);
         syncMetadataTranslations(ui.entry);
-        ui.status.textContent = uiText("본문·제목·키워드 번역본을 저장했습니다.");
+        ui.status.textContent = completedFields.length < fields.length
+            ? `부분 성공 · ${completedFields.length}/${fields.length}개 필드 저장, 실패한 필드의 기존 번역 유지`
+            : uiText("본문·제목·키워드 번역본을 저장했습니다.");
     } catch(error) {
         ui.status.textContent = error.message || uiText("로어북 번역에 실패했습니다.");
         notify(ui.status.textContent,'error');
@@ -6621,8 +6646,11 @@ async function translateEntrySource(ui, force = false, background = false) {
     ui.flags.translating = true;
     setEntryBusy(ui, true, '제목·호출 키워드를 번역하는 중…');
     try {
-        const results = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
-        if (fields.some(field => !results[field]?.trim())) throw new Error('번역 결과가 비어 있습니다.');
+        const returnedResults = await translateLoreFieldsForEntry(sources, fields, pair.translationLanguage);
+        const completedFields = fields.filter(field => typeof returnedResults?.[field] === 'string'
+            && returnedResults[field].trim());
+        if (!completedFields.length) throw new Error('번역 결과가 비어 있습니다.');
+        const results = Object.fromEntries(completedFields.map(field => [field, returnedResults[field]]));
         const liveEntry = renderedEntries().find(row => getUid(row) === String(ui.uid)) || ui.entry;
         const liveUI = liveEntry.querySelector('.world_entry_edit')?.slbTranslationUI || ui;
         const latestSources = getEntryTranslationSources(entryData(ui.uid), liveUI, liveEntry);
@@ -6636,7 +6664,9 @@ async function translateEntrySource(ui, force = false, background = false) {
         }
         saveMetadataTranslations(ui.book, ui.uid, pair, sources, results);
         syncMetadataTranslations(liveEntry);
-        ui.status.textContent = uiText("제목·호출 키워드의 읽기용 번역을 저장했습니다.");
+        ui.status.textContent = completedFields.length < fields.length
+            ? `부분 성공 · ${completedFields.length}/${fields.length}개 필드 저장, 실패한 필드의 기존 번역 유지`
+            : uiText("제목·호출 키워드의 읽기용 번역을 저장했습니다.");
     } catch (error) {
         ui.status.textContent = error.message || uiText("제목·키워드 번역에 실패했습니다.");
         notify(ui.status.textContent, 'error');

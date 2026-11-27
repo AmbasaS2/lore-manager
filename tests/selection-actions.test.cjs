@@ -1205,3 +1205,43 @@ test('A -> B -> C during one multi-book job keeps all three book-local records i
         assert.equal(f.context.state.bulkTranslation,null);
     }finally{f.close()}
 });
+
+test('partial bulk success saves body, preserves failed title and retries only missing metadata',async()=>{
+ const {translateLoreFieldsBatch}=await import(require('node:url').pathToFileURL(require('node:path').join(__dirname,'../lore-translation-batch.js')).href);
+ const f=fixture();
+ try{
+  Object.assign(f.settings,{translationProvider:'profile',translateContent:true,translateTitle:true});
+  f.context.translateLoreFieldsBatch=translateLoreFieldsBatch;
+  f.data.entries[0].comment='New title';
+  f.settings.translations['A:0']={book:'A',uid:'0',language:'ko',sourceLanguage:'en',text:'old body',sourceHash:'source 0',fields:{comment:{source:'Old title',text:'old title'}}};
+  f.context.requestWithProfile=async()=>JSON.stringify({content:'새 번역 0'});
+  f.translate(async()=>{throw Error('offline')});
+  const result=await f.context.translateCurrentLorebook('selected',{book:'A',uids:['0']});
+  assert.equal(result.partial,1);assert.equal(result.succeeded,0);assert.equal(result.failed,0);
+  assert.equal(f.settings.translations['A:0'].text,'새 번역 0');
+  assert.equal(f.settings.translations['A:0'].fields.comment.text,'old title');
+  f.translate(async source=>{assert.equal(source,'New title');return '새 제목'});
+  const next=await f.context.translateCurrentLorebook('missing',{book:'A',uids:['0']});
+  assert.equal(next.succeeded,1);
+  assert.equal(f.settings.translations['A:0'].text,'새 번역 0');
+  assert.equal(f.settings.translations['A:0'].fields.comment.text,'새 제목');
+ }finally{f.close();}
+});
+
+test('partial grouped result is saved even when another field of that UID cannot be recovered',async()=>{
+ const f=fixture(await entryGroupImporter);
+ try{
+  Object.assign(f.settings,{translationProvider:'profile',translateContent:true,translateTitle:true});
+  f.data.entries[0].comment='Title';
+  f.groupResponse(async prompt=>{
+   const data=JSON.parse(prompt.split('=== SOURCE ENTRY JSON ===\n')[1]);const entries={};
+   for(const [id,item] of Object.entries(data.entries))entries[id]={sourceTag:item.sourceTag,content:'translated '+item.fields.content};
+   return JSON.stringify({entries});
+  });
+  f.translate(async source=>{if(source==='Title')throw Error('offline');return 'translated '+source});
+  const result=await f.context.translateCurrentLorebook('all',null,'A');
+  assert.equal(result.partial,1);assert.equal(result.succeeded,3);assert.equal(result.failed,0);
+  assert.equal(f.settings.translations['A:0'].text,'translated source 0');
+  assert.equal(f.settings.translations['A:0'].fields?.comment,undefined);
+ }finally{f.close();}
+});
