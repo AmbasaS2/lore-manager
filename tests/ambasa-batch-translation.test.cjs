@@ -150,3 +150,28 @@ test('paid valid fields survive failed fallback; cancellation still discards lat
  }));
  assert.equal(calls,0);
 });
+
+test('metadata-only batches include a bounded read-only body and never request its translation',async()=>{
+ const {buildLoreFieldBatchPrompt,translateLoreFieldsBatch}=await modulePromise;
+ const only={...sources,content:'Reference body '+ 'x'.repeat(1200)};
+ const fields=['comment','key'];
+ const prompt=buildLoreFieldBatchPrompt({sources:only,fields});
+ const body=prompt.split('=== READ-ONLY BODY REFERENCE (not an output field) ===\n')[1].split('\n=== SOURCE JSON ===')[0];
+ assert.equal(JSON.parse(body),only.content.slice(0,850));
+ assert.deepEqual(JSON.parse(prompt.split('=== SOURCE JSON ===\n')[1]),{comment:only.comment,key:only.key});
+ const result=await translateLoreFieldsBatch({sources:only,fields,request:async()=>JSON.stringify(translation),fallback:async()=>{throw Error('unexpected fallback')}});
+ assert.deepEqual(result,{comment:translation.comment,key:translation.key});
+ const full=buildLoreFieldBatchPrompt({sources:only,fields:['content','comment']});
+ assert.doesNotMatch(full,/READ-ONLY BODY REFERENCE/);
+});
+test('grouped metadata-only requests isolate each entry body and account for reference size',async()=>{
+ const {buildLoreEntryGroupPrompt,planLoreEntryGroups}=await import(pathToFileURL(join(__dirname,'../lore-entry-batch.js')).href);
+ const items=[{id:1,fields:['comment'],sources:{comment:'Title one',content:'First '+ 'a'.repeat(1200)},targetLanguage:'ko'},
+ {id:2,fields:['key'],sources:{key:'Second',content:'Second '+ 'b'.repeat(1200)},targetLanguage:'ko'}];
+ const prompt=buildLoreEntryGroupPrompt(items,{targetLanguage:'ko'});
+ const {entries}=JSON.parse(prompt.split('=== SOURCE ENTRY JSON ===\n')[1]);
+ assert.equal(entries['1'].bodyReference,items[0].sources.content.slice(0,850));
+ assert.equal(entries['2'].bodyReference,items[1].sources.content.slice(0,850));
+ assert.deepEqual(entries['1'].fields,{comment:'Title one'});assert.deepEqual(entries['2'].fields,{key:'Second'});
+ assert.equal(planLoreEntryGroups(items,{maxCombinedChars:1500}).length,2);
+});

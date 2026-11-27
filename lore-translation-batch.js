@@ -14,11 +14,14 @@ export function buildLoreFieldBatchPrompt({sources,fields,targetLanguage='ko',in
     const included=cleanFields(fields,sources);
     const source={};
     for(const field of included)source[field]=sources[field];
+    // Match the single-field path's bounded read-only reference. It must
+    // never become an extra output field or replace the original body.
+    const bodyContext = included.includes('content') ? '' : String(sources?.content ?? '').slice(0,850);
     const rules=included.map(field=>'- '+field+': '+FIELD_GUIDANCE[field]);
     const target=targetLanguage==='en'?'English':'Korean';
     return [
         'Translate the selected fields of ONE lorebook entry into natural '+target+'.',
-        'All fields belong to the same item. Use the full body as shared context to keep character names, tone, timeline, terminology, and interpretation consistent.',
+        'All fields belong to the same item. Use the full body as shared context when selected; otherwise use the read-only reference, if present, to keep character names, tone, timeline, terminology, and interpretation consistent.',
         'The source defines facts. Preserve each person\'s personality, habits, relationships, negation, qualifications, frequency, intent and chronological order.',
         'Use fluent native grammar without summaries, embellishment, softened/invented motives, missing details or translated code syntax.',
         'Keep every macro, HTML/Markdown tag, number, date, time, inline code, list marker, line and paragraph break, separators and meaningful ellipses.',
@@ -30,6 +33,7 @@ export function buildLoreFieldBatchPrompt({sources,fields,targetLanguage='ko',in
         'Escape line breaks and quotation marks per JSON. Do not output fenced Markdown, comments, headers, or other text.',
         'Fields to return: '+included.join(', '),
         ...(instructions?.trim()?['Additional terminology/style preferences (source facts and exact markers take priority):',instructions.trim()]:[]),
+        ...(bodyContext.trim()?['=== READ-ONLY BODY REFERENCE (not an output field) ===',JSON.stringify(bodyContext)]:[]),
         '=== SOURCE JSON ===',
         JSON.stringify(source),
     ].join('\n');
@@ -115,7 +119,8 @@ export async function translateLoreFieldsBatch({
         return results;
     };
     guard();
-    const totalChars=active.reduce((sum,field)=>sum+sources[field].length,0);
+    const totalChars=active.reduce((sum,field)=>sum+sources[field].length,0)
+        + (active.includes('content') ? 0 : Math.min(850,String(sources?.content ?? '').length));
     // Long lorebook bodies already use paragraph-aware chunking; do not force
     // them into one huge JSON request that exceeds the model's output budget.
     if(active.length===1 || totalChars>maxCombinedChars){
