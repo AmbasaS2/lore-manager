@@ -96,7 +96,7 @@ test('all-open and all-close preserve immediate native toggles without a queued 
     dom.window.close();
 });
 test('ambasa.21 CSS restored while preserving title autosize and backup OFF',()=>{
-    assert.match(source,/slb-filter-trigger slb-bulk-mode-label" title="항목 필터"/);
+    assert.match(source,/slb-filter-trigger slb-bulk-mode-label" title="\$\{uiHtml\("항목 필터"\)\}"/);
     assert.match(source,/selectionToolbar\.prepend\(tokenSection\)/);
     assert.match(source,/selectionToolbar\.insertBefore\(filterSection, bulkButton\)/);
     assert.match(css,/#WorldInfo\.slb-active #slb-entry-selection-toolbar > #slb-entry-filters-section\s*\{[^}]*margin:\s*0 0 0 auto/s);

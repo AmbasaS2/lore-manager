@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { JSDOM } = require('jsdom');
+const { JSDOM, renderKoreanTemplate } = require('./fixture-ui-language.cjs');
 
 const index = readFileSync(join(__dirname, '../index.js'), 'utf8');
 const css = readFileSync(join(__dirname, '../style.css'), 'utf8');
@@ -10,7 +10,7 @@ const css = readFileSync(join(__dirname, '../style.css'), 'utf8');
 test('library settings have a readable standalone launcher without a redundant theme picker', () => {
     const match = index.match(/<fieldset class="slb-library-settings">([\s\S]*?)<\/fieldset>/);
     assert.ok(match, 'library settings fieldset must remain inside extension management');
-    const dom = new JSDOM('<div id="slb-ai-tools">' + match[0] + '</div>');
+    const dom = new JSDOM('<div id="slb-ai-tools">' + renderKoreanTemplate(match[0]) + '</div>');
     const fieldset = dom.window.document.querySelector('.slb-library-settings');
     const button = fieldset.querySelector('#slb-open-library');
     assert.ok(button, 'standalone library launcher remains');

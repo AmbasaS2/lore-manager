@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { JSDOM } = require('jsdom');
+const { JSDOM, uiText, uiHtml } = require('./fixture-ui-language.cjs');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const vm = require('node:vm');
@@ -31,6 +31,7 @@ function fixture() {
     const state = { managerMode: 'standard', workspace: null };
 
     const ctx = {
+        uiText, uiHtml,
         state, document,
         jQuery: {}, notify: () => {}, getBookTokenCache: () => new Map(),
         currentBookName: () => book,

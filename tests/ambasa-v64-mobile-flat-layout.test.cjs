@@ -159,8 +159,8 @@ test('record popover is narrowly capped and header/settings/menus outside librar
     assert.match(part,/\.slb-library-reader-tools > \.slb-library-tools-popover\s*\{[^}]*width: min\(146px,/s);
     assert.match(part,/max-width: 146px !important;/);
     assert.doesNotMatch(part,/#WorldInfo|\.world_entry\s*\{|\.mes_text/);
-    assert.match(js,/menu\.append\(button\(doc, '', '로어북 바로가기'/);
-    assert.doesNotMatch(js,/menu\.append\(button\(doc, '', '태그 편집'/);
+    assert.match(js,/menu\.append\(button\(doc, '', uiText\("로어북 바로가기"\)/);
+    assert.doesNotMatch(js,/menu\.append\(button\(doc, '', (?:'태그 편집'|uiText\("태그 편집"\))/);
     assert.doesNotMatch(js,/setInterval\(/);
 });
 

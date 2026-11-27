@@ -2,7 +2,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
-const { JSDOM } = require('jsdom');
+const { JSDOM, stripUiImport } = require('./fixture-ui-language.cjs');
 const makeJQuery = require('jquery');
 const code = readFileSync(require('node:path').join(__dirname, '../bulk-edit.js'), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -11,7 +11,7 @@ function setup(mobile = false, onDelete = undefined) {
     const dom = new JSDOM('<div id="world_popup"><div id="world_popup_entries_list"></div></div>', { runScripts: 'outside-only' });
     const { window: w } = dom;
     const $ = makeJQuery(w);
-    w.eval(code.replace('export function createLorebookBulkEditor', 'function createLorebookBulkEditor') + '\nwindow.makeBulk = createLorebookBulkEditor;');
+    w.eval(stripUiImport(code).replace('export function createLorebookBulkEditor', 'function createLorebookBulkEditor') + '\nwindow.makeBulk = createLorebookBulkEditor;');
     const document = w.document;
     let book = 'A';
     const books = Object.fromEntries(['A', 'B'].map(name => [name, {

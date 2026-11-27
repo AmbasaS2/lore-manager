@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
-const {JSDOM}=require('jsdom');
+const {JSDOM}=require('./fixture-ui-language.cjs');
 const js=readFileSync(join(__dirname,'../index.js'),'utf8');
 const css=readFileSync(join(__dirname,'../style.css'),'utf8');
 function fn(name){

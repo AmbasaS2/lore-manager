@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { JSDOM } = require('jsdom');
+const { JSDOM, stripUiImport } = require('./fixture-ui-language.cjs');
 const jquery = require('jquery');
 const source = readFileSync(join(__dirname, '../native-controls.js'), 'utf8').replace(/^export /gm, '');
 
@@ -11,7 +11,7 @@ function fixture() {
         <option value="9">UID ↑</option><option value="13" data-rule="custom">Custom</option>
         </select><div id="world_popup_entries_list"></div></div>`, { runScripts: 'outside-only' });
     const w = dom.window;
-    w.eval(source);
+    w.eval(stripUiImport(source));
     const $ = jquery(w);
     const sort = w.document.getElementById('world_info_sort_order');
     let book = 'A', foldy = false;

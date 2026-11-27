@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { JSDOM } = require('jsdom');
+const { JSDOM } = require('./fixture-ui-language.cjs');
 const source = readFileSync(join(__dirname, '../index.js'), 'utf8');
 const menu = source.match(/^function bindStandaloneLibraryMenu\(\) \{[^]*?^\}/m)?.[0];
 const bootstrap = source.slice(source.lastIndexOf('\njQuery(() => {') + 1);
