@@ -13,6 +13,7 @@ test('backup restore first loads and verifies the translation file, then commits
  const { uiText } = await import('../ui-language.js');
  const ctx={
   uiText,
+  withSlothLorebookWriteLane: (await import('../slothWriteLane.js')).withSlothLorebookWriteLane,
   state:{backupRestoreInProgress:false},
   getLorebookBackup:async()=>({book:'A',lorebook:{entries:{0:{uid:0,content:'source'}}},
     translations:[{book:'A',uid:'0',text:'번역',language:'Korean'}]}),
@@ -41,6 +42,7 @@ test('failed translation file flush must not restore native original, even with 
  const { uiText } = await import('../ui-language.js');
  const ctx={
   uiText,
+  withSlothLorebookWriteLane: (await import('../slothWriteLane.js')).withSlothLorebookWriteLane,
   state:{backupRestoreInProgress:false},
   getLorebookBackup:async()=>({book:'A',lorebook:{entries:{0:{uid:0,content:'new'}}},translations:[]}),
   currentBookName:()=> 'A',
