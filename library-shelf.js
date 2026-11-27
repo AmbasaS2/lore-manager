@@ -1348,6 +1348,7 @@ export function createStandaloneLibrary({
         for (const input of inputs) input.disabled = true;
         try {
             await setListPageSize(size);
+            if (getType(currentBook) === 'memory' && memoryView === 'timeline') resetEdit();
             catalogPage = 0;
             worldTocPage = 0;
             diaryTocPage = 0;
@@ -2256,14 +2257,17 @@ export function createStandaloneLibrary({
         const view = entryReadViews.get(uid) || (translated.text ? 'translated' : 'source');
         return memoryTimelinePreview(view === 'translated' && translated.text ? translated.text : entry.content, entry.comment);
     }
-    function fillTimelineSummary(record, entry, preview = memoryRecordPreview(entry)) {
-        record.querySelector('.slb-library-memory-date').textContent =
-            uiText("기록 ") + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '');
-        record.querySelector('.slb-library-memory-record-heading h3').textContent = titleOf(entry);
-        const summary = record.querySelector('.slb-library-memory-summary');
+    function fillTimelinePreview(summary, preview) {
         summary.replaceChildren();
         if (!preview.isResult) summary.append(element(doc, 'small', 'slb-library-memory-excerpt-label', uiText("본문 미리보기")));
         summary.append(element(doc, 'p', 'slb-library-memory-preview', preview.text || uiText("본문이 비어 있습니다.")));
+    }
+    function refreshTimelineSummary(record, entry) {
+        const preview = memoryRecordPreview(entry);
+        record.querySelector('.slb-library-memory-date').textContent =
+            uiText("기록 ") + String(originalEntryNumber(entry)).padStart(2, '0') + (preview.date ? ' · ' + preview.date : '');
+        record.querySelector('.slb-library-memory-record-heading h3').textContent = titleOf(entry);
+        fillTimelinePreview(record.querySelector('.slb-library-memory-summary'), preview);
     }
     function memoryRecord(entry, index) {
         const uid = String(entry.uid);
@@ -2287,7 +2291,7 @@ export function createStandaloneLibrary({
             open.setAttribute('aria-controls', full.id);
             open.setAttribute('aria-expanded', 'false');
             record.append(summary, open, full);
-            fillTimelineSummary(record, entry, preview);
+            fillTimelinePreview(summary, preview);
         }
         return record;
     }
@@ -2305,7 +2309,7 @@ export function createStandaloneLibrary({
             if (edit?.uid === uid) resetEdit();
             if (activeToolsUid === uid) closeReaderTools();
             // Read the current translation/source selection when folding.
-            fillTimelineSummary(record, entry);
+            refreshTimelineSummary(record, entry);
             full.replaceChildren();
             full.hidden = true;
             summary.hidden = false;
@@ -3466,6 +3470,11 @@ export function createStandaloneLibrary({
             if (!query.trim()) {
                 for (const entry of changed) {
                     replaceEntryDetail(entry.uid);
+                    if (getType(currentBook) === 'memory' && memoryView === 'timeline') {
+                        const record = [...overlay.querySelectorAll('.slb-library-memory-timeline > .slb-library-memory-record')]
+                            .find(node => node.dataset.uid === String(entry.uid));
+                        if (record) refreshTimelineSummary(record, entry);
+                    }
                     const card = [...overlay.querySelectorAll('.slb-library-catalog-card')]
                         .find(node => node.dataset.uid === String(entry.uid));
                     if (card) {

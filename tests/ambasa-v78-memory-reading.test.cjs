@@ -219,3 +219,41 @@ test('timeline expands lazily with actual translated/source content, preserves o
         assert.equal(f.all('.slb-library-detail').length,0);
     } finally {f.dom.window.close();}
 });
+
+test('timeline page size change folds every record and clears the discarded editor', async () => {
+    const f=await fixture();
+    try {
+        f.click('[data-action="memory-toggle-full"][data-uid="1"]');
+        f.click('[data-action="more-tools"][data-uid="1"]');
+        f.click('[data-action="edit"][data-uid="1"]');
+        f.q('.slb-library-editor-text').value='draft';
+        f.win.confirm=()=>true;
+        const size=f.q('.slb-library-page-size-select');
+        size.value='10'; size.dispatchEvent(new f.win.Event('change',{bubbles:true})); await tick();
+        assert.equal(f.all('.slb-library-detail').length,0);
+        f.click('[data-action="memory-toggle-full"][data-uid="1"]');
+        assert.equal(f.q('.slb-library-editor-text'),null);
+        assert.match(f.q('.slb-library-detail').textContent,/번역 본문/);
+        assert.equal(f.state.writes,0);
+    } finally {f.dom.window.close();}
+});
+test('external content update refreshes only the changed timeline preview and full record', async () => {
+    const f=await fixture();
+    try {
+        const first=f.records()[0],second=f.records()[1],third=f.records()[2];
+        f.click('[data-action="memory-toggle-full"][data-uid="0"]');
+        const changed=structuredClone(f.entries);
+        changed[0].content='**Scene**\nUpdated full scene\n\n**Result**\nUpdated result';
+        changed[2].content='**Scene**\nUpdated other scene\n\n**Result**\nUpdated other result';
+        f.lib.onExternalWorldUpdate('Book',{entries:changed});
+        assert.equal(f.records()[0],first);
+        assert.equal(f.records()[1],second);
+        assert.equal(f.records()[2],third);
+        assert.match(first.querySelector('.slb-library-detail').textContent,/Updated full scene/);
+        assert.equal(third.querySelector('.slb-library-memory-preview').textContent,'Updated other result');
+        f.click('[data-action="memory-toggle-full"][data-uid="0"]');
+        assert.equal(first.querySelector('.slb-library-memory-preview').textContent,'Updated result');
+        assert.equal(f.state.reads,1);
+        assert.equal(f.state.writes,0);
+    } finally {f.dom.window.close();}
+});
