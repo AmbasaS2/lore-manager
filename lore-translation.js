@@ -185,18 +185,33 @@ export function buildLoreRepairPrompt({source,candidate,targetLanguage='ko',issu
 
 // A successful result costs one request. Only malformed outputs get one
 // bounded repair attempt. The first nonempty answer is never silently lost.
+// Retain completed chunks of failed jobs for a retry in this session.
+const interruptedTranslations = new Map();
+function rememberInterruptedTranslation(key, output) {
+    if (!key || !output.length) return;
+    interruptedTranslations.delete(key);
+    interruptedTranslations.set(key, [...output]);
+    while (interruptedTranslations.size > 8) interruptedTranslations.delete(interruptedTranslations.keys().next().value);
+}
+
 export async function translateLoreWithValidation({
     source,targetLanguage='ko',field='content',reference='',
     additionalInstructions='',protectedRules='',maxChars=10000,
-    request,onProgress=null,onWarning=null,
+    request,onProgress=null,onWarning=null,resumeScope=null,
 }={}){
     if(typeof request!=='function')throw new TypeError('Translation request callback missing');
     const original=String(source??'');
     if(!original.trim())return original;
     const kind=normalizedLoreField(field);
     const chunks=kind==='content'?splitLongLoreSource(original,maxChars):[original];
-    const output=[];
-    for(let i=0;i<chunks.length;i++){
+    const resumeKey = resumeScope && chunks.length > 1
+        ? JSON.stringify([resumeScope,original,targetLanguage,kind,reference,additionalInstructions,protectedRules,maxChars])
+        : null;
+    const output = resumeKey ? (interruptedTranslations.get(resumeKey) ?? []).slice() : [];
+    if (resumeKey) interruptedTranslations.delete(resumeKey);
+    if (output.length) onProgress?.(output.length,chunks.length);
+    try {
+    for(let i=output.length;i<chunks.length;i++){
         const chunk=chunks[i];
         if(!chunk.trim()){output.push(chunk);onProgress?.(i+1,chunks.length);continue;}
         let candidate=restoreLoreBoundaryWhitespace(chunk,await request(buildLoreTranslationPrompt({
@@ -227,6 +242,13 @@ export async function translateLoreWithValidation({
         });
         output.push(candidate);
         onProgress?.(i+1,chunks.length);
+    }
+    } catch (error) {
+        rememberInterruptedTranslation(resumeKey, output);
+        if (resumeKey && output.length) {
+            throw new Error(String(error?.message || error) + ' · ' + output.length + '/' + chunks.length + '개 번역 구간 보존 (같은 설정으로 다시 번역하면 이어서 진행합니다).', { cause: error });
+        }
+        throw error;
     }
     return output.join('');
 }

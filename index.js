@@ -8,9 +8,13 @@ import {
     getRequestHeaders,
     characters,
     this_chid,
+    main_api,
+    online_status,
 } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
-import { getTokenCountAsync } from '../../../tokenizers.js';
+import { getTokenCountAsync, getTokenizerBestMatch, getTokenizerModel, tokenizers } from '../../../tokenizers.js';
+import { power_user } from '../../../power-user.js';
+import { getTextGenModel } from '../../../textgen-settings.js';
 import { loadWorldInfo, splitKeywordsAndRegexes, saveWorldInfo, setWIOriginalDataValue, deleteWIOriginalDataValue, updateWorldInfoList, worldInfoFilter, sortWorldInfoEntries, world_names, world_info, world_info_position } from '../../../world-info.js';
 import { Popup, POPUP_TYPE, POPUP_RESULT } from '../../../popup.js';
 import { showdown, DOMPurify } from '../../../../lib.js';
@@ -37,7 +41,7 @@ function slothToastTitle(detail = '') {
 
 const EXTENSION_NAME = 'simple-lorebook';
 const translationFallbackLookup = createTranslationFallbackLookup();
-const VERSION = '1.4.85-ambasa.86';
+const VERSION = '1.4.85-ambasa.88';
 const entryBulkEditor = createLorebookBulkEditor({
     getBook: currentBookName,
     getRows: renderedEntries,
@@ -1960,6 +1964,7 @@ async function translateText(source, targetLanguage, onProgress = null, options 
         // boundaries; normal short entries remain one literary request.
         maxChars: Math.max(256, Math.min(12500, Math.floor((settings.aiOutputTokens || 8192) * (language === 'ko' ? 0.9 : 1.2)))),
         request: prompt => requestWithProfile(prompt, null, options.signal),
+        resumeScope: settings.profileId,
         onProgress,
         onWarning: ({ field, issues }) => {
             if (options.signal?.aborted) return;
@@ -7953,7 +7958,26 @@ function hashEntryContent(entry) {
     return hash;
 }
 
+function getTokenCacheScope() {
+    if (main_api === 'openai') return JSON.stringify([main_api, getTokenizerModel()]);
+    const type = power_user.tokenizer === tokenizers.BEST_MATCH
+        ? getTokenizerBestMatch(main_api) : power_user.tokenizer;
+    const remoteModel = type === tokenizers.API_TEXTGENERATIONWEBUI
+        ? getTextGenModel() || online_status : type === tokenizers.API_KOBOLD ? online_status : '';
+    return JSON.stringify([main_api, type, remoteModel]);
+}
+
+function syncTokenCacheScope() {
+    const scope = getTokenCacheScope();
+    if (state.tokenCacheScope === scope) return false;
+    state.tokenCacheScope = scope;
+    state.tokenCache.clear();
+    state.tokenCacheTouched.clear();
+    return true;
+}
+
 function getBookTokenCache(book) {
+    syncTokenCacheScope();
     if (!state.tokenCache.has(book)) state.tokenCache.set(book, new Map());
     state.tokenCacheTouched.set(book, Date.now());
     return state.tokenCache.get(book);
@@ -7961,8 +7985,9 @@ function getBookTokenCache(book) {
 
 function loadPersistedTokenCache() {
     try {
+        syncTokenCacheScope();
         const parsed = JSON.parse(localStorage.getItem(TOKEN_CACHE_STORAGE_KEY) || 'null');
-        if (!parsed?.books || typeof parsed.books !== 'object') return;
+        if (parsed?.scope !== state.tokenCacheScope || !parsed?.books || typeof parsed.books !== 'object') return;
         for (const [book, record] of Object.entries(parsed.books)) {
             const map = new Map();
             for (const [uid, item] of Object.entries(record?.entries ?? {})) {
@@ -7993,7 +8018,7 @@ function schedulePersistTokenCache() {
                 for (const [uid, item] of state.tokenCache.get(book)) entries[uid] = item;
                 books[book] = { at: state.tokenCacheTouched.get(book) ?? 0, entries };
             }
-            localStorage.setItem(TOKEN_CACHE_STORAGE_KEY, JSON.stringify({ books }));
+            localStorage.setItem(TOKEN_CACHE_STORAGE_KEY, JSON.stringify({ scope: state.tokenCacheScope, books }));
         } catch (error) {
             console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to persist token cache', error);
         }
@@ -8150,7 +8175,9 @@ function scheduleEntryTokenCount(book, uid, content) {
             const latestSource = latestData?.entries?.[uid] ?? latestData?.entries?.[Number(uid)];
             if (!latestSource || latestSource.content !== content) return;
             const contentHash = hashText(content);
+            const scope = getTokenCacheScope();
             const count = Number(await getTokenCountAsync(content)) || 0;
+            if (scope !== getTokenCacheScope()) return;
             const latestEntry = state.currentBookData?.entries?.[uid]
                 ?? state.currentBookData?.entries?.[Number(uid)];
             if (book !== currentBookName() || !latestEntry || hashText(latestEntry.content) !== contentHash) return;
@@ -8319,8 +8346,9 @@ async function refreshTokenSummary(forcedData = null) {
     }
 
     state.tokenRefreshRunId = runId;
+    const scope = getTokenCacheScope();
     const isCurrent = () => !state.editorUiSuspended
-        && runId === state.tokenRunId && currentBookName() === book;
+        && runId === state.tokenRunId && currentBookName() === book && scope === getTokenCacheScope();
     try {
         // 목록 공개 직후 데이터 동기화와 토큰 계산이 같은 로어북을 동시에
         // 요청하지 않도록 하나의 진행 중 요청을 공유한다.
@@ -9444,6 +9472,11 @@ function bindEvents() {
     bindCombinedEntryToggle();
     bindNativeSortingHelp();
     bindLoreInfoEvents();
+    for (const name of ['SETTINGS_UPDATED', 'CHATCOMPLETION_MODEL_CHANGED', 'API_CHANGED']) {
+        if (event_types[name]) eventSource.on(event_types[name], () => {
+            if (syncTokenCacheScope()) scheduleTokenSummary(null, 180);
+        });
+    }
     const worldSelect = document.getElementById('world_editor_select');
     bindConnectedWorldFilter();
     // Use existing native UI events to invalidate page DOM snapshots before
