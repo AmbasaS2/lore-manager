@@ -198,6 +198,7 @@ test('summary reuses hashes without altering persisted cache or token counts',()
     let hashCalls=0;
     const ctx={
         document:dom.window.document, WeakMap,
+        state: {editorUiSuspended:false},
         currentBookName:()=> 'book',
         lorebookEntries:()=> entries,
         getBookTokenCache:()=> tokenCache,

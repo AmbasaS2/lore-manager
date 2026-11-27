@@ -17,6 +17,7 @@ test('compact token summary displays five Font Awesome icons with only numeric v
     const dom = new JSDOM('<main id="fixture"></main>', {runScripts:'outside-only'});
     const ctx = {
         document: dom.window.document,
+        state: {editorUiSuspended:false},
         WeakMap,
         hashText: text => 'h:' + String(text),
         createElement(tag, className) {

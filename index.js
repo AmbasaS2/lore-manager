@@ -174,11 +174,16 @@ const pendingTranslationFallbackBooks = new Set();
 let standaloneLibrary = null;
 let libraryStylesPromise = null;
 
-function refreshTranslationFromLoadedBook(book) {
+function refreshTranslationFromLoadedBook(book, schedule = true) {
     if (!book || currentBookName() !== book || getSettings().managerMode === 'native') return;
     // A late translation read can change visible content of detached editors.
     // Drop stale cached pages; do not rewrite translation or source files.
     releaseNativePageCache();
+    if (state.editorUiSuspended) {
+        state.deferredTranslationBook = book;
+        state.deferredEditorEnhance = true;
+        return;
+    }
     // Called once when a requested book (or matching legacy fallback) finishes
     // its network read. Never poll the page for translations.
     for (const entry of renderedEntries()) {
@@ -193,7 +198,7 @@ function refreshTranslationFromLoadedBook(book) {
             syncSourceVisibility(ui);
         }
     }
-    scheduleEnhance();
+    if (schedule) scheduleEnhance();
 }
 
 function loadTranslationBook(book) {
@@ -225,6 +230,13 @@ const state = {
     refreshTimer: null,
     enhancing: false,
     enhancePending: false,
+    editorUiSuspended: true,
+    deferredEditorEnhance: false,
+    deferredEntryRecheck: false,
+    deferredTokenSummary: false,
+    deferredTranslationBook: '',
+    deferredResponsive: false,
+    deferredBulkPrune: false,
     enhanceRunId: 0,
     enhanceChunkRaf: 0,
     // Native expand-all remains immediate; only expensive opened-editor UI
@@ -4167,6 +4179,10 @@ function syncMetadataFieldAppearance(view, field, name, force = false) {
     if (name !== 'comment' && typeof ResizeObserver === 'function' && view.slbAppearanceObservedTarget !== target) {
         unobserveMetadataAppearance(view);
         metadataAppearanceObserver ??= new ResizeObserver(records => {
+            if (state.editorUiSuspended) {
+                state.deferredResponsive = true;
+                return;
+            }
             for (const record of records) {
                 const item = metadataAppearanceTargets.get(record.target);
                 if (!item) continue;
@@ -4880,6 +4896,18 @@ function bindWorkspaceEntries(entries) {
             return Boolean(ownerEntry && ownerEntry.parentElement === entries);
         });
         if (!relevantMutations.length) return;
+        // A closed editor records changes without repairing hidden rows.
+        if (state.editorUiSuspended) {
+            state.deferredEditorEnhance = true;
+            state.deferredEntryRecheck = true;
+            state.navigatorDirty = true;
+            if (state.bookSwitch && !state.bookSwitch.ready) {
+                state.bookSwitch.domMutationObserved = true;
+                state.bookSwitch.domMutationVersion += 1;
+                state.bookSwitch.readyCandidate = null;
+            }
+            return;
+        }
 
         // Memory Books adds regeneration actions asynchronously after reading
         // the current lorebook. Reuse its real button instead of cloning or
@@ -5090,6 +5118,10 @@ function bindWorkspacePopupObserver(popup) {
             ));
         });
         if (!relevantMutation) return;
+        if (state.editorUiSuspended) {
+            state.deferredEditorEnhance = true;
+            return;
+        }
 
         const livePopup = document.getElementById('world_popup');
         const liveEntries = document.getElementById('world_popup_entries_list');
@@ -5963,11 +5995,21 @@ function recoverResponsiveHeaderFields(entry) {
 
 function scheduleNativeHeaderRecovery(entry) {
     if (!entry?.isConnected || state.headerRecoveryTimers.has(entry)) return;
+    if (state.editorUiSuspended) {
+        state.deferredEditorEnhance = true;
+        state.deferredEntryRecheck = true;
+        return;
+    }
     const attempts = state.headerRecoveryAttempts.get(entry) || 0;
     const delay = [40, 100, 220, 450, 900][Math.min(attempts, 4)];
     const timer = setTimeout(() => {
         state.headerRecoveryTimers.delete(entry);
         if (!entry.isConnected) return;
+        if (state.editorUiSuspended) {
+            state.deferredEditorEnhance = true;
+            state.deferredEntryRecheck = true;
+            return;
+        }
         if (getResponsiveHeaderFields(entry).length === 5 || recoverResponsiveHeaderFields(entry)) {
             state.headerRecoveryAttempts.delete(entry);
             placeResponsiveHeaderFields(entry);
@@ -6071,9 +6113,18 @@ function scheduleResponsiveEntryLayouts(syncDisplay = false) {
     // Width observer and window/media change can fire in one frame. Do one
     // batch layout and one badge sync, rather than restarting the RAF each time.
     if (syncDisplay === true) state.responsivePendingDisplaySync = true;
+    if (state.editorUiSuspended) {
+        state.deferredResponsive = true;
+        return;
+    }
+    state.deferredResponsive = false;
     if (state.responsiveRaf) return;
     state.responsiveRaf = requestAnimationFrame(() => {
         state.responsiveRaf = 0;
+        if (state.editorUiSuspended) {
+            state.deferredResponsive = true;
+            return;
+        }
         const syncBadges = state.responsivePendingDisplaySync;
         state.responsivePendingDisplaySync = false;
         if (syncBadges) applyMobileDisplaySettings();
@@ -7810,11 +7861,11 @@ function enhanceEntry(entry) {
     }
 }
 
-async function mapLimit(items, limit, mapper) {
+async function mapLimit(items, limit, mapper, shouldContinue = () => true) {
     const results = new Array(items.length);
     let next = 0;
     const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-        while (next < items.length) {
+        while (next < items.length && shouldContinue()) {
             const index = next++;
             results[index] = await mapper(items[index], index);
         }
@@ -7906,6 +7957,10 @@ function updateTokenStatDisplay(element, label, value, ready, total) {
 
 function renderTokenSummary(book, data) {
     if (!book || book !== currentBookName() || !data?.entries) return;
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
     const totalElement = document.getElementById('slb-total-tokens');
     const selectiveElement = document.getElementById('slb-selective-tokens');
     const constantElement = document.getElementById('slb-constant-tokens');
@@ -7973,12 +8028,25 @@ function renderTokenSummary(book, data) {
     }
 }
 
-function queueTokenSummaryRender(book, data) {
+function queueTokenSummaryRender(book, data, delay = 16) {
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
+    // Throttle bulk progress; ordinary edits retain their near-frame update.
+    if (delay > 16 && state.tokenRenderTimer != null) return;
     clearTimeout(state.tokenRenderTimer);
-    state.tokenRenderTimer = setTimeout(() => renderTokenSummary(book, data), 16);
+    state.tokenRenderTimer = setTimeout(() => {
+        state.tokenRenderTimer = null;
+        renderTokenSummary(book, state.currentBook === book ? state.currentBookData : data);
+    }, delay);
 }
 
 function setTokenSummaryPending() {
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
     for (const id of ['slb-total-tokens', 'slb-constant-tokens', 'slb-selective-tokens', 'slb-vectorized-tokens', 'slb-entry-count']) {
         const element = document.getElementById(id);
         if (!element) continue;
@@ -8009,11 +8077,15 @@ function scheduleEntryTokenCount(book, uid, content) {
         // one near-frame render rather than rehashing all entries per keystroke.
         queueTokenSummaryRender(book, data);
     }
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
     clearTimeout(state.entryTokenTimers.get(timerKey));
     let timer = null;
     timer = setTimeout(async () => {
         try {
-            if (book !== currentBookName()) return;
+            if (state.editorUiSuspended || book !== currentBookName()) return;
             const latestData = state.currentBookData;
             const latestSource = latestData?.entries?.[uid] ?? latestData?.entries?.[Number(uid)];
             if (!latestSource || latestSource.content !== content) return;
@@ -8024,7 +8096,7 @@ function scheduleEntryTokenCount(book, uid, content) {
             if (book !== currentBookName() || !latestEntry || hashText(latestEntry.content) !== contentHash) return;
             getBookTokenCache(book).set(String(uid), { hash: contentHash, count });
             schedulePersistTokenCache();
-            renderTokenSummary(book, state.currentBookData);
+            queueTokenSummaryRender(book, state.currentBookData);
         } catch (error) {
             console.warn('[로어북 매니저] Failed to count entry tokens', error);
         } finally {
@@ -8063,7 +8135,7 @@ function enforceActivationOverviewIntegrity(targetEntries = null) {
 }
 
 function syncLiveEditorTokens() {
-    if (state.sorting || state.navDragging) return;
+    if (state.editorUiSuspended || state.sorting || state.navDragging) return;
     if (document.visibilityState === 'hidden') return;
     const book = currentBookName();
     if (!book) return;
@@ -8144,6 +8216,8 @@ function loadCurrentBookDataOnce(book) {
     const hydration = { book, promise: null };
     hydration.promise = Promise.resolve(loadWorldInfo(book))
         .then(data => {
+            // Do not overwrite a newer snapshot received while this read was pending.
+            if (state.currentBook === book && state.currentBookData?.entries) return state.currentBookData;
             if (currentBookName() === book && data?.entries) {
                 state.currentBook = book;
                 state.currentBookData = data;
@@ -8158,6 +8232,11 @@ function loadCurrentBookDataOnce(book) {
 }
 
 async function refreshTokenSummary(forcedData = null) {
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
+    state.deferredTokenSummary = false;
     const book = currentBookName();
     const runId = ++state.tokenRunId;
     const totalElement = document.getElementById('slb-total-tokens');
@@ -8179,11 +8258,14 @@ async function refreshTokenSummary(forcedData = null) {
         return;
     }
 
+    state.tokenRefreshRunId = runId;
+    const isCurrent = () => !state.editorUiSuspended
+        && runId === state.tokenRunId && currentBookName() === book;
     try {
         // 목록 공개 직후 데이터 동기화와 토큰 계산이 같은 로어북을 동시에
         // 요청하지 않도록 하나의 진행 중 요청을 공유한다.
         const data = forcedData || await loadCurrentBookDataOnce(book);
-        if (currentBookName() !== book) return;
+        if (!isCurrent()) return;
         if (!data?.entries) return;
         state.currentBook = book;
         state.currentBookData = data;
@@ -8196,29 +8278,31 @@ async function refreshTokenSummary(forcedData = null) {
 
         const staleEntries = entries.filter(entry => cache.get(String(entry.uid))?.hash !== hashEntryContent(entry));
         renderTokenSummary(book, data);
-        state.tokenRefreshRunId = runId;
         // 모바일 WebView에서 토크나이저 8개 동시 실행은 메인 스레드를 오래
         // 점유한다. 화면 크기에 맞춰 작은 작업 묶음으로 양보한다.
         const tokenConcurrency = isNarrowEntryLayout() ? 1 : 3;
         await mapLimit(staleEntries, tokenConcurrency, async (entry, index) => {
-            if (runId !== state.tokenRunId || currentBookName() !== book) return;
+            if (!isCurrent()) return;
             // 긴 로어북에서도 입력과 스크롤이 먼저 처리되도록 토큰 작업 사이에
             // 메인 스레드를 돌려준다. 계산 결과와 캐시 형식은 바뀌지 않는다.
             if (index > 0) await new Promise(resolve => setTimeout(resolve, 0));
-            if (runId !== state.tokenRunId || currentBookName() !== book) return;
+            if (!isCurrent()) return;
             const contentHash = hashEntryContent(entry);
             const count = Number(await getTokenCountAsync(entry.content)) || 0;
-            if (runId !== state.tokenRunId || currentBookName() !== book) return;
+            if (!isCurrent()) return;
             const latest = data.entries?.[entry.uid] ?? data.entries?.[Number(entry.uid)];
             if (latest && hashEntryContent(latest) === contentHash) {
                 cache.set(String(entry.uid), { hash: contentHash, count });
-                if (runId === state.tokenRunId) queueTokenSummaryRender(book, data);
+                if (isCurrent()) queueTokenSummaryRender(book, data, 200);
             }
-        });
+        }, isCurrent);
         if (staleEntries.length) schedulePersistTokenCache();
-        if (currentBookName() !== book || runId !== state.tokenRunId) return;
-        renderTokenSummary(book, data);
+        if (!isCurrent()) return;
+        clearTimeout(state.tokenRenderTimer);
+        state.tokenRenderTimer = null;
+        renderTokenSummary(book, state.currentBookData);
     } catch (error) {
+        if (!isCurrent()) return;
         console.warn('[로어북 매니저] Failed to count tokens', error);
         for (const element of [totalElement, selectiveElement, constantElement, vectorizedElement]) {
             element.textContent = '!';
@@ -8231,11 +8315,16 @@ async function refreshTokenSummary(forcedData = null) {
         }
     } finally {
         if (state.tokenRefreshRunId === runId) state.tokenRefreshRunId = 0;
-        state.pendingBookSwitch = '';
+        if (isCurrent()) state.pendingBookSwitch = '';
     }
 }
 
 function scheduleTokenSummary(data = null, delay = 500) {
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
+    state.deferredTokenSummary = false;
     clearTimeout(state.tokenTimer);
     if (state.tokenIdleHandle != null && typeof cancelIdleCallback === 'function') {
         cancelIdleCallback(state.tokenIdleHandle);
@@ -8247,7 +8336,30 @@ function scheduleTokenSummary(data = null, delay = 500) {
     }, delay);
 }
 
+function isTokenSummaryWaitingForPage(book = currentBookName()) {
+    const entriesList = document.getElementById('world_popup_entries_list');
+    return Boolean(state.enhancing || state.refreshTimer
+        || state.worldDrawerOpening || state.bookSwitch?.book === book
+        || document.getElementById('WorldInfo')?.classList.contains('slb-book-switching')
+        || (isFoldyLinkedMode() && (
+            entriesList?.classList.contains('foldy-lore-pending')
+            || entriesList?.classList.contains('slb-foldy-linked-preparing')
+        )));
+}
+
+function resumeDeferredTokenSummary() {
+    if (!state.deferredTokenSummary || state.editorUiSuspended
+        || state.tokenTimer != null || state.tokenIdleHandle != null
+        || state.tokenRefreshRunId || isTokenSummaryWaitingForPage()) return;
+    scheduleTokenSummary(null, 0);
+}
+
 function scheduleInitialTokenSummary(data = null, delay = 180) {
+    if (state.editorUiSuspended) {
+        state.deferredTokenSummary = true;
+        return;
+    }
+    state.deferredTokenSummary = false;
     clearTimeout(state.tokenTimer);
     if (state.tokenIdleHandle != null && typeof cancelIdleCallback === 'function') {
         cancelIdleCallback(state.tokenIdleHandle);
@@ -8260,21 +8372,10 @@ function scheduleInitialTokenSummary(data = null, delay = 180) {
             state.tokenTimer = null;
             state.tokenIdleHandle = null;
             if (currentBookName() !== expectedBook) return;
-            // 실리태번이 아직 새 로어북을 받는 중이면 동일 데이터를 다시
-            // 요청하지 않는다. 목록이 완성된 뒤 캐시된 데이터로 계산한다.
-            const entriesList = document.getElementById('world_popup_entries_list');
-            const listStillPreparing = Boolean(
-                state.enhancing
-                || state.worldDrawerOpening
-                || state.bookSwitch?.book === expectedBook
-                || document.getElementById('WorldInfo')?.classList.contains('slb-book-switching')
-                || (isFoldyLinkedMode() && (
-                    entriesList?.classList.contains('foldy-lore-pending')
-                    || entriesList?.classList.contains('slb-foldy-linked-preparing')
-                ))
-            );
-            if (listStillPreparing) {
-                state.tokenTimer = setTimeout(run, 60);
+            // Existing render completion (or the existing 4s fallback) will
+            // resume this work; do not poll an incomplete list every 60ms.
+            if (state.editorUiSuspended || isTokenSummaryWaitingForPage(expectedBook)) {
+                state.deferredTokenSummary = true;
                 return;
             }
             const readyData = data || (state.currentBook === expectedBook ? state.currentBookData : null);
@@ -8320,7 +8421,86 @@ function syncLiveEditorTimer() {
     state.liveSyncTimer ??= setInterval(() => {
         enforceActivationOverviewIntegrity();
         syncLiveEditorTokens();
+        if (state.deferredTokenSummary) resumeDeferredTokenSummary();
     }, LIVE_SYNC_FALLBACK_INTERVAL_MS);
+}
+
+function pauseEditorUiWork() {
+    // Pause display work only. Native saves, translation persistence,
+    // backups and the standalone library have independent lifecycles.
+    if (state.refreshTimer || state.enhancing || state.enhanceChunkRaf || state.enhancePending) {
+        state.deferredEditorEnhance = true;
+        state.deferredEntryRecheck = true;
+        if (state.refreshTimer) cancelAnimationFrame(state.refreshTimer);
+        if (state.enhanceChunkRaf) cancelAnimationFrame(state.enhanceChunkRaf);
+        state.refreshTimer = null;
+        state.enhanceChunkRaf = 0;
+        state.enhanceRunId++;
+        state.enhancing = false;
+        state.enhancePending = false;
+    }
+    if (state.responsiveRaf) {
+        cancelAnimationFrame(state.responsiveRaf);
+        state.responsiveRaf = 0;
+        state.deferredResponsive = true;
+    }
+    if (state.bulkEditorHydrationRaf) {
+        cancelAnimationFrame(state.bulkEditorHydrationRaf);
+        state.bulkEditorHydrationRaf = 0;
+        state.bulkEditorHydrationQueue.length = 0;
+        state.bulkEditorHydrationHead = 0;
+        state.deferredEditorEnhance = true;
+        state.deferredEntryRecheck = true;
+    }
+    if (state.bookSwitch?.timer != null) {
+        clearTimeout(state.bookSwitch.timer);
+        state.bookSwitch.timer = null;
+    }
+    if (state.incompleteHeaderRetry?.timer != null) {
+        clearTimeout(state.incompleteHeaderRetry.timer);
+        state.incompleteHeaderRetry = null;
+        state.deferredEditorEnhance = true;
+    }
+    if (state.tokenTimer != null || state.tokenIdleHandle != null || state.tokenRenderTimer != null
+        || state.tokenRefreshRunId || state.entryTokenTimers.size) {
+        state.deferredTokenSummary = true;
+        state.tokenRunId++;
+        state.tokenRefreshRunId = 0;
+        clearTimeout(state.tokenTimer);
+        clearTimeout(state.tokenRenderTimer);
+        if (state.tokenIdleHandle != null && typeof cancelIdleCallback === 'function') {
+            cancelIdleCallback(state.tokenIdleHandle);
+        }
+        state.tokenTimer = null;
+        state.tokenIdleHandle = null;
+        state.tokenRenderTimer = null;
+        for (const timer of state.entryTokenTimers.values()) clearTimeout(timer);
+        state.entryTokenTimers.clear();
+    }
+    finishWorldDrawerOpenLoading();
+    if (!state.bookSwitch) setBookSwitchLoading(false);
+    releaseNativePageCache();
+}
+
+function syncEditorActivity() {
+    const suspended = isNativeLorebookMode() || document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen();
+    const changed = state.editorUiSuspended !== suspended;
+    state.editorUiSuspended = suspended;
+    syncLiveEditorTimer();
+    if (!changed) return;
+    if (suspended) {
+        pauseEditorUiWork();
+        return;
+    }
+    // Resume through the existing render path, not a new observer or timer.
+    if (state.bookSwitch && !state.bookSwitch.ready) {
+        state.bookSwitch.startedAt = Date.now();
+        scheduleBookSwitchReadyCheck(0);
+    } else if (state.deferredEditorEnhance) {
+        scheduleEnhance();
+    }
+    if (state.deferredResponsive) scheduleResponsiveEntryLayouts();
+    if (state.deferredTokenSummary) resumeDeferredTokenSummary();
 }
 
 function hasCompleteVisibleEntryHeaders() {
@@ -8364,6 +8544,7 @@ function beginWorldDrawerOpenLoading() {
         state.drawerOpenLoadingTimer = null;
         state.worldDrawerOpening = false;
         if (!state.bookSwitch) setBookSwitchLoading(false);
+        if (state.deferredTokenSummary) resumeDeferredTokenSummary();
     }, 30000);
 }
 
@@ -8536,10 +8717,11 @@ function isCurrentBookDomReady(transition) {
 
 function scheduleBookSwitchReadyCheck(delay = 0) {
     const transition = state.bookSwitch;
-    if (!transition || transition.ready) return;
+    if (!transition || transition.ready || state.editorUiSuspended) return;
     clearTimeout(transition.timer);
     transition.timer = setTimeout(() => {
-        if (state.bookSwitch !== transition || currentBookName() !== transition.book) return;
+        transition.timer = null;
+        if (state.editorUiSuspended || state.bookSwitch !== transition || currentBookName() !== transition.book) return;
         const elapsed = Date.now() - transition.startedAt;
         if (!isCurrentBookDomReady(transition)) {
             if (elapsed >= 30000) {
@@ -8551,6 +8733,7 @@ function scheduleBookSwitchReadyCheck(delay = 0) {
                 state.pendingBookSwitch = '';
                 finishWorldDrawerOpenLoading();
                 setBookSwitchLoading(false);
+                if (state.deferredTokenSummary) resumeDeferredTokenSummary();
                 return;
             }
             // Native child mutations already wake this checker immediately.
@@ -8704,6 +8887,10 @@ function revealCompletedEntryList(book, entries, headersVerified = false) {
 
 function enhanceAll() {
     if (state.managerMode === 'native' || state.sorting || state.enhancing) return;
+    if (state.editorUiSuspended) {
+        state.deferredEditorEnhance = true;
+        return;
+    }
     const liveEntryList = document.getElementById('world_popup_entries_list');
     if (isFoldyLinkedMode() && (state.workspace?.entries !== liveEntryList || !state.workspace?.foldyLinked)) {
         bindFoldyFolderDeleteDrawerGuards(liveEntryList || document);
@@ -8718,6 +8905,18 @@ function enhanceAll() {
     createAIBar();
     createBulkLorebookExportControls();
     createWorkspace();
+    state.deferredEditorEnhance = false;
+    const recheckDeferredRows = state.deferredEntryRecheck;
+    state.deferredEntryRecheck = false;
+    if (state.deferredBulkPrune) {
+        state.deferredBulkPrune = false;
+        entryBulkEditor.prune(state.currentBookData);
+    }
+    if (state.deferredTranslationBook) {
+        const book = state.deferredTranslationBook;
+        state.deferredTranslationBook = '';
+        if (book === currentBookName()) refreshTranslationFromLoadedBook(book, false);
+    }
     hideNativeHeaderRows();
     const entries = renderedEntries();
     const bookAtStart = currentBookName();
@@ -8796,11 +8995,13 @@ function enhanceAll() {
                 }
             }
         }
+        if (state.deferredTokenSummary) resumeDeferredTokenSummary();
     };
 
     const openedEntries = [];
     const enhanceEditorBatch = start => {
         if (runId !== state.enhanceRunId) return;
+        if (state.editorUiSuspended) { pauseEditorUiWork(); return; }
         if (currentBookName() !== bookAtStart) {
             state.enhancing = false;
             state.enhanceChunkRaf = 0;
@@ -8835,6 +9036,7 @@ function enhanceAll() {
 
     const enhanceHeaderBatch = start => {
         if (runId !== state.enhanceRunId) return;
+        if (state.editorUiSuspended) { pauseEditorUiWork(); return; }
         if (currentBookName() !== bookAtStart) {
             state.enhancing = false;
             state.enhanceChunkRaf = 0;
@@ -8848,7 +9050,8 @@ function enhanceAll() {
         for (; index < hardEnd; index++) {
             const entry = entries[index];
             if (!entry?.isConnected) continue;
-            const ready = entry.dataset.slbDisplayReady === 'true'
+            if (recheckDeferredRows && entry.dataset.slbEditorPending) delete entry.dataset.slbEditorPending;
+            const ready = !recheckDeferredRows && entry.dataset.slbDisplayReady === 'true'
                 && entry.dataset.slbHeaderEnhanced === VERSION;
             if (!ready) {
                 try {
@@ -8857,6 +9060,7 @@ function enhanceAll() {
                     // and no longer needs a first-row width measurement.
                     enhanceEntryHeader(entry, { initialCompact: true, deferBadgeTheme: true });
                     syncMetadataTranslations(entry);
+                    if (recheckDeferredRows) syncMemoryBooksRegenerationButton(entry);
                 } catch (error) {
                     freshHeadersVerified = false;
                     console.error('[로어북 매니저] 항목 헤더 렌더 오류', getUid(entry), error);
@@ -8918,6 +9122,10 @@ function enhanceAll() {
 
 function scheduleEnhance() {
     if (state.managerMode === 'native') return;
+    if (state.editorUiSuspended) {
+        state.deferredEditorEnhance = true;
+        return;
+    }
     if (state.bookSwitch && !state.bookSwitch.ready) {
         scheduleBookSwitchReadyCheck();
         return;
@@ -9185,11 +9393,11 @@ function bindEvents() {
     const worldInfoDrawerToggle = document.querySelector('#WI-SP-button > .drawer-toggle');
     const worldInfoDrawer = document.getElementById('WorldInfo');
     if (worldInfoDrawer) {
-        const observer = new MutationObserver(syncLiveEditorTimer);
+        const observer = new MutationObserver(syncEditorActivity);
         observer.observe(worldInfoDrawer, { attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
     }
-    document.addEventListener('visibilitychange', syncLiveEditorTimer);
-    window.addEventListener('slb-manager-mode-change', syncLiveEditorTimer);
+    document.addEventListener('visibilitychange', syncEditorActivity);
+    window.addEventListener('slb-manager-mode-change', syncEditorActivity);
     window.addEventListener('pointerdown', primeFoldyFolderDeleteDrawerGuard, true);
     window.addEventListener('touchstart', primeFoldyFolderDeleteDrawerGuard, { capture: true, passive: true });
     window.addEventListener('mousedown', primeFoldyFolderDeleteDrawerGuard, true);
@@ -9298,8 +9506,15 @@ function bindEvents() {
             // 상시/선택/벡터 합계만 현재 데이터로 즉시 다시 그린다.
             state.currentBook = name;
             state.currentBookData = data;
-            entryBulkEditor.prune(data);
             scheduleAutomaticLorebookBackup(name);
+            if (state.editorUiSuspended) {
+                state.deferredBulkPrune = true;
+                state.deferredEditorEnhance = true;
+                state.deferredEntryRecheck = true;
+                state.deferredTokenSummary = true;
+                return;
+            }
+            entryBulkEditor.prune(data);
             queueTokenSummaryRender(name, data);
             const cache = getBookTokenCache(name);
             const contentChanged = lorebookEntries(data)
@@ -9918,6 +10133,7 @@ function init() {
         initial: true,
     });
     state.settingsMigrationNeeded = false;
+    state.editorUiSuspended = isNativeLorebookMode() || document.visibilityState === 'hidden' || !isWorldInfoDrawerOpen();
     loadPersistedTokenCache();
     installEntryStateFilter();
     if (!isNativeLorebookMode()) ensureCriticalLayoutStyles();
@@ -9987,7 +10203,7 @@ function init() {
     // 꾸민다. 항목이 아직 없다면 이후 DOM observer가 동일 경로를 실행한다.
     enhanceAll();
     if (!isNativeLorebookMode()) scheduleInitialTokenSummary();
-    syncLiveEditorTimer();
+    syncEditorActivity();
     console.info(`[로어북 매니저] v${VERSION} initialized`);
 }
 
