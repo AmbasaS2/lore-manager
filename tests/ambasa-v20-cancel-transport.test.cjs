@@ -18,7 +18,7 @@ test('bulk button changes to 번역 중… and cancel click immediately restores
     const stubs=[
         "const VERSION='test';",
         "const state={bulkTranslation:null};let toasts=[],opened=0;",
-        "const toastr={info:(message)=>toasts.push(message)};",
+        "const toastr={info:(message,title)=>toasts.push([message,title])};",
         "const getSettings=()=>({translateMissingOnOpen:false,autoTranslateSource:false,autoSyncToSource:false});",
         "const createElement=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt)e.textContent=txt;return e;};",
         "const saveSettingsDebounced=()=>{};",
@@ -26,7 +26,7 @@ test('bulk button changes to 번역 중… and cancel click immediately restores
         "const showLorebookTranslationPicker=()=>{opened++};",
     ].join('\n');
     w.eval(stubs+'\n'+getFunction('updateBulkTranslationStatus')+'\n'
-      +getFunction('cancelBulkTranslation')+'\n'+getFunction('createQuickTranslationOptions')
+      +getFunction('slothToastTitle')+'\n'+getFunction('cancelBulkTranslation')+'\n'+getFunction('createQuickTranslationOptions')
       +'\nwindow.api={state,updateBulkTranslationStatus,make:createQuickTranslationOptions,getToasts:()=>toasts,getOpened:()=>opened};');
     try{
         const controls=w.api.make();
@@ -47,7 +47,9 @@ test('bulk button changes to 번역 중… and cancel click immediately restores
         assert.equal(text.textContent,'로어북 일괄 번역');
         assert.equal(button.disabled,false);
         assert.equal(status.textContent,'','canceled progress removed');
-        assert.deepEqual([...w.api.getToasts()],['번역이 취소되었습니다.']);
+        assert.equal(w.api.getToasts().length,1);
+        assert.equal(w.api.getToasts()[0][0],'번역이 취소되었습니다.');
+        assert.equal(w.api.getToasts()[0][1],'🦥 로어북 매니저');
         button.click();
         assert.equal(w.api.getOpened(),1,'ready button opens picker rather than requesting cancellation');
     }finally{w.close();}

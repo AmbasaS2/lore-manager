@@ -92,8 +92,8 @@ test('bulk translation has one persistent progress area, explicit cancel label a
  '<div id="slb-bulk-status" role="status"></div></div>',{runScripts:'outside-only'});
  const w=dom.window;
  w.eval("const state={bulkTranslation:null};const toaster=[];"+
-   "const toastr={error:x=>toaster.push(['error',x]),success:x=>toaster.push(['success',x]),warning:x=>toaster.push(['warning',x])};"+
-   fn('notify')+'\n'+fn('updateBulkTranslationStatus')+
+   "const toastr={error:x=>toaster.push(['error',x]),success:(x,title)=>toaster.push(['success',x,title]),warning:x=>toaster.push(['warning',x])};"+
+   fn('slothToastTitle')+'\n'+fn('notify')+'\n'+fn('updateBulkTranslationStatus')+
    '\nwindow.api={state,notify,updateBulkTranslationStatus,getToasts:()=>toaster};');
  try{
   const button=w.document.querySelector('#slb-translate-book');
@@ -117,6 +117,7 @@ test('bulk translation has one persistent progress area, explicit cancel label a
   assert.equal(profile.textContent,'AI 프로필 연결됨','no duplicate summary in connection status above');
   assert.equal(bulk.textContent,'전체 번역 완료 · 성공 12개');
   assert.equal(w.api.getToasts().length,1);
+  assert.equal(w.api.getToasts()[0][2],'🦥 로어북 매니저');
   assert.equal(label.textContent,'로어북 일괄 번역');
   assert.equal(button.disabled,false);
   w.api.notify('연결 테스트 성공','success');
