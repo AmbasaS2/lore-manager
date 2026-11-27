@@ -1,3 +1,4 @@
+const { assertReleaseVersion } = require('./fixture-ui-language.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
@@ -204,5 +205,5 @@ test('only explicit resize paths save size; CSS, data and watcher contracts rema
     assert.doesNotMatch(js, /new MutationObserver|new ResizeObserver/);
     assert.match(index, /libraryWindowSizes: \{\}/);
     assert.match(index, /saveSettingsDebounced\(\);/);
-    assert.equal(manifest.version, '1.4.85-ambasa.82');
+    assertReleaseVersion(root);
 });

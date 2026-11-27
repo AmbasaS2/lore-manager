@@ -1,3 +1,4 @@
+const { assertReleaseVersion } = require('./fixture-ui-language.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
@@ -114,7 +115,7 @@ test('manager publishes only versioned opt-in navigation without changing native
     const js = readFileSync(join(root, 'index.js'), 'utf8');
     const shelf = readFileSync(join(root, 'library-shelf.js'), 'utf8');
     const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
-    assert.equal(manifest.version, '1.4.85-ambasa.82');
+    assertReleaseVersion(root);
     assert.match(js, /window\.__slbLoreLibraryBridge = Object\.freeze/);
     assert.match(js, /apiVersion: 1/);
     assert.match(shelf, /return \{ open, openEntry, close, isOpen,/);

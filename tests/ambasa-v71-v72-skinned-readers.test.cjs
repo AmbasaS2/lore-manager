@@ -1,3 +1,4 @@
+const { assertReleaseVersion } = require('./fixture-ui-language.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
@@ -124,5 +125,5 @@ test('v72 skin rules contain 4 distinct themes × 4 view-mode scopes, with no ba
     assert.match(scoped, /white-space:\s*nowrap/);
     assert.doesNotMatch(scoped, /MutationObserver|ResizeObserver|setInterval|setTimeout|requestAnimationFrame|fetch\(/);
     assert.doesNotMatch(js, /setInterval\(/);
-    assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.82');
+    assertReleaseVersion(root);
 });

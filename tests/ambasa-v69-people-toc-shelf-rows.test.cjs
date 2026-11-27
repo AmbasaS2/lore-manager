@@ -1,3 +1,4 @@
+const { assertReleaseVersion } = require('./fixture-ui-language.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
@@ -206,6 +207,5 @@ test('CSS layout stays narrow-friendly, all TOC controls use same real data and 
     assert.match(code, /peopleTocCollapsed/);
     assert.match(index, /libraryShelfRows: 3/);
     assert.match(index, /getShelfRows: \(\) => getSettings\(\)\.libraryShelfRows/);
-    assert.equal(JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')).version,
-        '1.4.85-ambasa.82');
+    assertReleaseVersion(root);
 });

@@ -5,8 +5,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const root = join(__dirname, '..');
 const css = readFileSync(join(root, 'library-shelf.css'), 'utf8');
-const library = readFileSync(join(root, 'library-shelf.js'), 'utf8')
-    .replace(/^export /gm, '') + '\nwindow.createStandaloneLibrary = createStandaloneLibrary;';
+const library = require('./library-fixture-script.cjs').libraryFixtureScript();
 
 test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID navigation', async () => {
     const browser = await chromium.launch({headless:true, ...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH,args:['--no-sandbox']} : {})});

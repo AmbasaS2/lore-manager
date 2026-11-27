@@ -4,7 +4,7 @@ const {chromium}=require('playwright');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const css=readFileSync(join(__dirname,'..','library-shelf.css'),'utf8');
-const js=readFileSync(join(__dirname,'..','library-shelf.js'),'utf8').replace(/^export /gm,'')+'\nwindow.createStandaloneLibrary=createStandaloneLibrary;';
+const js = require('./library-fixture-script.cjs').libraryFixtureScript();
 test('Chromium: one fixed magnifier with input expanding to its left, stable shelf, both-language submit on 4 themes × 3 widths',async()=>{
     const browser=await chromium.launch({headless:true});let checked=0;
     try{

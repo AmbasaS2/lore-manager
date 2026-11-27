@@ -1,3 +1,4 @@
+const { assertReleaseVersion } = require('./fixture-ui-language.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {JSDOM}=require('jsdom');
@@ -107,5 +108,5 @@ test('sort controls keep all 4 values, use short readable labels, and CSS is 62p
   assert.match(last,/> #slb-library-world-contents\s*\{[^}]*display: none !important;/s);
   assert.doesNotMatch(last,/MutationObserver|ResizeObserver|setInterval|setTimeout|font-family/);
   assert.doesNotMatch(js,/setInterval\(/);
-  assert.equal(JSON.parse(readFileSync(join(root,'manifest.json'),'utf8')).version,'1.4.85-ambasa.82');
+  assertReleaseVersion(root);
 });

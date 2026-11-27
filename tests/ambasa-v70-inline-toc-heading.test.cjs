@@ -1,3 +1,4 @@
+const { assertReleaseVersion } = require('./fixture-ui-language.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
@@ -97,6 +98,5 @@ test('all three TOC headings remain visible after hiding their content, with no 
     assert.doesNotMatch(final, /MutationObserver|ResizeObserver|setInterval|setTimeout|font-family/);
     assert.match(js, /function inlineTocHeading\(/);
     assert.doesNotMatch(js, /setInterval\(/);
-    assert.equal(JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')).version,
-        '1.4.85-ambasa.82');
+    assertReleaseVersion(root);
 });

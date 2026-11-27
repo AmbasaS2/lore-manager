@@ -5,8 +5,7 @@ const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const root=join(__dirname,'..');
 const css=readFileSync(join(root,'library-shelf.css'),'utf8');
-const script=readFileSync(join(root,'library-shelf.js'),'utf8')
-    .replace(/^export /gm,'')+'\nwindow.createStandaloneLibrary=createStandaloneLibrary;';
+const script = require('./library-fixture-script.cjs').libraryFixtureScript();
 test('Chromium 4 themes x 3 modes x 3 viewports: one inline TOC toggle survives collapse',async()=>{
  const browser=await chromium.launch({headless:true});let count=0;
  try{

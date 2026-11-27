@@ -6,8 +6,7 @@ const { join } = require('node:path');
 
 const root = join(__dirname, '..');
 const css = readFileSync(join(root, 'library-shelf.css'), 'utf8');
-const library = readFileSync(join(root, 'library-shelf.js'), 'utf8')
-    .replace(/^export /gm, '') + '\nwindow.createStandaloneLibrary = createStandaloneLibrary;';
+const library = require('./library-fixture-script.cjs').libraryFixtureScript();
 const themes = ['mac','blackberry','ebook','antique'];
 const kinds = ['general','memory','world','people'];
 

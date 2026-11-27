@@ -5,8 +5,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const root = join(__dirname, '..');
 const css = readFileSync(join(root, 'library-shelf.css'), 'utf8');
-const script = readFileSync(join(root, 'library-shelf.js'), 'utf8')
-    .replace(/^export /gm, '') + '\nwindow.createStandaloneLibrary = createStandaloneLibrary;';
+const script = require('./library-fixture-script.cjs').libraryFixtureScript();
 
 test('Chromium 4 themes x 3 viewports x 3 shelf row settings retain layout and live people TOC', async () => {
     const browser = await chromium.launch({ headless: true });
