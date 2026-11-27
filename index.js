@@ -23,6 +23,7 @@ import { getCharaFilename, select2ModifyOptions, toggleDrawer } from '../../../u
 import { linkedBooksForCharacter, isVisibleWorldOption } from './linked-books.js';
 import { ConnectionManagerRequestService } from '../../shared.js';
 import { createLorebookBulkEditor } from './bulk-edit.js';
+import { withSlothLorebookWriteLane } from './slothWriteLane.js';
 import { createTranslationFallbackLookup } from './translation-lookup.js';
 import { createLoreTranslationStorage } from './translation-storage.js';
 import { translateLoreWithValidation } from './lore-translation.js';
@@ -47,7 +48,8 @@ const entryBulkEditor = createLorebookBulkEditor({
     getRows: renderedEntries,
     getUid,
     loadBook: loadWorldInfo,
-    saveBook: saveWorldInfo,
+    saveBook: (book, data) => saveWorldInfo(book, data, true),
+    withWriteLane: withSlothLorebookWriteLane,
     setOriginal: setWIOriginalDataValue,
     atDepth: world_info_position.atDepth,
     refreshControl(control, entry) {
@@ -3222,8 +3224,6 @@ async function restoreLorebookBackup(id, mode) {
         if (!targetBook) throw new Error('복원할 현재 로어북을 먼저 선택해주세요.');
         const confirmed = window.confirm(uiText("현재 로어북 “{0}”을 “{1}” 백업 상태로 복원할까요?\n복원 직전 상태도 자동으로 안전 백업됩니다.", targetBook, backup.book));
         if (!confirmed) return false;
-        const currentData = await loadWorldInfo(targetBook);
-        await createLorebookBackup(targetBook, { reason: 'before-restore', force: true, data: currentData });
     } else {
         const suggested = uniqueRestoredLorebookName(backup.book);
         const entered = window.prompt(uiText("새 로어북 이름을 입력해주세요."), suggested);
@@ -3232,6 +3232,13 @@ async function restoreLorebookBackup(id, mode) {
         if (existingLorebookNames().includes(targetBook)) throw new Error('같은 이름의 로어북이 이미 있습니다.');
     }
 
+    return withSlothLorebookWriteLane(targetBook, async () => {
+    if (mode === 'current') {
+        const currentData = await loadWorldInfo(targetBook);
+        await createLorebookBackup(targetBook, { reason: 'before-restore', force: true, data: currentData });
+    } else if (existingLorebookNames().includes(targetBook)) {
+        throw new Error('같은 이름의 로어북이 이미 있습니다.');
+    }
     state.backupRestoreInProgress = true;
     try {
         await translationFiles.ensureBook(targetBook);
@@ -3248,6 +3255,7 @@ async function restoreLorebookBackup(id, mode) {
     renderBackupList();
     notify(`“${targetBook}” 로어북을 복원했습니다.`, 'success');
     return true;
+    });
 }
 
 function backupReasonLabel(reason) {
@@ -4340,6 +4348,7 @@ async function deleteSelectedEntries(selection) {
         { okButton: uiText("삭제"), cancelButton: uiText("취소"), defaultResult: POPUP_RESULT.CANCELLED },
     );
     if (confirmed !== POPUP_RESULT.AFFIRMATIVE) return;
+    return withSlothLorebookWriteLane(selection.book, async () => {
     if (!entryBulkEditor.isCurrentSelection(selection)) return;
     const data = await loadWorldInfo(selection.book);
     if (!entryBulkEditor.isCurrentSelection(selection)) return;
@@ -4386,6 +4395,7 @@ async function deleteSelectedEntries(selection) {
         renderTokenSummary(selection.book, data);
     }
     notify(`선택한 ${uids.length}개 항목을 삭제했습니다.`, 'success');
+    });
 }
 
 async function translateCurrentLorebook(mode = 'all', selection = null, selectedBook = null, sharedJob = null) {
@@ -6215,8 +6225,11 @@ function updateNavigatorEntry(uid, knownEntry = null) {
 
 async function commitNavigatorOrder() {
     const book = currentBookName();
-    const data = state.currentBookData;
-    if (!book || state.currentBook !== book || !data?.entries) return;
+    if (!book) return;
+    return withSlothLorebookWriteLane(book, async () => {
+    if (currentBookName() !== book || state.currentBook !== book) return;
+    const data = await loadWorldInfo(book);
+    if (currentBookName() !== book || !data?.entries) return;
     const navList = document.getElementById('slb-nav-list');
     const entriesList = document.getElementById('world_popup_entries_list');
     if (!navList || !entriesList) return;
@@ -6255,12 +6268,13 @@ async function commitNavigatorOrder() {
     scheduleEnhance();
     if (!changed) return;
     try {
-        await saveWorldInfo(book, data);
+        await saveWorldInfo(book, data, true);
         notify(uiText("항목 순서를 저장했습니다."), 'success');
     } catch (error) {
         console.warn('🦥 Lorebook Manager', '[로어북 매니저] Failed to save entry order', error);
         notify(uiText("항목 순서 저장에 실패했습니다."), 'error');
     }
+    });
 }
 
 function setupNavigatorDrag() {
@@ -9702,8 +9716,23 @@ function librarySavedTranslation(book, entry) {
     };
 }
 
+async function readServerLorebookForSave(book) {
+    const response = await fetch('/api/worldinfo/get', {
+        method: 'POST', headers: getRequestHeaders(), body: JSON.stringify({name: book}), cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(uiText("로어북을 불러오지 못했습니다."));
+    const data = await response.json();
+    if (!data?.entries) throw new Error(uiText("로어북을 불러오지 못했습니다."));
+    return data;
+}
+
 async function saveLibraryOriginal(book, uid, original, nextContent) {
-    const fresh = await loadWorldInfo(book);
+    return withSlothLorebookWriteLane(book, async () => {
+    const fresh = await readServerLorebookForSave(book);
+    const cached = await loadWorldInfo(book);
+    if (JSON.stringify(cached) !== JSON.stringify(fresh)) {
+        throw new Error('다른 화면에서 로어북을 수정 중입니다. 변경 사항을 저장하고 다시 열어주세요.');
+    }
     const entry = fresh?.entries?.[uid] || Object.values(fresh?.entries || {})
         .find(item => item && String(item.uid) === String(uid));
     if (!entry) throw new Error('항목이 삭제되었거나 UID가 변경되어 저장하지 않았습니다.');
@@ -9718,8 +9747,13 @@ async function saveLibraryOriginal(book, uid, original, nextContent) {
     // Use ST's own world-file save path. Do not change order, triggers,
     // position, recursion, or other fields in the original object.
     await saveWorldInfo(book, fresh, true);
+    const verified = await readServerLorebookForSave(book);
+    if (JSON.stringify(verified) !== JSON.stringify(fresh)) {
+        throw new Error('로어북 저장 결과를 확인하지 못했습니다. 최신 내용을 다시 확인해주세요.');
+    }
     if (currentBookName() === book) document.getElementById('world_refresh')?.click();
-    return fresh;
+    return verified;
+    });
 }
 
 async function saveLibraryTranslation(book, entry, nextText, originalText) {

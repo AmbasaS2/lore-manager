@@ -48,7 +48,8 @@ function patchEntry(data, uid, patch, setOriginal) {
 }
 
 export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, saveBook,
-    setOriginal, atDepth, refreshControl, onApplied, onLayout, onError, onDelete }) {
+    setOriginal, atDepth, refreshControl, onApplied, onLayout, onError, onDelete,
+    withWriteLane = (_book, task) => task() }) {
     let book = '';
     let enabled = false;
     let revision = 0;
@@ -212,6 +213,10 @@ export function createLorebookBulkEditor({ getBook, getRows, getUid, loadBook, s
     }
 
     async function applyChange(job) {
+        return withWriteLane(job.book, () => applyChangeLocked(job));
+    }
+
+    async function applyChangeLocked(job) {
         const isCurrent = () => enabled && book === job.book && getBook() === job.book && revision === job.revision;
         if (!isCurrent()) return;
         // Use the live native data object, never an old cloned book snapshot.
