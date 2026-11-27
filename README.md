@@ -141,6 +141,8 @@ Reading order does not change the lorebook or its injection settings.
 
 #### 📕 Memory reading modes
 
+<p align="left"><img src="assets/readme/mobile/ui-memory-views.svg" alt="메모리 보기 방식 / Memory reading modes" width="480" /></p>
+
 Open the library gear icon → **Memory reading mode**.
 
 | Mode | What you see |
@@ -186,6 +188,8 @@ The settings illustration predates the memory reading mode added in .79.
 
 #### Translation setup
 
+<p align="left"><img src="assets/readme/mobile/ui-translation-settings.svg" alt="번역 설정 / Translation settings" width="480" /></p>
+
 1. Open **번역 설정 (Translation)**.
 2. Choose a separate AI connection profile or Google translation.
 3. Choose the content to translate: body, title, keywords.
@@ -207,6 +211,8 @@ Only enable automatic reflection if you really want edited translations to chang
 Eligible short entries can be grouped for AI translation. Request counts, time and cost depend on provider and content.
 
 ### Integrated editing: statistics and filters
+
+<p align="left"><img src="assets/readme/mobile/ui-integrated-display.svg" alt="통합 화면 표시 옵션 / Integrated display options" width="480" /></p>
 
 Extensions → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션.
 
@@ -449,6 +455,8 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 #### 📕 메모리 보기 방식
 
+<p align="left"><img src="assets/readme/mobile/ui-memory-views.svg" alt="메모리 보기 방식 / Memory reading modes" width="480" /></p>
+
 서재 톱니바퀴 → 메모리 보기 방식.
 
 | 보기 | 설명 |
@@ -494,6 +502,8 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 #### 🌐 새 번역이 필요할 때
 
+<p align="left"><img src="assets/readme/mobile/ui-translation-settings.svg" alt="번역 설정 / Translation settings" width="480" /></p>
+
 1. **번역 설정** 열기.
 2. AI 전용 연결 프로필 또는 구글 번역(무료) 선택.
 3. 번역 대상: 본문 / 제목 / 호출 키워드.
@@ -521,6 +531,8 @@ AI 수정·키워드 추천에는 AI 프로필이 필요합니다. 읽기용 제
 AI 번역은 조건에 맞는 짧은 항목을 묶어 처리할 수 있습니다. 시간·API 사용량은 모델과 본문 길이에 따라 달라집니다.
 
 ### 통합 화면의 토큰 통계·필터
+
+<p align="left"><img src="assets/readme/mobile/ui-integrated-display.svg" alt="통합 화면 표시 옵션 / Integrated display options" width="480" /></p>
 
 확장 관리 → 로어북 매니저 → 화면·고급 설정 → 통합 화면 표시 옵션.
 
