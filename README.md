@@ -147,7 +147,7 @@ Open the library gear icon → **Memory reading mode**.
 
 | Mode | What you see |
 | --- | --- |
-| **Timeline (default)** | Opening excerpt of the actual entry; expand to continue reading in place |
+| **Timeline (default)** | Opening excerpt of the actual entry (up to 100 Unicode characters); expand to continue reading in place |
 | **Continuous full text** | Complete records in sequence |
 | **Original page reader** | Page-by-page reading |
 
@@ -461,7 +461,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 | 보기 | 설명 |
 | --- | --- |
-| 타임라인 (기본) | 실제 본문의 앞부분을 미리 보고, 전문을 펼쳐 같은 자리에서 이어 읽기 |
+| 타임라인 (기본) | 실제 본문의 앞부분을 최대 100자 미리 보고, 전문을 펼쳐 같은 자리에서 이어 읽기 |
 | 연속 기록장 | 사건 본문 전문 이어 읽기 |
 | 페이지 넘김 | 한 페이지씩 읽기 |
 

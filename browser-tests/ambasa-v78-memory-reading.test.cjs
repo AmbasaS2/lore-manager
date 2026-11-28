@@ -74,6 +74,7 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                                 const fullRect=paragraph.getBoundingClientRect();
                                 inline={previewSize,fullSize:getComputedStyle(paragraph).fontSize,
                                     full:prose.textContent.startsWith(previewText)&&prose.textContent.includes('Outcome 0'),
+                                    previewLength:Array.from(previewText).length,
                                     sameStart:Math.abs(previewRect.left-fullRect.left)<=1&&Math.abs(previewRect.top-fullRect.top)<=1,
                                     toolsAfter:prose.compareDocumentPosition(first.querySelector('.slb-library-reader-tools'))&Node.DOCUMENT_POSITION_FOLLOWING,
                                     foldAfter:prose.compareDocumentPosition(toggle)&Node.DOCUMENT_POSITION_FOLLOWING,
@@ -111,6 +112,7 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                             assert.notEqual(result.timelineRule, 'rgb(0, 0, 0)');
                             const x=result.inline;
                             assert.equal(x.previewSize,x.fullSize,JSON.stringify({theme,width,x}));
+                            assert.ok(x.previewLength>0&&x.previewLength<=100,JSON.stringify({theme,width,x}));
                             assert.ok(x.full&&x.sameStart&&x.toolsAfter&&x.foldAfter&&x.sameOther&&x.sameFirst&&x.noPage&&x.expanded&&x.folded&&x.stableScroll,JSON.stringify({theme,width,x}));
                             assert.equal(x.detailCount,1);
                             assert.ok(x.overflow<=1,JSON.stringify({theme,width,x}));
