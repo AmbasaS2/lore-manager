@@ -27,6 +27,13 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                         window.libraryFixture=window.createStandaloneLibrary({
                             document,listBooks:()=>['Book'],linkedBooks:()=>new Set(['Book']),
                             loadBook:async()=>({entries}),loadTranslations:async()=>{},translationFor:()=>({}),
+                            renderReadMarkdown:(target,content)=>{
+                                // A minimal paragraph/heading renderer for layout testing;
+                                // production uses the existing sanitized Showdown pipeline.
+                                for(const block of content.split(/\n\n/)){
+                                    const p=document.createElement('p');p.textContent=block.replaceAll('**','');target.append(p);
+                                }
+                            },
                             saveContent:async()=>{},saveTranslation:async()=>{},translateOne:async()=>{},openAdvanced:()=>{},
                             getType:()=> 'memory',getTypeMap:()=>({Book:'memory'}),getTags:()=>[],getTagMap:()=>({}),setTags:async()=>{},
                             getTheme:()=>theme,getListPageSize:()=>5,getListOrder:()=> 'normal',
@@ -56,12 +63,20 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                                 const first=q('.slb-library-memory-record');
                                 const other=document.querySelectorAll('.slb-library-memory-record')[1];
                                 const toggle=first.querySelector('[data-action="memory-toggle-full"]');
-                                const previewSize=getComputedStyle(first.querySelector('.slb-library-memory-preview')).fontSize;
+                                const preview=first.querySelector('.slb-library-memory-preview');
+                                const previewSize=getComputedStyle(preview).fontSize;
+                                const previewText=preview.textContent.replace(/…$/,'');
+                                const previewRect=preview.getBoundingClientRect();
                                 const beforeTop=body.scrollTop;
                                 toggle.click();
                                 const prose=first.querySelector('.slb-library-prose');
-                                inline={previewSize,fullSize:getComputedStyle(prose).fontSize,
-                                    full:prose.textContent.includes('Full source text with long content.'),
+                                const paragraph=prose.firstElementChild || prose;
+                                const fullRect=paragraph.getBoundingClientRect();
+                                inline={previewSize,fullSize:getComputedStyle(paragraph).fontSize,
+                                    full:prose.textContent.startsWith(previewText)&&prose.textContent.includes('Outcome 0'),
+                                    sameStart:Math.abs(previewRect.left-fullRect.left)<=1&&Math.abs(previewRect.top-fullRect.top)<=1,
+                                    toolsAfter:prose.compareDocumentPosition(first.querySelector('.slb-library-reader-tools'))&Node.DOCUMENT_POSITION_FOLLOWING,
+                                    foldAfter:prose.compareDocumentPosition(toggle)&Node.DOCUMENT_POSITION_FOLLOWING,
                                     sameOther:other===document.querySelectorAll('.slb-library-memory-record')[1],
                                     sameFirst:first===q('.slb-library-memory-record'),
                                     noPage:!q('.slb-library-diary-page'),
@@ -96,7 +111,7 @@ test('Chromium: 3 memory views, all 4 themes, 3 widths; append and exact UID nav
                             assert.notEqual(result.timelineRule, 'rgb(0, 0, 0)');
                             const x=result.inline;
                             assert.equal(x.previewSize,x.fullSize,JSON.stringify({theme,width,x}));
-                            assert.ok(x.full&&x.sameOther&&x.sameFirst&&x.noPage&&x.expanded&&x.folded&&x.stableScroll,JSON.stringify({theme,width,x}));
+                            assert.ok(x.full&&x.sameStart&&x.toolsAfter&&x.foldAfter&&x.sameOther&&x.sameFirst&&x.noPage&&x.expanded&&x.folded&&x.stableScroll,JSON.stringify({theme,width,x}));
                             assert.equal(x.detailCount,1);
                             assert.ok(x.overflow<=1,JSON.stringify({theme,width,x}));
                         }

@@ -4,7 +4,7 @@ A fork of **[Lorebook Manager (로어북 매니저)](https://github.com/foreverh
 
 The original extension provides the foundation for lorebook editing, translation, token statistics and backups. This fork retains that foundation and adds an independent reading library, alternative display modes and changes suited to my own resource-constrained setup.
 
-**Current version:** 1.4.85-ambasa.91 · Based on upstream 1.4.85
+**Current version:** 1.4.85-ambasa.92 · Based on upstream 1.4.85
 
 [한국어 안내 ↓](#-로어북-매니저-나무늘보씨) · [Original project](https://github.com/foreverharibo-boop/lore-manager) · [Upstream documentation](docs/UPSTREAM_README.md) · [Fork development notes](AMBASA_FORK_NOTES.md)
 
@@ -38,7 +38,7 @@ The original editing, translation, token and backup tools are still available. I
 
 ## ⚡ Quick start
 
-**Current version: 1.4.85-ambasa.91.**
+**Current version: 1.4.85-ambasa.92.**
 
 > **Open your library → choose a book → read.**
 >
@@ -147,12 +147,12 @@ Open the library gear icon → **Memory reading mode**.
 
 | Mode | What you see |
 | --- | --- |
-| **Timeline (default)** | Saved Result, or a labeled excerpt when Result is absent |
+| **Timeline (default)** | Opening excerpt of the actual entry; expand to continue reading in place |
 | **Continuous full text** | Complete records in sequence |
 | **Original page reader** | Page-by-page reading |
 
 - Timeline and continuous modes place count and sort controls beside the TOC. Load more in batches of 5 / 10 / 20.
-- Expand or collapse a full record directly in Timeline without changing your saved preference or text size. Changing pages or reading modes folds the records.
+- Expand or collapse the same text directly in Timeline without changing its starting position, saved preference or text size. Result remains at the end; reading tools follow the body. Changing pages or reading modes folds the records.
 - TOC and search still jump to individual records.
 - No new AI request is made.
 
@@ -321,7 +321,7 @@ Licensed under **AGPL-3.0-only**. See [LICENSE](LICENSE) and [NOTICE](NOTICE). T
 
 원작자님의 허락을 받아 **[로어북 매니저](https://github.com/foreverharibo-boop/lore-manager)** 를 제 사용 환경에 맞춰 수정한 포크입니다. 원작의 편집·번역·토큰 계산·백업 기능을 기반으로 독립 서재와 표시 방식, 번역 저장 구조 등을 추가하고 조정했습니다.
 
-**현재 버전:** 1.4.85-ambasa.91 (원작 1.4.85 기반)
+**현재 버전:** 1.4.85-ambasa.92 (원작 1.4.85 기반)
 
 
 **서재에서 읽고, 월드 인포에서 설정하세요.** 서재는 따로 열 수 있으므로 기본 월드 인포를 그대로 사용해도 됩니다. 번역과 일괄 편집까지 필요하면 통합 화면을 선택하세요.
@@ -351,7 +351,7 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 ## ⚡ 간단 사용 설명
 
-**현재 버전: 1.4.85-ambasa.91.**
+**현재 버전: 1.4.85-ambasa.92.**
 
 > **확장 메뉴 → 서재 → 원하는 책 → 읽기!**
 >
@@ -461,12 +461,12 @@ SillyTavern 1.18 기반입니다. 다른 버전 및 확장 조합에서는 동�
 
 | 보기 | 설명 |
 | --- | --- |
-| 타임라인 (기본) | 저장된 Result(결과)를 훑어보기. 없으면 표시된 본문 미리보기 |
+| 타임라인 (기본) | 실제 본문의 앞부분을 미리 보고, 전문을 펼쳐 같은 자리에서 이어 읽기 |
 | 연속 기록장 | 사건 본문 전문 이어 읽기 |
 | 페이지 넘김 | 한 페이지씩 읽기 |
 
 - 타임라인·연속 기록장: 목차 옆 표시 개수·정렬, 5/10/20개씩 더 보기.
-- 타임라인에서는 전문을 같은 위치에서 펼치고 접습니다. 글자 크기와 저장된 보기 설정은 유지되고, 페이지나 보기 방식을 바꾸면 다시 접힙니다.
+- 타임라인에서는 전문을 같은 위치에서 펼치고 접으며, 첫 문장과 글자 크기를 유지합니다. Result(결과)는 본문 끝에, 읽기 도구는 본문 뒤에 표시합니다. 페이지나 보기 방식을 바꾸면 다시 접힙니다.
 - 목차·검색으로 원하는 기록에 바로 이동할 수 있어요.
 - 새 AI 호출은 없습니다.
 

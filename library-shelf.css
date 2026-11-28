@@ -7444,7 +7444,22 @@
     display: none !important;
 }
 #slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded {
-    min-width: 0; margin: 4px 0 0;
+    min-width: 0; margin: 0;
+}
+#slb-library-overlay .slb-library-memory-timeline {
+    /* The bottom toggle moves when its record expands. Do not let browser
+       scroll anchoring follow it instead of the beginning of the prose. */
+    overflow-anchor: none;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded .slb-library-language-mark {
+    margin: 8px 0 0; font-weight: 400; color: var(--memory-muted, var(--ll-muted));
+    font-size: .82em;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded .slb-library-detail .slb-library-reader-tools {
+    margin: 6px 0 0; padding: 0; border-bottom: 0;
+}
+#slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded .slb-library-prose.is-markdown > :first-child {
+    margin-top: 0;
 }
 #slb-library-overlay .slb-library-memory-timeline .slb-library-memory-expanded :is(.slb-library-detail-memory,.slb-library-reading) {
     min-width: 0; margin: 0; padding: 0; border: 0; box-shadow: none !important;
