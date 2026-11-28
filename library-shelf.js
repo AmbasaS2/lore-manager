@@ -91,20 +91,24 @@ export function memoryTimelinePreview(content, title = '') {
     const text = String(content || '').trim();
     const lines = text.split(/\r?\n/u);
     const heading = line => line.trim().replace(/^#{1,6}\s+/u, '').replace(/\*\*|__/gu, '').trim();
-    const dateLine = lines.map(heading).find(line => /^(?:Timeline|타임라인|시간선|시간대|일시|날짜)\s*[:：]/iu.test(line));
-    const marker = dateLine?.replace(/^[^:：]+[:：]\s*/u, '').trim() || '';
+    const datePattern = /^(?:Timeline|타임라인|시간선|시간대|일시|날짜)\s*[:：]/iu;
+    const dateIndex = lines.findIndex(line => datePattern.test(heading(line)));
+    const marker = dateIndex < 0 ? '' : heading(lines[dateIndex]).replace(/^[^:：]+[:：]\s*/u, '').trim();
     const date = marker && !/^(?:unknown|not established|미상|알 수 없음|불명|미확인)[.!]?$/iu.test(marker)
         ? marker : dateLabel(title);
-    const resultIndex = lines.findIndex(line => /^(?:Result|결과|결말)\s*(?:[:：].*)?$/iu.test(heading(line)));
-    if (resultIndex >= 0) {
-        const sameLine = heading(lines[resultIndex]).replace(/^(?:Result|결과|결말)\s*[:：]?\s*/iu, '');
-        const result = sameLine || lines.slice(resultIndex + 1).find(line => line.trim())?.trim() || '';
-        if (result) return { date, text: result, isResult: true };
-    }
-    const plain = lines.filter(line => !/^(?:Timeline|타임라인|시간선|시간대|일시|날짜)\s*[:：]/iu.test(heading(line))
-        && !/^(?:Scene|장면|씬)\s*[:：]?$/iu.test(heading(line))).join(' ').replace(/\s+/gu, ' ').trim();
-    const prefix = Array.from(plain.slice(0, 400));
-    return { date, text: prefix.length > 200 ? prefix.slice(0, 200).join('') + '…' : plain, isResult: false };
+
+    // Use one reading stream in both states. Remove a leading date only
+    // when it is already shown verbatim above the title; a standalone Scene
+    // heading is just the opening label, not part of the narrative. All
+    // other sections (including Result) stay in their original order.
+    let first = dateIndex === 0 && marker && date === marker ? 1 : 0;
+    while (first < lines.length && !lines[first].trim()) first++;
+    if (/^(?:Scene|장면|씬)\s*[:：]?$/iu.test(heading(lines[first] || ''))) first++;
+    const body = lines.slice(first).join('\n').trim() || text;
+    // Bound excerpt work even for very long entries and preserve Unicode.
+    const prefix = Array.from(body.slice(0, 402));
+    const preview = prefix.length > 200 ? prefix.slice(0, 200).join('').trimEnd() + '…' : body;
+    return { date, text: preview, body };
 }
 
 export function createStandaloneLibrary({
@@ -2255,11 +2259,12 @@ export function createStandaloneLibrary({
         const uid = String(entry.uid);
         const translated = translationFor(currentBook, entry) || {};
         const view = entryReadViews.get(uid) || (translated.text ? 'translated' : 'source');
-        return memoryTimelinePreview(view === 'translated' && translated.text ? translated.text : entry.content, entry.comment);
+        return memoryTimelinePreview(displayedEntryContent(entry, view, translated), entry.comment);
     }
     function fillTimelinePreview(summary, preview) {
         summary.replaceChildren();
-        if (!preview.isResult) summary.append(element(doc, 'small', 'slb-library-memory-excerpt-label', uiText("본문 미리보기")));
+        // Plain, bounded excerpt only; do not run the full Markdown renderer
+        // (or mount illustrations) until the user expands this record.
         summary.append(element(doc, 'p', 'slb-library-memory-preview', preview.text || uiText("본문이 비어 있습니다.")));
     }
     function refreshTimelineSummary(record, entry) {
@@ -2290,7 +2295,7 @@ export function createStandaloneLibrary({
             full.hidden = true;
             open.setAttribute('aria-controls', full.id);
             open.setAttribute('aria-expanded', 'false');
-            record.append(summary, open, full);
+            record.append(summary, full, open);
             fillTimelinePreview(summary, preview);
         }
         return record;
@@ -2315,12 +2320,13 @@ export function createStandaloneLibrary({
             summary.hidden = false;
             target.textContent = uiText("전문 읽기 ▾");
             target.setAttribute('aria-expanded', 'false');
+            target.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
             return true;
         }
         // Mount only the requested record. The existing delegated click
         // handler and detail reader retain translation/edit/image functionality.
         // No page navigation, layout measurement, or reload is needed.
-        full.append(renderDetail(entry, 'memory'));
+        full.append(renderDetail(entry, 'memory', { timeline: true }));
         summary.hidden = true;
         full.hidden = false;
         target.textContent = uiText("전문 접기 ▴");
@@ -2618,20 +2624,24 @@ export function createStandaloneLibrary({
             body.append(layout);
         } else body.append(directory);
     }
-    function contentText(entry, format) {
+    function displayedEntryContent(entry, format, info) {
+        return format === 'source'
+            ? (String(entry.content || '') || uiText("원문이 비어 있습니다."))
+            : (String(info.text || '') || uiText("저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다."));
+    }
+    function contentText(entry, format, { timeline = false } = {}) {
         const info = translationFor(currentBook, entry) || {};
-        const source = String(entry.content || '');
         const translated = String(info.text || '');
         const section = element(doc, 'section', 'slb-library-reading');
         section.dataset.readView = format;
         const pair = info.pair || { sourceLanguage: 'English', translationLanguage: 'Korean' };
         const lang = format === 'source' ? pair.sourceLanguage : pair.translationLanguage;
-        section.append(element(doc, 'small', 'slb-library-language-mark', format === 'source'
-            ? uiText("원문 · ") + lang : translated ? uiText("번역 · ") + lang : uiText("번역 없음")));
+        const languageMark = element(doc, 'small', 'slb-library-language-mark', format === 'source'
+            ? uiText("원문 · ") + lang : translated ? uiText("번역 · ") + lang : uiText("번역 없음"));
+        if (!timeline) section.append(languageMark);
         const prose = element(doc, 'div', 'slb-library-prose');
-        const content = format === 'source'
-            ? (source || uiText("원문이 비어 있습니다."))
-            : (translated || uiText("저장된 번역본이 없습니다. 수정 버튼으로 번역문을 작성할 수 있습니다."));
+        const displayed = displayedEntryContent(entry, format, info);
+        const content = timeline ? memoryTimelinePreview(displayed, entry.comment).body : displayed;
         if (typeof renderReadMarkdown === 'function') {
             try {
                 renderReadMarkdown(prose, content);
@@ -2642,10 +2652,11 @@ export function createStandaloneLibrary({
             }
         } else prose.textContent = content;
         section.append(prose);
+        if (timeline) section.append(languageMark);
         if (format === 'translated' && info.stale) section.append(element(doc, 'small', 'slb-library-stale', uiText("원문 변경 이전에 저장된 번역입니다. 필요한 경우 다시 번역하세요.")));
         return section;
     }
-    function renderDetail(entry, type) {
+    function renderDetail(entry, type, { timeline = false } = {}) {
         const uid = String(entry.uid);
         const article = element(doc, 'article', 'slb-library-detail slb-library-detail-' + type);
         article.dataset.uid = uid;
@@ -2693,8 +2704,9 @@ export function createStandaloneLibrary({
         if (imagePath) imageControls.append(button(doc, 'slb-library-image-remove', uiText("이미지 연결 해제"), 'image-remove', uid));
         menu.append(imageControls);
         tools.append(more, menu);
-        article.append(tools);
+        if (!timeline) article.append(tools);
         // The saved picture is user metadata; render only when the detail is open.
+        let trailingImage = null;
         if (imagePath) {
             const frame = element(doc, 'figure', 'slb-library-entry-image');
             const img = element(doc, 'img', 'slb-library-entry-image-element');
@@ -2703,11 +2715,13 @@ export function createStandaloneLibrary({
             img.setAttribute('loading', 'lazy');
             img.setAttribute('decoding', 'async');
             frame.append(img);
-            article.append(frame);
+            if (timeline) trailingImage = frame;
+            else article.append(frame);
         }
         const pages = element(doc, 'div', 'slb-library-pages');
-        pages.append(contentText(entry, view));
+        pages.append(contentText(entry, view, { timeline }));
         article.append(pages);
+        if (trailingImage) article.append(trailingImage);
         // The v72 design's keyword chips reuse real ST key strings only.
         // Bound the visible chip count/length for huge lorebooks and regex keys.
         const keys = Array.isArray(entry.key) ? entry.key : [];
@@ -2723,6 +2737,7 @@ export function createStandaloneLibrary({
             }
             article.append(chips);
         }
+        if (timeline) article.append(tools);
         if (edit && edit.uid === uid) {
             const editor = element(doc, 'section', 'slb-library-edit-panel');
             editor.append(element(doc, 'label', '', edit.kind === 'source' ? uiText("원문 수정 · 저장 전에는 실제 로어북에 반영되지 않습니다.") : uiText("번역 수정 · 실리태번 원문은 변경되지 않습니다.")));
@@ -2745,7 +2760,9 @@ export function createStandaloneLibrary({
         const entry = entries.find(item => String(item.uid) === String(uid));
         if (current && entry) {
             const focusAction = current.contains(doc.activeElement) ? doc.activeElement.dataset.action : null;
-            const replacement = renderDetail(entry, getType(currentBook) || 'general');
+            const replacement = renderDetail(entry, getType(currentBook) || 'general', {
+                timeline: Boolean(current.closest('.slb-library-memory-expanded')),
+            });
             current.replaceWith(replacement);
             if (focusAction) [...replacement.querySelectorAll('[data-action]')]
                 .find(node => node.dataset.action === focusAction)?.focus({ preventScroll: true });

@@ -48,14 +48,24 @@ async function fixture(theme = 'mac', width = 390, initial = 'timeline', openBoo
     lib.open(); if (openBook) { click('[data-action="select-book"]'); await tick(); }
     return { dom,win,lib,q,all,click,mode,records,state,entries,original };
 }
-test('timeline uses actual saved Result or explicitly labeled excerpt without invented dates', async () => {
+test('timeline excerpt is the exact beginning of the displayed full body; dates and Result remain accurate', async () => {
     const { memoryTimelinePreview } = await import(libURL);
-    assert.deepEqual(memoryTimelinePreview('**Timeline**: 1975-09-01\n\n**Scene**\nFull\n\n**Result**\nActual result'),
-        {date:'1975-09-01',text:'Actual result',isResult:true});
-    assert.deepEqual(memoryTimelinePreview('**타임라인**: 미상\n\n**장면**\n사건\n\n**결과**\n결과 문장'),
-        {date:'',text:'결과 문장',isResult:true});
-    assert.deepEqual(memoryTimelinePreview('No date or result'), {date:'',text:'No date or result',isResult:false});
+    const body='The first sentence continues. ' + 'Long scene. '.repeat(40) + '\n\n**Result**\nActual result';
+    const parsed=memoryTimelinePreview('**Timeline**: 1975-09-01\n\n**Scene**\n'+body);
+    assert.equal(parsed.date,'1975-09-01');
+    assert.equal(parsed.body,body);
+    assert.ok(parsed.body.startsWith(parsed.text.slice(0,-1)));
+    assert.equal(parsed.text.at(-1),'…');
+    const korean=memoryTimelinePreview('**타임라인**: 1975년 9월 2일\n\n**장면**\n사건\n\n**결과**\n결과 문장');
+    assert.deepEqual(korean,{date:'1975년 9월 2일',text:'사건\n\n**결과**\n결과 문장',body:'사건\n\n**결과**\n결과 문장'});
+    const unknown='**Timeline**: unknown\n\n**Scene**\nFull\n\n**Result**\nActual result';
+    assert.equal(memoryTimelinePreview(unknown).body,unknown);
+    assert.deepEqual(memoryTimelinePreview('No date or result'), {date:'',text:'No date or result',body:'No date or result'});
     assert.equal(memoryTimelinePreview('x'.repeat(240)).text, 'x'.repeat(200)+'…');
+    const emoji=memoryTimelinePreview('🦥'.repeat(220));
+    assert.equal(Array.from(emoji.text).length,201);
+    assert.ok(emoji.body.startsWith(emoji.text.slice(0,-1)));
+    assert.equal(memoryTimelinePreview('**Scene**: not a heading\nMore').body,'**Scene**: not a heading\nMore');
 });
 test('all four skins: 240 entries use bounded initial batches and append without replacing previous DOM', async () => {
     for (const theme of ['mac','blackberry','ebook','antique']) {
@@ -68,9 +78,10 @@ test('all four skins: 240 entries use bounded initial batches and append without
             assert.ok(f.q('.slb-library-memory-heading .slb-library-page-size-select'));
             assert.equal(f.q('#slb-library-memory-contents').hidden,true);
             assert.equal(f.all('.slb-library-page-size-select').length,1);
-            assert.equal(f.records()[0].querySelector('.slb-library-memory-preview').textContent,'Outcome 0');
-            assert.equal(f.records()[1].querySelector('.slb-library-memory-preview').textContent,'번역 결과');
-            assert.ok(f.records()[3].querySelector('.slb-library-memory-excerpt-label'));
+            assert.match(f.records()[0].querySelector('.slb-library-memory-preview').textContent,/^Full scene 0/);
+            assert.match(f.records()[1].querySelector('.slb-library-memory-preview').textContent,/^번역 본문/);
+            assert.match(f.records()[3].querySelector('.slb-library-memory-preview').textContent,/^Old plain record/);
+            assert.equal(f.records()[0].querySelector('.slb-library-memory-excerpt-label'),null);
             const previous = f.records()[0];
             f.click('[data-action="memory-more"]');
             assert.equal(f.records().length,10);
@@ -106,7 +117,12 @@ test('timeline expands only the selected record, and page/view navigation folds 
         assert.equal(toggle.getAttribute('aria-expanded'),'true');
         assert.equal(f.q('.slb-library-diary-page'),null);
         assert.equal(f.q('.slb-library-detail').dataset.uid,'7');
-        assert.match(f.q('.slb-library-detail').textContent,/Full scene 7/);
+        const prose=f.q('.slb-library-prose');
+        assert.equal(prose.textContent,target.querySelector('.slb-library-memory-preview').textContent);
+        assert.match(prose.textContent,/^Full scene 7/);
+        assert.match(prose.textContent,/Outcome 7$/);
+        assert.equal(prose.compareDocumentPosition(f.q('.slb-library-reader-tools')) & f.win.Node.DOCUMENT_POSITION_FOLLOWING,f.win.Node.DOCUMENT_POSITION_FOLLOWING);
+        assert.equal(prose.compareDocumentPosition(toggle) & f.win.Node.DOCUMENT_POSITION_FOLLOWING,f.win.Node.DOCUMENT_POSITION_FOLLOWING);
         assert.equal(target.querySelector('.slb-library-memory-summary').hidden,true);
         assert.deepEqual(f.records(),oldRecords);
         assert.equal(f.all('.slb-library-detail').length,1);
@@ -206,7 +222,7 @@ test('timeline expands lazily with actual translated/source content, preserves o
         f.win.confirm=()=>true;
         f.click('[data-action="memory-toggle-full"][data-uid="1"]');
         assert.equal(second.querySelector('.slb-library-detail'),null);
-        assert.equal(second.querySelector('.slb-library-memory-preview').textContent,'Outcome 1');
+        assert.match(second.querySelector('.slb-library-memory-preview').textContent,/^Full scene 1/);
         assert.equal(first.querySelector('.slb-library-detail'),firstDetail);
         assert.equal(f.state.reads,1);
         assert.equal(f.state.writes,0);
@@ -250,9 +266,29 @@ test('external content update refreshes only the changed timeline preview and fu
         assert.equal(f.records()[1],second);
         assert.equal(f.records()[2],third);
         assert.match(first.querySelector('.slb-library-detail').textContent,/Updated full scene/);
-        assert.equal(third.querySelector('.slb-library-memory-preview').textContent,'Updated other result');
+        assert.match(third.querySelector('.slb-library-memory-preview').textContent,/^Updated other scene/);
         f.click('[data-action="memory-toggle-full"][data-uid="0"]');
-        assert.equal(first.querySelector('.slb-library-memory-preview').textContent,'Updated result');
+        assert.match(first.querySelector('.slb-library-memory-preview').textContent,/^Updated full scene/);
+        assert.equal(f.state.reads,1);
+        assert.equal(f.state.writes,0);
+    } finally {f.dom.window.close();}
+});
+
+test('long timeline preview is a true prefix, and language tools and Result follow the prose', async () => {
+    const f=await fixture();
+    try {
+        const record=f.records()[3],other=f.records()[4];
+        const preview=record.querySelector('.slb-library-memory-preview').textContent;
+        assert.equal(preview.at(-1),'…');
+        f.click('[data-action="memory-toggle-full"][data-uid="3"]');
+        const prose=record.querySelector('.slb-library-prose');
+        assert.ok(prose.textContent.startsWith(preview.slice(0,-1)));
+        assert.equal(prose.textContent,f.entries[3].content);
+        assert.equal(prose.parentElement.firstElementChild,prose);
+        assert.equal(record.lastElementChild.dataset.action,'memory-toggle-full');
+        assert.equal(f.records()[4],other);
+        f.click('[data-action="memory-toggle-full"][data-uid="3"]');
+        assert.equal(record.querySelector('.slb-library-memory-preview').textContent,preview);
         assert.equal(f.state.reads,1);
         assert.equal(f.state.writes,0);
     } finally {f.dom.window.close();}
