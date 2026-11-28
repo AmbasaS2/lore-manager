@@ -61,9 +61,12 @@ test('timeline excerpt is the exact beginning of the displayed full body; dates 
     const unknown='**Timeline**: unknown\n\n**Scene**\nFull\n\n**Result**\nActual result';
     assert.equal(memoryTimelinePreview(unknown).body,unknown);
     assert.deepEqual(memoryTimelinePreview('No date or result'), {date:'',text:'No date or result',body:'No date or result'});
-    assert.equal(memoryTimelinePreview('x'.repeat(240)).text, 'x'.repeat(200)+'…');
+    assert.equal(memoryTimelinePreview('x'.repeat(240)).text, 'x'.repeat(100)+'…');
+    assert.equal(memoryTimelinePreview('한'.repeat(100)).text,'한'.repeat(100));
+    assert.equal(memoryTimelinePreview('한'.repeat(101)).text,'한'.repeat(100)+'…');
+    assert.equal(memoryTimelinePreview('🦥'.repeat(100)).text,'🦥'.repeat(100));
     const emoji=memoryTimelinePreview('🦥'.repeat(220));
-    assert.equal(Array.from(emoji.text).length,201);
+    assert.equal(Array.from(emoji.text).length,101);
     assert.ok(emoji.body.startsWith(emoji.text.slice(0,-1)));
     assert.equal(memoryTimelinePreview('**Scene**: not a heading\nMore').body,'**Scene**: not a heading\nMore');
 });

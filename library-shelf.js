@@ -106,8 +106,8 @@ export function memoryTimelinePreview(content, title = '') {
     if (/^(?:Scene|장면|씬)\s*[:：]?$/iu.test(heading(lines[first] || ''))) first++;
     const body = lines.slice(first).join('\n').trim() || text;
     // Bound excerpt work even for very long entries and preserve Unicode.
-    const prefix = Array.from(body.slice(0, 402));
-    const preview = prefix.length > 200 ? prefix.slice(0, 200).join('').trimEnd() + '…' : body;
+    const prefix = Array.from(body.slice(0, 202));
+    const preview = prefix.length > 100 ? prefix.slice(0, 100).join('').trimEnd() + '…' : body;
     return { date, text: preview, body };
 }
 
